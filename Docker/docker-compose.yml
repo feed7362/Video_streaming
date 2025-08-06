@@ -1,0 +1,39 @@
+services:
+  bff:
+    build:
+      context: ..
+      dockerfile: .backend/Dockerfile
+    container_name: bff_service
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: .frontend/Dockerfile
+    container_name: frontend_service
+    ports:
+      - "8001:8000"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:latest
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 1m30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
