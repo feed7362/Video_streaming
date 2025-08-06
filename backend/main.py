@@ -2,11 +2,12 @@ from contextlib import asynccontextmanager
 from src.api.health import router_health
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from src.i18n import LanguageMiddleware
 import time
 
 app = FastAPI()
 app.include_router(router_health)
-
+app.add_middleware(LanguageMiddleware)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

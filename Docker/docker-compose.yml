@@ -40,8 +40,17 @@ services:
     restart: unless-stopped
 
   ffmpeg:
-    image: jrottenberg/ffmpeg:6.0-ubuntu
+    image: jrottenberg/ffmpeg:latest
     container_name: ffmpeg_service
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
 
   minio:
     image: minio/minio
@@ -76,3 +85,8 @@ services:
 #      - "3000:3000"
 #    depends_on:
 #      - prometheus
+
+
+networks:
+  default:
+    name: video_streaming_network
