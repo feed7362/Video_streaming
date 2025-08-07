@@ -4,7 +4,7 @@ from typing import Dict
 from fastapi import APIRouter
 
 router_health = APIRouter(
-    prefix="/health",
+    prefix="/api/health",
     tags=["health_check"]
 )
 
