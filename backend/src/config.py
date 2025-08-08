@@ -19,13 +19,14 @@ class DatabaseSettings(BaseAppSettings):
         env_prefix = 'POSTGRES_'
 
 class S3Settings(BaseAppSettings):
-    ACCESS_KEY: str
-    SECRET_KEY: str
-    ENDPOINT_URL: str
-    BUCKET_NAME: str
+    MINIO_ACCESS_KEY: str
+    MINIO_SECRET_KEY: str
+    MINIO_ENDPOINT_URL: str
+    MINIO_BUCKET_NAME: str
 
     class Config:
         env_file = './s3.env'
+        env_prefix = 'MINIO_'
 
 
 @lru_cache()

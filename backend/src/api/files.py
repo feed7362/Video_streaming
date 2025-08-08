@@ -1,60 +1,49 @@
-from fastapi import File, UploadFile
+from fastapi import UploadFile, APIRouter
+from typing import List, Optional, Dict
 from fastapi.responses import StreamingResponse, FileResponse
-from fastapi import APIRouter
 
+from ..services import s3_client
 router_files = APIRouter(
     prefix="/api/files",
     tags=["files"]
 )
 
 
-@router_files.post("/upload/single")
-async def upload_file(uploaded_file: UploadFile):
+@router_files.post("/upload")
+async def upload_files(uploaded_files: Optional[List[UploadFile]]) -> Dict:
     """
-        Endpoint to upload a single file.
-
-        Args:
-            uploaded_file (UploadFile): The file to be uploaded, provided in the request.
-
-        Returns:
-            None: The file is saved locally with a prefix "1_" added to its original filename.
-        """
-    file = uploaded_file.file
-    filename = uploaded_file.filename
-    with open(f"1_{filename}", "wb") as f:
-        f.write(file.read())
-
-
-@router_files.post("/upload/multiple")
-async def upload_files(uploaded_files: list[UploadFile]):
-    """
-    Endpoint to upload multiple files.
+    Endpoint to upload multiple files to an S3 bucket.
 
     Args:
-        uploaded_files (list[UploadFile]): A list of files to be uploaded, provided in the request.
+        uploaded_files (Optional[List[UploadFile]]): A list of files to be uploaded.
+            If no files are provided, the list can be None.
 
     Returns:
-        None: Each file is saved locally with a prefix "1_" added to its original filename.
+        Dict: A dictionary containing the status of the upload operation.
+            If successful, it includes the number of files uploaded.
+            If an error occurs, it includes the error message.
     """
-    for uploaded_file in uploaded_files:
-        file = uploaded_file.file
-        filename = uploaded_file.filename
-        with open(f"1_{filename}", "wb") as f:
-            f.write(file.read())
+    try:
+        for uploaded_file in uploaded_files:
+            await s3_client.upload_file(uploaded_file.filename, uploaded_file.file)
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    return {"status": "uploaded", "files_count": len(uploaded_files)}
 
 
-@router_files.get("/download/{filename}")
-async def get_file(filename: str):
-    """
-    Endpoint to retrieve a file.
-
-    Args:
-        filename (str): The name of the file to be retrieved.
-
-    Returns:
-        FileResponse: The file is returned as a response.
-    """
-    return FileResponse(filename)  # Return the file as a response.
+# @router_files.get("/download/{filename}")
+# async def get_file(filename: str):
+#     """
+#     Endpoint to retrieve a file.
+#
+#     Args:
+#         filename (str): The name of the file to be retrieved.
+#
+#     Returns:
+#         FileResponse: The file is returned as a response.
+#     """
+#     file = await s3_client.download_file(filename)
+#     return FileResponse(file)  # Return the file as a response.
 
 
 def interfile(filename: str):
@@ -68,12 +57,12 @@ def interfile(filename: str):
         bytes: A chunk of the file's content.
     """
     with open(filename, "rb") as file:
-        while chunk := file.read(1024 * 1024):  # Read the file in chunks of 1 MB.
+        while chunk := file.read(1024 * 1024 * 3):  # Read the file in chunks of 3 MB.
             yield chunk
 
 
 @router_files.get("/streaming/{filename}")
-async def get_streaming_file(filename: str):
+async def get_streaming_file(filename: str, mode: str = "download"):
     """
     Endpoint to stream a file.
 
@@ -83,4 +72,10 @@ async def get_streaming_file(filename: str):
     Returns:
         StreamingResponse: The file is streamed as a response with the specified media type.
     """
-    return StreamingResponse(interfile(filename), media_type="video/mp4")
+    await s3_client.download_file(filename, 1024 * 1024 * 3)
+    if mode == "stream":
+        headers = {"Content-Disposition": f'inline; filename="{filename}"'}
+        return StreamingResponse(interfile(filename), media_type="video/mp4", headers=headers)
+    else:
+        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+        return StreamingResponse(interfile(filename), media_type="application/octet-stream", headers=headers)

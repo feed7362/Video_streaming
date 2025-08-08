@@ -15,10 +15,12 @@ ENV PATH="/opt/venv/bin:${PATH}" \
 
 RUN uv venv /opt/venv
 
+COPY pyproject.toml ./
+
 RUN uv sync --no-dev
 
 COPY . .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--log-level", "debug"]
+CMD ["python3", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--log-level", "debug"]
