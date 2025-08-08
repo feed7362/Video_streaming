@@ -1,19 +1,22 @@
 services:
   bff:
     build:
-      context: ..
-      dockerfile: ./backend/Dockerfile
+      context: ../backend
+      dockerfile: Dockerfile
     container_name: bff_service
     ports:
       - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - postgres
       - ffmpeg
+      - minio
 
   frontend:
     build:
-      context: ..
-      dockerfile: ./frontend/Dockerfile
+      context: ../frontend
+      dockerfile: Dockerfile
     container_name: frontend_service
     ports:
       - "8001:8001"
@@ -23,7 +26,7 @@ services:
   postgres:
     image: postgres:latest
     env_file:
-      - .env
+      - ../backend/src/database.env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -40,7 +43,9 @@ services:
     restart: unless-stopped
 
   ffmpeg:
-    image: jrottenberg/ffmpeg:latest
+    build:
+      context: ../converting
+      dockerfile: Dockerfile
     container_name: ffmpeg_service
     deploy:
       resources:
@@ -55,22 +60,38 @@ services:
   minio:
     image: minio/minio
     container_name: minio_service
+    env_file:
+      - ../backend/src/s3.env
     ports:
       - "9000:9000"
     environment:
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_ACCESS_KEY_FILE: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY_FILE: ${MINIO_SECRET_KEY}
+    command: [ "minio","--quiet", "server", "/mnt/data" ] #--anonymous | minio server /mnt/data{1...64} 64 - clusters
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
 
   nginx:
     build:
-      context: ..
-      dockerfile: ./gateway/Dockerfile
+      context: ../gateway
+      dockerfile: Dockerfile
     container_name: nginx_gateway
     ports:
       - "80:80"
     depends_on:
       - bff
       - frontend
+
+  rabbit_mq:
+    image: rabbitmq:3.8-management-alpine
+    container_name: rabbit_service
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
 
 #  prometheus:
 #    image: prom/prometheus:latest
@@ -90,3 +111,7 @@ services:
 networks:
   default:
     name: video_streaming_network
+    external: true
+
+# docker compose -p video_streaming_stack -f ./Docker/docker-compose.yml build
+# docker compose -p video_streaming_stack -f ./Docker/docker-compose.yml up -d
