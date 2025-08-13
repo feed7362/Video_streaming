@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-
 from src.api.files import router_files
 from src.api.health import router_health
 from fastapi import FastAPI, Request

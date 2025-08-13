@@ -1,5 +1,9 @@
 from functools import lru_cache
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+BASE_DIR = Path(__file__).resolve().parent
 
 
 class BaseAppSettings(BaseSettings):
@@ -15,18 +19,20 @@ class DatabaseSettings(BaseAppSettings):
     POSTGRES_PASS: str
 
     class Config:
-        env_file = './database.env'
+        env_file = str(BASE_DIR / "database.env")
         env_prefix = 'POSTGRES_'
+
 
 class S3Settings(BaseAppSettings):
     MINIO_ACCESS_KEY: str
     MINIO_SECRET_KEY: str
     MINIO_ENDPOINT_URL: str
     MINIO_BUCKET_NAME: str
+    MINIO_REGION_NAME: str
 
     class Config:
-        env_file = './s3.env'
-        env_prefix = 'MINIO_'
+        env_file = str(BASE_DIR / "s3.env")
+        # env_prefix = 'MINIO_'
 
 
 @lru_cache()

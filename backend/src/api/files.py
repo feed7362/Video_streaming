@@ -3,6 +3,8 @@ from typing import List, Optional, Dict
 from fastapi.responses import StreamingResponse, FileResponse
 
 from ..services import s3_client
+from ..services.rabbit_client import rabbit_broker
+
 router_files = APIRouter(
     prefix="/api/files",
     tags=["files"]
@@ -26,6 +28,7 @@ async def upload_files(uploaded_files: Optional[List[UploadFile]]) -> Dict:
     try:
         for uploaded_file in uploaded_files:
             await s3_client.upload_file(uploaded_file.filename, uploaded_file.file)
+            await rabbit_broker.publish(uploaded_file.filename, queue="video.encode")
     except Exception as e:
         return {"status": "error", "message": str(e)}
     return {"status": "uploaded", "files_count": len(uploaded_files)}
