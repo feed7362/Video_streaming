@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from typing import AsyncGenerator
 from sqlalchemy.ext.declarative import declarative_base
-from config import get_database_settings
+from ..config import get_database_settings
 from sqlalchemy import MetaData
 
 settings = get_database_settings()
