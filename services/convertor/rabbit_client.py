@@ -4,7 +4,7 @@ from faststream import FastStream
 import aiofiles
 from main import stream_ffmpeg, prepare_dirs, cleanup_dirs
 
-broker = RabbitBroker("amqp://guest:guest@rabbit_mq:5672/")
+broker = RabbitBroker("amqp://guest:guest@rabbitmq:5672/")
 app = FastStream(broker)
 
 
