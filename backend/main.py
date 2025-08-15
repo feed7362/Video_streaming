@@ -6,7 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.i18n import LanguageMiddleware
 import time
 
-app = FastAPI()
+app = FastAPI(title="My API",
+              description="BFF",
+              version="1.0.0",
+              )
 app.include_router(router_health)
 app.include_router(router_files)
 app.add_middleware(LanguageMiddleware)

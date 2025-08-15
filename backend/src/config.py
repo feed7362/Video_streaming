@@ -24,8 +24,8 @@ class DatabaseSettings(BaseAppSettings):
 
 
 class S3Settings(BaseAppSettings):
-    MINIO_ACCESS_KEY: str
-    MINIO_SECRET_KEY: str
+    MINIO_ROOT_USER: str
+    MINIO_ROOT_PASSWORD: str
     MINIO_ENDPOINT_URL: str
     MINIO_BUCKET_NAME: str
     MINIO_REGION_NAME: str

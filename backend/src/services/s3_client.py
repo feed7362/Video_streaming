@@ -104,8 +104,8 @@ class S3Client:
 
 
 s3_client = S3Client(
-    settings.MINIO_ACCESS_KEY,
-    settings.MINIO_SECRET_KEY,
+    settings.MINIO_ROOT_USER,
+    settings.MINIO_ROOT_PASSWORD,
     settings.MINIO_ENDPOINT_URL,
     settings.MINIO_BUCKET_NAME,
     settings.MINIO_REGION_NAME
