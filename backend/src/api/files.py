@@ -49,21 +49,6 @@ async def upload_files(uploaded_files: List[UploadFile]) -> Dict:
 #     return FileResponse(file)  # Return the file as a response.
 
 
-def interfile(filename: str):
-    """
-    Generator function to read a file in chunks.
-
-    Args:
-        filename (str): The name of the file to be read.
-
-    Yields:
-        bytes: A chunk of the file's content.
-    """
-    with open(filename, "rb") as file:
-        while chunk := file.read(1024 * 1024 * 3):  # Read the file in chunks of 3 MB.
-            yield chunk
-
-
 @router_files.get("/streaming/{filename}")
 async def get_streaming_file(filename: str, mode: str = "download"):
     """
@@ -75,10 +60,13 @@ async def get_streaming_file(filename: str, mode: str = "download"):
     Returns:
         StreamingResponse: The file is streamed as a response with the specified media type.
     """
-    await s3_client.download_file(filename, 1024 * 1024 * 3)
-    if mode == "stream":
-        headers = {"Content-Disposition": f'inline; filename="{filename}"'}
-        return StreamingResponse(interfile(filename), media_type="video/mp4", headers=headers)
-    else:
-        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
-        return StreamingResponse(interfile(filename), media_type="application/octet-stream", headers=headers)
+    try:
+        chunk_generator  = s3_client.download_file(filename, 1024 * 1024 * 3)
+        if mode == "stream":
+            headers = {"Content-Disposition": f'inline; filename="{filename}"'}
+            return StreamingResponse(chunk_generator, media_type="video/mp4", headers=headers)
+        else:
+            headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+            return StreamingResponse(chunk_generator, media_type="application/octet-stream", headers=headers)
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
