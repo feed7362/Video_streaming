@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+
+from src.services.rabbit_client import rabbit_broker
 from src.api.files import router_files
 from src.api.health import router_health
 from fastapi import FastAPI, Request
@@ -6,21 +8,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.i18n import LanguageMiddleware
 import time
 
-app = FastAPI(title="My API",
-              description="BFF",
-              version="1.0.0",
-              )
-app.include_router(router_health)
-app.include_router(router_files)
-app.add_middleware(LanguageMiddleware)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # logger.info("Application starting up")
+    await rabbit_broker.connect()
     yield
-    # logger.info("Application shutting down")
+    await rabbit_broker.close()
 
+
+app = FastAPI(title="My API",
+              description="BFF",
+              version="1.0.0",
+              lifespan=lifespan)
+app.include_router(router_health)
+app.include_router(router_files)
+app.add_middleware(LanguageMiddleware)
 
 origins = [
     "http://localhost",

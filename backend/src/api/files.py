@@ -1,6 +1,6 @@
 from fastapi import UploadFile, APIRouter
 from typing import List, Optional, Dict
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse
 
 from ..services import s3_client
 from ..services.rabbit_client import rabbit_broker
@@ -12,7 +12,7 @@ router_files = APIRouter(
 
 
 @router_files.post("/upload")
-async def upload_files(uploaded_files: Optional[List[UploadFile]]) -> Dict:
+async def upload_files(uploaded_files: List[UploadFile]) -> Dict:
     """
     Endpoint to upload multiple files to an S3 bucket.
 
