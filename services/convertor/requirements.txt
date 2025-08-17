@@ -1,2 +1,3 @@
-faststream[rabbit, cli]>=0.5.48
-aiofiles >=23.1.0
+faststream[rabbit, cli]
+aiobotocore
+pydantic-settings

@@ -7,11 +7,9 @@ LOCAL_BASE = Path("/tmp/processing")
 
 
 # ---------- Utility: safe mkdir / cleanup ----------
-def prepare_dirs(video_id: str) -> Path:
+async def prepare_dirs(video_id: str) -> Path:
     base = LOCAL_BASE / video_id
-    out = base / "output"
-    for p in (base, out):
-        p.mkdir(parents=True, exist_ok=True)
+    base.mkdir(parents=True, exist_ok=True)
     return base
 
 
@@ -24,8 +22,8 @@ def cleanup_dirs(video_id: str):
 
 
 async def stream_ffmpeg(input_async_iter, output_dir: Path):
-    out_template = str(output_dir / "output" / "stream_%v" / "seg_%03d.ts")
-    out_playlist = str(output_dir / "output" / "stream_%v" / "playlist.m3u8")
+    out_template = str(output_dir / "stream_%v" / "seg_%03d.ts")
+    out_playlist = str(output_dir / "stream_%v" / "playlist.m3u8")
     cmd = [
         # input
         "ffmpeg", "-y",
