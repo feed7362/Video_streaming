@@ -157,6 +157,8 @@ services:
     volumes:
       - ../monitoring/prometheus.yaml:/etc/prometheus/prometheus.yaml
       - prometheusdata:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yaml"
 
   grafana:
     image: grafana/grafana:latest
