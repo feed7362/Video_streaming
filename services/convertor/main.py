@@ -2,6 +2,7 @@ import asyncio
 import shutil
 from pathlib import Path
 import subprocess
+import logging
 
 LOCAL_BASE = Path("/tmp/processing")
 
@@ -10,6 +11,7 @@ LOCAL_BASE = Path("/tmp/processing")
 async def prepare_dirs(video_id: str) -> Path:
     base = LOCAL_BASE / video_id
     base.mkdir(parents=True, exist_ok=True)
+    logging.info(f"Created local dirs for {video_id}")
     return base
 
 
@@ -17,8 +19,9 @@ def cleanup_dirs(video_id: str):
     base = LOCAL_BASE / video_id
     try:
         shutil.rmtree(base)
+        logging.info(f"Removed local dirs for {video_id}")
     except Exception as e:
-        print(f"Failed to cleanup local dirs for {video_id}, Error: {e}")
+        logging.error(f"Failed to cleanup local dirs for {video_id}, Error: {e}")
 
 
 async def stream_ffmpeg(input_async_iter, output_dir: Path):
@@ -83,7 +86,7 @@ async def stream_ffmpeg(input_async_iter, output_dir: Path):
                 process.stdin.write(chunk)
                 await process.stdin.drain()
         except Exception as e:
-            print(f"Error feeding ffmpeg stdin: {e}")
+            logging.error(f"Error feeding ffmpeg stdin: {e}")
         finally:
             if not process.stdin.is_closing():
                 process.stdin.close()
@@ -94,7 +97,7 @@ async def stream_ffmpeg(input_async_iter, output_dir: Path):
             chunk = await process.stderr.read(1024)
             if not chunk:
                 break
-            print("[ffmpeg stderr]", chunk.decode(errors='ignore').strip())
+            logging.info("[ffmpeg stderr]", chunk.decode(errors='ignore').strip())
 
     await asyncio.gather(feed_stdin(), log_stderr())
 

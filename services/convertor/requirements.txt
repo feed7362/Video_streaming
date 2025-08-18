@@ -1,3 +1,4 @@
-faststream[rabbit, cli]
+faststream[rabbit, cli, prometheus]
 aiobotocore
 pydantic-settings
+uvicorn

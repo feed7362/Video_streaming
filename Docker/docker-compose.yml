@@ -13,6 +13,8 @@ services:
       - rabbitmq
     logging:
       driver: "json-file"
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   frontend:
     build:
@@ -37,6 +39,10 @@ services:
       retries: 5
       start_period: 40s
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   ffmpeg:
     build:
@@ -52,11 +58,17 @@ services:
               capabilities: [ gpu ]
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+    expose:
+      - "8002"
     tty: true
     stdin_open: true
     depends_on:
       rabbitmq:
         condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   minio:
     image: minio/minio:latest
@@ -70,7 +82,7 @@ services:
     hostname: minio
     environment:
       MINIO_BROWSER_REDIRECT_URL: http://localhost/minio/ui
-      MINIO_PROMETHEUS_URL : http://prometheus:9090
+      MINIO_PROMETHEUS_URL: http://prometheus:9090
     command: minio server /minio_data --console-address ":9001"
     volumes:
       - minio_data:/minio_data
@@ -79,6 +91,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   nginx:
     image: nginx:alpine
@@ -91,6 +107,10 @@ services:
     depends_on:
       - bff
       - frontend
+    logging:
+      driver: "json-file"
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   rabbitmq:
     image: rabbitmq:3.8-management-alpine
@@ -104,6 +124,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   promtail:
     image: grafana/promtail:latest
@@ -111,9 +135,9 @@ services:
     expose:
       - "9080"
     volumes:
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers
       - /var/run/docker.sock:/var/run/docker.sock
-      - ../monitoring/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+      - ../monitoring/promtail-config.yaml:/etc/promtail/promtail-config.yaml
     command: -config.file=/etc/promtail/promtail-config.yaml
     privileged: true
 
@@ -125,15 +149,13 @@ services:
     volumes:
       - ../monitoring/loki-config.yaml:/etc/loki/loki-config.yaml
 
-
-
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     expose:
       - "9090"
     volumes:
-      - ../monitoring/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - ../monitoring/prometheus.yaml:/etc/prometheus/prometheus.yaml
       - prometheusdata:/prometheus
 
   grafana:
@@ -148,7 +170,7 @@ services:
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_SERVER_ROOT_URL=http://localhost/grafana
     volumes:
-      - ../monitoring/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+      - ../monitoring/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - grafanadata:/var/lib/grafana
 
 

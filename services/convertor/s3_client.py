@@ -4,6 +4,7 @@ from pathlib import Path
 from aiobotocore.session import get_session
 from botocore.exceptions import ClientError
 from config import get_s3_settings
+import logging
 
 settings = get_s3_settings()
 PART_SIZE = 1024 * 1024 * 10
@@ -69,14 +70,14 @@ class S3Client:
                     UploadId=upload_id,
                     MultipartUpload={"Parts": parts}
                 )
-                print(f"File {filename} uploaded to {self.bucket_name}")
+                logging.info(f"File {filename} uploaded to {self.bucket_name}")
         except ClientError as e:
             await client.abort_multipart_upload(
                 Bucket=self.bucket_name,
                 Key=filename,
                 UploadId=upload_id
             )
-            print(f"Error uploading file: {e}")
+            logging.error(f"Error uploading file: {e}")
 
     async def upload_dir(self, dirname: str, directory):
         try:
@@ -84,15 +85,15 @@ class S3Client:
                 if p.is_file():
                     await self.upload_file(str(dirname / p.relative_to(directory)), p.open('rb'))
         except ClientError as e:
-            print(f"Error uploading dir: {e}")
+            logging.error(f"Error uploading dir: {e}")
 
     async def delete_file(self, object_name: str):
         try:
             async with self._get_client() as client:
                 await client.delete_object(Bucket=self.bucket_name, Key=object_name)
-                print(f"File {object_name} deleted from {self.bucket_name}")
+                logging.info(f"File {object_name} deleted from {self.bucket_name}")
         except ClientError as e:
-            print(f"Error deleting file: {e}")
+            logging.error(f"Error deleting file: {e}")
 
     async def download_file(self, object_name: str, chunk_size: int):
         try:
@@ -108,9 +109,9 @@ class S3Client:
                         Range=f"bytes={start}-{end}"
                     )
                     yield await resp['Body'].read()
-                print(f"File {object_name} downloaded with chunk size {chunk_size}")
+                logging.info(f"File {object_name} downloaded with chunk size {chunk_size}")
         except ClientError as e:
-            print(f"Error downloading file: {e}")
+            logging.error(f"Error downloading file: {e}")
 
 
 s3_client = S3Client(

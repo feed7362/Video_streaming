@@ -1,15 +1,13 @@
 from contextlib import asynccontextmanager
-from prometheus_fastapi_instrumentator import Instrumentator
 from src.services.rabbit_client import rabbit_broker
 from src.api.files import router_files
 from src.api.health import router_health
+from src.api.metrics import router_metrics, metrics_app
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from src.i18n import LanguageMiddleware
 import logging
 import time
-
-instrumentator = Instrumentator()
 
 
 @asynccontextmanager
@@ -26,10 +24,10 @@ app = FastAPI(title="My API",
               version="1.0.0",
               lifespan=lifespan)
 
-instrumentator.instrument(app).expose(app)
-
+app.mount("/api/metrics", metrics_app)
 app.include_router(router_health)
 app.include_router(router_files)
+app.include_router(router_metrics)
 app.add_middleware(LanguageMiddleware)
 
 origins = [

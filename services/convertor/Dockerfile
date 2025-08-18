@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-ENTRYPOINT ["faststream", "run", "rabbit_client:app"]
+ENTRYPOINT ["uvicorn", "rabbit_client:app", "--host", "0.0.0.0", "--port", "8002"]
