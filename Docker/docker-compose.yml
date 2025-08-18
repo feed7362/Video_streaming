@@ -70,7 +70,7 @@ services:
     hostname: minio
     environment:
       MINIO_BROWSER_REDIRECT_URL: http://localhost/minio/ui
-    #      MINIO_PROMETHEUS_URL :
+      MINIO_PROMETHEUS_URL : http://prometheus:9090
     command: minio server /minio_data --console-address ":9001"
     volumes:
       - minio_data:/minio_data
@@ -133,8 +133,8 @@ services:
     expose:
       - "9090"
     volumes:
-    - ../monitoring/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
-    - prometheusdata:/prometheus
+      - ../monitoring/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - prometheusdata:/prometheus
 
   grafana:
     image: grafana/grafana:latest
@@ -144,6 +144,9 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_ROOT_URL=http://localhost/grafana
     volumes:
       - ../monitoring/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
       - grafanadata:/var/lib/grafana
