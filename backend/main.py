@@ -6,12 +6,14 @@ from src.api.metrics import router_metrics, PrometheusMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.i18n import LanguageMiddleware
+from src.services.s3_client import s3_client
 import logging
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await rabbit_broker.connect()
+    await s3_client.check_bucket_exists()
     logging.info("Startup complete. Metrics exposed.")
     yield
     logging.info("Shutdown complete.")

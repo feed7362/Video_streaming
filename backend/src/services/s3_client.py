@@ -26,6 +26,15 @@ class S3Client:
         self.bucket_name = bucket_name
         self.session = get_session()
 
+    async def check_bucket_exists(self):
+        async with self._get_client() as client:
+            try:
+                await client.head_bucket(Bucket=self.bucket_name)
+                logging.info(f"Bucket '{self.bucket_name}' already exists")
+            except ClientError:
+                await client.create_bucket(Bucket=self.bucket_name)
+                logging.info(f"Bucket '{self.bucket_name}' created")
+
     @asynccontextmanager
     async def _get_client(self):
         """
