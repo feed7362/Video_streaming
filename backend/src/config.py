@@ -20,7 +20,6 @@ class DatabaseSettings(BaseAppSettings):
 
     class Config:
         env_file = str(BASE_DIR / "database.env")
-        env_prefix = 'POSTGRES_'
 
 
 class S3Settings(BaseAppSettings):
@@ -32,7 +31,6 @@ class S3Settings(BaseAppSettings):
 
     class Config:
         env_file = str(BASE_DIR / "s3.env")
-        # env_prefix = 'MINIO_'
 
 
 @lru_cache()

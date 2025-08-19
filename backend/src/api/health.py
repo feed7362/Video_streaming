@@ -1,6 +1,7 @@
-import asyncio
-from typing import Dict
-
+# import asyncio
+# import time
+# from typing import Dict, Any, Awaitable, Callable
+from fastapi.responses import Response
 from fastapi import APIRouter
 
 router_health = APIRouter(
@@ -8,32 +9,40 @@ router_health = APIRouter(
     tags=["health_check"]
 )
 
-# @router_health.get("/live")
-# async def perform_health_checks(settings: Settings) -> Dict[str, ServiceCheck]:
-#     checks = {}
-#     tasks = []
-#     if settings.database_url:
-#         tasks.append(("database", check_database(settings.database_url, settings.health_check_timeout)))
-#     if settings.redis_url:
-#         tasks.append(("redis", check_redis(settings.redis_url, settings.health_check_timeout)))
-#     if tasks:
-#         results = await asyncio.gather(*[task[1] for task in tasks], return_exceptions=True)
-#     return checks
-
-# {
-#   "status": "healthy",
-#   "timestamp": 1640995200.123,
-#   "version": "1.0.0",
-#   "checks": {
-#     "database": {
-#       "status": "healthy",
-#       "duration_ms": 23.4
-#     },
-#     "redis": {
-#       "status": "healthy",
-#       "duration_ms": 12.1
-#     }
-#   }
+#
+# CHECKS: Dict[str, Callable[..., Awaitable[Dict[str, Any]]]] = {
+#     "database": lambda settings: check_database(settings.database_url, settings.health_check_timeout),
+#     "redis": lambda settings: check_redis(settings.redis_url, settings.health_check_timeout),
+#     "s3": lambda settings: check_s3(settings.s3_url, settings.health_check_timeout),
 # }
-
+#
+#
 # @router_health.get("/ready")
+# async def perform_readiness_checks(settings: "Settings" = Depends()) -> Dict[str, Any]:
+#     tasks = {
+#         name: checker(settings)
+#         for name, checker in CHECKS.items()
+#         if getattr(settings, f"{name}_url", None)
+#     }
+#
+#     results = await asyncio.gather(*tasks.values(), return_exceptions=True)
+#
+#     checks: Dict[str, Any] = {}
+#     for name, result in zip(tasks.keys(), results):
+#         if isinstance(result, Exception):
+#             checks[name] = {"status": "unhealthy", "error": str(result)}
+#         else:
+#             checks[name] = result
+#
+#     overall_status = "healthy" if all(c["status"] == "healthy" for c in checks.values()) else "unhealthy"
+#
+#     return {
+#         "status": overall_status,
+#         "timestamp": time.time(),
+#         "checks": checks,
+#     }
+
+
+@router_health.get("/live")
+async def perform_liveness_checks():
+    return Response(status_code=200)
