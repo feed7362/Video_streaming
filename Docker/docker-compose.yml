@@ -60,8 +60,6 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
     expose:
       - "8002"
-    tty: true
-    stdin_open: true
     depends_on:
       rabbitmq:
         condition: service_healthy
