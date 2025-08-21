@@ -2,3 +2,4 @@ faststream[rabbit, cli, prometheus]
 aiobotocore
 pydantic-settings
 uvicorn
+pyyaml
