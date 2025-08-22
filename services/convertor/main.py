@@ -97,7 +97,7 @@ async def stream_ffmpeg(input_async_iter, output_dir: Path):
             chunk = await process.stderr.read(1024)
             if not chunk:
                 break
-            logging.info("[ffmpeg stderr]", chunk.decode(errors='ignore').strip())
+            logging.info("[ffmpeg stderr] %s", chunk.decode(errors='ignore').strip())
 
     await asyncio.gather(feed_stdin(), log_stderr())
 

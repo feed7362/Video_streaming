@@ -20,7 +20,7 @@ async def encode_video(video_id: str):
     try:
         base_dir = await prepare_dirs(video_id)
         async_gen = s3_client.download_file(video_id, 1024 * 1024 * 30)
-        logging.info(f"Starting encoding task for video: {video_id}")
+        logging.info("[ffmpeg] Starting encoding task for video %s", video_id)
 
         await broker.publish({"video_id": video_id, "status": "pending"}, queue="video.encode.status")
         await stream_ffmpeg(async_gen, base_dir)
@@ -28,12 +28,12 @@ async def encode_video(video_id: str):
 
         await s3_client.upload_dir(video_id, base_dir)
         await broker.publish({"video_id": video_id, "status": "done"}, queue="video.encode.status")
-        logging.info(f"Video: {video_id} uploaded to S3")
+        logging.info("[S3] Video %s fully uploaded to S3", video_id)
 
     except Exception as e:
         await broker.publish({"video_id": video_id, "status": f"error: {e}"}, queue="video.encode.status")
-        logging.error(f"Error encoding video: {e}")
+        logging.error("[Error] Encoding video %s failed: %s", video_id, e)
     finally:
         cleanup_dirs(video_id)
         await s3_client.delete_file(video_id)
-        logging.info(f"Cleaned up local dirs for video: {video_id}")
+        logging.info("[Cleanup] Local dirs for video %s removed", video_id)
