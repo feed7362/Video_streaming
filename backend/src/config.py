@@ -14,9 +14,9 @@ class BaseAppSettings(BaseSettings):
 class DatabaseSettings(BaseAppSettings):
     POSTGRES_HOST: str
     POSTGRES_PORT: str
-    POSTGRES_NAME: str
+    POSTGRES_DB: str
     POSTGRES_USER: str
-    POSTGRES_PASS: str
+    POSTGRES_PASSWORD: str
 
     class Config:
         env_file = str(BASE_DIR / "database.env")

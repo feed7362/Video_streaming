@@ -2,7 +2,7 @@ from fastapi import UploadFile, APIRouter, HTTPException, Query
 from typing import List, Literal
 from fastapi.responses import StreamingResponse
 import logging
-from ..schemas.endpoint_schema import FileMeta, UploadResponse, ErrorResponse
+from ..schemas.endpoint import FileMeta, UploadResponse, ErrorResponse
 from ..services import s3_client
 from ..services.rabbit_client import rabbit_broker
 

@@ -1,6 +1,6 @@
 from faststream.rabbit import RabbitBroker
 
-from ..schemas.endpoint_schema import StatusMessage
+from ..schemas.endpoint import StatusMessage
 import logging
 
 rabbit_broker = RabbitBroker(url="amqp://guest:guest@rabbitmq:5672/")

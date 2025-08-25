@@ -4,7 +4,7 @@ from fastapi import Request, APIRouter
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from fastapi.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
-from ..schemas.metric_schema import (
+from ..schemas.metric import (
     REQUEST_DURATION_HIST,
     REQUESTS_IN_PROGRESS,
     EXCEPTIONS_TOTAL,

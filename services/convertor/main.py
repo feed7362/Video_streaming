@@ -11,7 +11,7 @@ LOCAL_BASE = Path("/tmp/processing")
 async def prepare_dirs(video_id: str) -> Path:
     base = LOCAL_BASE / video_id
     base.mkdir(parents=True, exist_ok=True)
-    logging.info(f"Created local dirs for {video_id}")
+    logging.debug(f"Created local dirs for {video_id}")
     return base
 
 
@@ -19,7 +19,7 @@ def cleanup_dirs(video_id: str):
     base = LOCAL_BASE / video_id
     try:
         shutil.rmtree(base)
-        logging.info(f"Removed local dirs for {video_id}")
+        logging.debug(f"Removed local dirs for {video_id}")
     except Exception as e:
         logging.error(f"Failed to cleanup local dirs for {video_id}, Error: {e}")
 
@@ -97,7 +97,7 @@ async def stream_ffmpeg(input_async_iter, output_dir: Path):
             chunk = await process.stderr.read(1024)
             if not chunk:
                 break
-            logging.info("[ffmpeg stderr] %s", chunk.decode(errors='ignore').strip())
+            logging.debug("[ffmpeg stderr] %s", chunk.decode(errors='ignore').strip())
 
     await asyncio.gather(feed_stdin(), log_stderr())
 
