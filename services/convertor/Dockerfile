@@ -1,14 +1,23 @@
 FROM jrottenberg/ffmpeg:7.1-nvidia2204
 
-RUN apt-get update && apt-get install -y  \
-    python3.10  \
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    python3.12  \
     python3-pip  \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+ENV PATH="/opt/venv/bin:${PATH}" \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT="/opt/venv"
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv venv /opt/venv
+
+COPY pyproject.toml ./
+
+RUN uv sync --no-dev
 
 COPY . .
 
