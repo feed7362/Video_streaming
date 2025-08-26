@@ -1,0 +1,185 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  UV_CACHE_DIR: '~/.cache/uv'
+
+jobs:
+  # ---------------- pre-commit hooks ----------------
+  #  pre-commit:
+  #    name: Pre-commit hooks
+  #    runs-on: ubuntu-latest
+  #    steps:
+  #      - uses: actions/checkout@v4
+  #      - uses: actions/setup-python@v5
+  #        with:
+  #          python-version: 3.12
+  #      - name: Install pre-commit
+  #        run: pip install pre-commit
+  #      - name: Run pre-commit hooks
+  #        run: pre-commit run --all-files
+  #      - name: Upload pre-commit report
+  #        if: failure()
+  #        uses: actions/upload-artifact@v4
+  #        with:
+  #          name: pre-commit-report
+  #          path: .git/hooks/pre-commit || true
+
+  # ---------------- Python lint/type-check ----------------
+  lint-python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [ backend, services/convertor, services/auth, services/moderation ]
+        python-version: [ 3.10, 3.11, 3.12 ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: |
+          cd ${{ matrix.service }}
+          uv sync --frozen
+
+      - name: Cache uv
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.UV_CACHE_DIR }}
+          key: ${{ runner.os }}-uv-${{ matrix.service }}-${{ hashFiles(format('{0}/pyproject.toml', matrix.service)) }}
+
+
+      # --------- LINTING ----------
+      - name: Run Ruff
+        run: |
+          cd ${{ matrix.service }}
+          uvx ruff@latest check .
+
+      - name: Run Black
+        run: |
+          cd ${{ matrix.service }}
+          uvx black@latest --check .
+
+      - name: Run Mypy
+        run: |
+          cd ${{ matrix.service }}
+          uvx mypy@latest --install-types --non-interactive .
+
+      # --------- TESTING + COVERAGE ----------
+      - name: Run tests with coverage
+        run: |
+          cd ${{ matrix.service }}
+          uvx pytest@latest --cov=src --cov-report=xml --cov-report=term-missing --junitxml=report.xml
+        continue-on-error: false
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+      # --------- SECURITY ----------
+      - name: Run Bandit (security static analysis)
+        run: |
+          cd ${{ matrix.service }}
+          uvx bandit@latest -r src -ll -f json
+
+      - name: Run Safety (dependency vulnerability check)
+        run: |
+          cd ${{ matrix.service }}
+          uvx safety@latest check --full-report
+
+      - name: Run pip-audit (extra dep scanning)
+        run: |
+          cd ${{ matrix.service }}
+          uvx pip-audit@latest || true
+
+      # --------- SECRETS ----------
+      - name: Run Gitleaks (secrets detection)
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: detect --source . --no-banner --redact
+
+      # --------- LICENSE ----------
+      - name: Check licenses
+        run: |
+          cd ${{ matrix.service }}
+          uvx pip-licenses@latest --from=mixed --with-authors --with-urls 
+
+  # ---------------- Npm lint/tests ----------------
+  lint-npm:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [ frontend ]
+        node-version: [ 18, 19, 20 ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install dependencies
+        run: |
+          cd ${{ matrix.service }}
+          npm ci --prefer-offline
+
+      - name: Lint
+        run: |
+          cd ${{ matrix.service }}
+          npm run lint
+
+      - name: Test
+        run: |
+          cd ${{ matrix.service }}
+          npm test -- --watchAll=false
+
+      - name: Security scan
+        run: |
+          cd ${{ matrix.service }}
+          npm audit || true
+
+  # ---------------- Python build (per service) ----------------
+  build-python:
+    runs-on: ubuntu-latest
+    needs: lint-python
+    strategy:
+      matrix:
+        service: [ backend, services/convertor, services/auth, services/moderation ]
+        python-version: [ 3.10, 3.11, 3.12 ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Cache uv
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.UV_CACHE_DIR }}
+          key: ${{ runner.os }}-uv-${{ matrix.service }}-${{ hashFiles(format('{0}/pyproject.toml', matrix.service)) }}
+
+      - name: Install dependencies
+        run: |
+          cd ${{ matrix.service }}
+          uv sync --frozen
+
+      - name: Build (optional)
+        run: |
+          cd ${{ matrix.service }}
+          uv build
