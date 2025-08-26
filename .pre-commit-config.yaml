@@ -1,0 +1,73 @@
+repos:
+  # ----------------- General checks -----------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: latest
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: detect-private-key
+
+  # ----------------- Python -----------------
+  - repo: https://github.com/psf/black
+    rev: latest
+    hooks:
+      - id: black
+        language_version: python3.12
+        files: \.py$
+
+  - repo: https://github.com/PyCQA/isort
+    rev: latest
+    hooks:
+      - id: isort
+        language_version: python3.12
+        files: \.py$
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: latest
+    hooks:
+      - id: flake8
+        language_version: python3.12
+        files: \.py$
+
+  - repo: https://github.com/PyCQA/mypy
+    rev: latest
+    hooks:
+      - id: mypy
+        language_version: python3.12
+        files: \.py$
+
+  # ----------------- Node / JS / TS -----------------
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: latest
+    hooks:
+      - id: eslint
+        files: \.(js|ts|jsx|tsx)$
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: latest
+    hooks:
+      - id: prettier
+        files: \.(js|ts|css|scss|json|md|yaml|yml)$
+
+  # ----------------- Security / Secrets -----------------
+  - repo: https://github.com/awslabs/git-secrets
+    rev: latest
+    hooks:
+      - id: git-secrets
+        args: [ '--scan', '--scan-history' ]
+
+  # ----------------- Dependency checks -----------------
+  - repo: https://github.com/pycqa/bandit
+    rev: latest
+    hooks:
+      - id: bandit
+        args: [ '-r', '.' ]
+        files: \.py$
+
+  # Optional: check for commit message style
+  - repo: https://github.com/jorisroovers/gitlint
+    rev: latest
+    hooks:
+      - id: gitlint

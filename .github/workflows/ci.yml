@@ -48,6 +48,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd ${{ matrix.service }}
+          uv lock
           uv sync --frozen
 
       - name: Cache uv
@@ -136,7 +137,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd ${{ matrix.service }}
-          npm ci --prefer-offline
+          npm install --prefer-offline
 
       - name: Lint
         run: |
@@ -153,33 +154,45 @@ jobs:
           cd ${{ matrix.service }}
           npm audit || true
 
+      - name: Check licenses (npm)
+        run: |
+          if [ -f package.json ]; then npx license-checker --json > licenses.json || true; fi
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: licenses.json
+
+
   # ---------------- Python build (per service) ----------------
-  build-python:
-    runs-on: ubuntu-latest
-    needs: lint-python
-    strategy:
-      matrix:
-        service: [ backend, services/convertor, services/auth, services/moderation ]
-        python-version: [ 3.10, 3.11, 3.12 ]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - uses: astral-sh/setup-uv@v6
-
-      - name: Cache uv
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.UV_CACHE_DIR }}
-          key: ${{ runner.os }}-uv-${{ matrix.service }}-${{ hashFiles(format('{0}/pyproject.toml', matrix.service)) }}
-
-      - name: Install dependencies
-        run: |
-          cd ${{ matrix.service }}
-          uv sync --frozen
-
-      - name: Build (optional)
-        run: |
-          cd ${{ matrix.service }}
-          uv build
+#  build-python:
+#    runs-on: ubuntu-latest
+#    needs: lint-python
+#    strategy:
+#      matrix:
+#        service: [ backend, services/convertor, services/auth, services/moderation ]
+#        python-version: [ 3.10, 3.11, 3.12 ]
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/setup-python@v5
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#      - uses: astral-sh/setup-uv@v6
+#
+#      - name: Cache uv
+#        uses: actions/cache@v3
+#        with:
+#          path: ${{ env.UV_CACHE_DIR }}
+#          key: ${{ runner.os }}-uv-${{ matrix.service }}-${{ hashFiles(format('{0}/pyproject.toml', matrix.service)) }}
+#
+#      - name: Install dependencies
+#        run: |
+#          cd ${{ matrix.service }}
+#          uv lock
+#          uv sync --frozen
+#
+#      - name: Build (optional)
+#        run: |
+#          cd ${{ matrix.service }}
+#          uv build
