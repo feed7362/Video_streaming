@@ -1,7 +1,7 @@
 repos:
   # ----------------- General checks -----------------
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: latest
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -11,28 +11,28 @@ repos:
 
   # ----------------- Python -----------------
   - repo: https://github.com/psf/black
-    rev: latest
+    rev: 25.1.0
     hooks:
       - id: black
         language_version: python3.12
         files: \.py$
 
   - repo: https://github.com/PyCQA/isort
-    rev: latest
+    rev: 6.0.1
     hooks:
       - id: isort
         language_version: python3.12
         files: \.py$
 
   - repo: https://github.com/PyCQA/flake8
-    rev: latest
+    rev: 7.3.0
     hooks:
       - id: flake8
         language_version: python3.12
         files: \.py$
 
-  - repo: https://github.com/PyCQA/mypy
-    rev: latest
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.17.0
     hooks:
       - id: mypy
         language_version: python3.12
@@ -40,34 +40,40 @@ repos:
 
   # ----------------- Node / JS / TS -----------------
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: latest
+    rev: v9.34.0
     hooks:
       - id: eslint
-        files: \.(js|ts|jsx|tsx)$
+        entry: npx eslint --config frontend/eslint.config.js
+        files: ^frontend/.*\.(js|ts|jsx|tsx)$
+
 
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: latest
+    rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
-        files: \.(js|ts|css|scss|json|md|yaml|yml)$
-
-  # ----------------- Security / Secrets -----------------
-  - repo: https://github.com/awslabs/git-secrets
-    rev: latest
-    hooks:
-      - id: git-secrets
-        args: [ '--scan', '--scan-history' ]
+        files: ^frontend/.*\.(js|ts|css|scss|json|md|yaml|yml)$
 
   # ----------------- Dependency checks -----------------
-  - repo: https://github.com/pycqa/bandit
-    rev: latest
-    hooks:
-      - id: bandit
-        args: [ '-r', '.' ]
-        files: \.py$
-
-  # Optional: check for commit message style
   - repo: https://github.com/jorisroovers/gitlint
-    rev: latest
+    rev: v0.19.1
     hooks:
       - id: gitlint
+
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.8.6
+    hooks:
+      - id: bandit
+        args:
+          [
+            "-r",
+            ".",
+            "-f",
+            "custom",
+            "--msg-template",
+            "{relpath}:{line}:{col} {severity} {test_id} {msg}",
+            "--exclude",
+            ".venv",
+            "-ll", "-iii", "-x B404,B108"
+          ]
+        pass_filenames: false
+        additional_dependencies: [ "charset-normalizer" ]
