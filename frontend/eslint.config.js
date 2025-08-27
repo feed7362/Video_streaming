@@ -26,4 +26,22 @@ export default defineConfig([
       "no-unused-vars": ["error", { varsIgnorePattern: "^[A-Z_]" }],
     },
   },
+  // Добавляем override для тестов
+  {
+    files: ["**/*.test.{js,jsx}"],
+    plugins: ["vitest"],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        describe: "readonly",
+        it: "readonly",
+        test: "readonly",
+        expect: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly",
+      },
+    },
+  },
 ]);

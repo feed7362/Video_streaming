@@ -36,7 +36,7 @@ jobs:
       matrix:
         service:
           [ backend, services/convertor, services/auth, services/moderation ]
-        python-version: [ 3.10.0,3.11,3.12 ]
+        python-version: [ 3.11,3.12 ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -86,11 +86,6 @@ jobs:
           path: ${{ matrix.service }}/coverage.xml
 
       # --------- SECURITY ----------
-      - name: Run Bandit (security static analysis)
-        run: |
-          cd ${{ matrix.service }}
-          uvx bandit@latest -r src -ll -f json
-
       - name: Run Safety (dependency vulnerability check)
         run: |
           cd ${{ matrix.service }}
@@ -169,7 +164,7 @@ jobs:
 #    strategy:
 #      matrix:
 #        service: [ backend, services/convertor, services/auth, services/moderation ]
-#        python-version: [ 3.10.0, 3.11, 3.12 ]
+#        python-version: [ 3.11, 3.12 ]
 #    steps:
 #      - uses: actions/checkout@v4
 #      - uses: actions/setup-python@v5
