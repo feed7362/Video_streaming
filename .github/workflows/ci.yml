@@ -48,6 +48,7 @@ jobs:
         run: |
           cd ${{ matrix.service }}
           uv sync --frozen --no-dev
+          uv lock
 
       - name: Cache uv
         uses: actions/cache@v3
