@@ -47,7 +47,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd ${{ matrix.service }}
-          uv lock
+          uv lock --no_dev
           uv sync --frozen
 
       - name: Cache uv
@@ -140,7 +140,7 @@ jobs:
       - name: Test
         run: |
           cd ${{ matrix.service }}
-          npm test -- --watchAll=false
+          npm test
 
       - name: Security scan
         run: |
