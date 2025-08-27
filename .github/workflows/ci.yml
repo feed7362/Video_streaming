@@ -70,7 +70,7 @@ jobs:
       - name: Run Mypy
         run: |
           cd ${{ matrix.service }}
-          uvx mypy@latest --install-types --non-interactive .
+          uvx mypy@latest --install-types --non-interactive . --config-file pyproject.toml
 
       # --------- TESTING + COVERAGE ----------
       - name: Run tests with coverage

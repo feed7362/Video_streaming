@@ -11,3 +11,44 @@ dependencies = [
     "pyyaml>=6.0.2",
     "uvicorn>=0.35.0",
 ]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]  # Измените под свою версию Python
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | build
+  | dist
+  | alembic
+  | __pycache__
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+skip = ["alembic", ".venv"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+exclude = ["alembic", ".venv"]
+fix = true
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]  # E/W — pycodestyle, F — pyflakes, I — isort
+
+[tool.mypy]
+python_version = 3.12
+ignore_missing_imports = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+strict_optional = true
+explicit_package_bases = true
+exclude = "(alembic|.venv)"
