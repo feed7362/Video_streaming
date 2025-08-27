@@ -1,11 +1,22 @@
 version: 2
 updates:
   - package-ecosystem: "uv"
-    directories:
-      - "/backend"
-      - "/service/auth"
-      - "/service/convertor"
-      - "/service/moderation"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "uv"
+    directory: "/service/auth"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "uv"
+    directory: "/service/convertor"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "uv"
+    directory: "/service/moderation"
     schedule:
       interval: "weekly"
 
