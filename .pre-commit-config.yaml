@@ -90,5 +90,4 @@ repos:
             "(^|/)[.]venv/",
             "-ll", "-iii", "-x B404,B108"
           ]
-        pass_filenames: false
         additional_dependencies: [ "charset-normalizer" ]
