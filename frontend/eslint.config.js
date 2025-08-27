@@ -37,6 +37,7 @@ export default defineConfig([
       globals: {
         ...globals.browser,
         ...globals.node,
+        ...vitest.environments.env.globals,
       },
     },
   },
