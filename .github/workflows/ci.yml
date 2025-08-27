@@ -36,7 +36,7 @@ jobs:
       matrix:
         service:
           [ backend, services/convertor, services/auth, services/moderation ]
-        python-version: [ 3.10,3.11,3.12 ]
+        python-version: [ 3.10.0,3.11,3.12 ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -169,7 +169,7 @@ jobs:
 #    strategy:
 #      matrix:
 #        service: [ backend, services/convertor, services/auth, services/moderation ]
-#        python-version: [ 3.10, 3.11, 3.12 ]
+#        python-version: [ 3.10.0, 3.11, 3.12 ]
 #    steps:
 #      - uses: actions/checkout@v4
 #      - uses: actions/setup-python@v5
