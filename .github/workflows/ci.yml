@@ -8,35 +8,34 @@ on:
   workflow_dispatch:
 
 env:
-  UV_CACHE_DIR: '~/.cache/uv'
+  UV_CACHE_DIR: "~/.cache/uv"
 
 jobs:
   # ---------------- pre-commit hooks ----------------
-  #  pre-commit:
-  #    name: Pre-commit hooks
-  #    runs-on: ubuntu-latest
-  #    steps:
-  #      - uses: actions/checkout@v4
-  #      - uses: actions/setup-python@v5
-  #        with:
-  #          python-version: 3.12
-  #      - name: Install pre-commit
-  #        run: pip install pre-commit
-  #      - name: Run pre-commit hooks
-  #        run: pre-commit run --all-files
-  #      - name: Upload pre-commit report
-  #        if: failure()
-  #        uses: actions/upload-artifact@v4
-  #        with:
-  #          name: pre-commit-report
-  #          path: .git/hooks/pre-commit || true
+  pre-commit:
+    name: Pre-commit hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run pre-commit in Docker
+        run: |
+          docker run --rm -v $PWD:/repo -w /repo pre-commit/pre-commit:latest \
+          pre-commit run --all-files > pre-commit-report.txt || true
+
+      - name: Upload pre-commit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-commit-report
+          path: pre-commit-report.txt
 
   # ---------------- Python lint/type-check ----------------
   lint-python:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [ backend, services/convertor, services/auth, services/moderation ]
+        service:
+          [ backend, services/convertor, services/auth, services/moderation ]
         python-version: [ 3.10, 3.11, 3.12 ]
     steps:
       - uses: actions/checkout@v4
@@ -55,8 +54,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.UV_CACHE_DIR }}
-          key: ${{ runner.os }}-uv-${{ matrix.service }}-${{ hashFiles(format('{0}/pyproject.toml', matrix.service)) }}
-
+          key: ${{ runner.os }}-uv-${{ matrix.service }}
 
       # --------- LINTING ----------
       - name: Run Ruff
@@ -85,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: coverage.xml
+          path: ${{ matrix.service }}/coverage.xml
 
       # --------- SECURITY ----------
       - name: Run Bandit (security static analysis)
@@ -113,7 +111,7 @@ jobs:
       - name: Check licenses
         run: |
           cd ${{ matrix.service }}
-          uvx pip-licenses@latest --from=mixed --with-authors --with-urls 
+          uvx pip-licenses@latest --from=mixed --with-authors --with-urls
 
   # ---------------- Npm lint/tests ----------------
   lint-npm:
@@ -164,7 +162,6 @@ jobs:
           name: license-report
           path: licenses.json
 
-
   # ---------------- Python build (per service) ----------------
 #  build-python:
 #    runs-on: ubuntu-latest
@@ -183,8 +180,8 @@ jobs:
 #      - name: Cache uv
 #        uses: actions/cache@v3
 #        with:
-#          path: ${{ env.UV_CACHE_DIR }}
-#          key: ${{ runner.os }}-uv-${{ matrix.service }}-${{ hashFiles(format('{0}/pyproject.toml', matrix.service)) }}
+#        path: ${{ env.UV_CACHE_DIR }}
+#        key: ${{ runner.os }}-uv-${{ matrix.service }}
 #
 #      - name: Install dependencies
 #        run: |
