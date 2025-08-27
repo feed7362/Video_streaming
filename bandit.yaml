@@ -1,0 +1,4 @@
+exclude_dirs: [ '.venv','alembic','node_modules' ]
+tests: [ 'B201', 'B301' ]
+skips: [ 'B101', 'B601' ]
+severity: "low"

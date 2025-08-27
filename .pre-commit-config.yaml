@@ -4,19 +4,19 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
-        exclude: "(^|/)[.]venv/"
+        exclude: '(^|/|\\)\.venv($|/)'
 
       - id: end-of-file-fixer
-        exclude: "(^|/)[.]venv/"
+        exclude: '(^|/|\\)\.venv($|/)'
 
       - id: check-yaml
-        exclude: "(^|/)[.]venv/"
+        exclude: '(^|/|\\)\.venv($|/)'
 
       - id: check-added-large-files
-        exclude: "(^|/)[.]venv/"
+        exclude: '(^|/|\\)\.venv($|/)'
 
       - id: detect-private-key
-        exclude: "(^|/)[.]venv/"
+        exclude: '(^|/|\\)\.venv($|/)'
 
   # ----------------- Python -----------------
   - repo: https://github.com/psf/black
@@ -25,7 +25,7 @@ repos:
       - id: black
         language_version: python3.12
         files: \.py$
-        exclude: "(^|/)[.]venv/"
+        exclude: '(^|/|\\)\.venv($|/)'
 
   - repo: https://github.com/PyCQA/isort
     rev: 6.0.1
@@ -33,15 +33,15 @@ repos:
       - id: isort
         language_version: python3.12
         files: \.py$
-        exclude: "(^|/)[.]venv/"
+        exclude: '(^|/|\\)\.venv($|/)'
 
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.3.0
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.12.10
     hooks:
-      - id: flake8
+      - id: ruff
         language_version: python3.12
         files: \.py$
-        exclude: "(^|/)[.]venv/"
+        exclude: '(^|/|\\)\.venv($|/)'
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.17.0
@@ -49,7 +49,7 @@ repos:
       - id: mypy
         language_version: python3.12
         files: \.py$
-        exclude: "(^|/)[.]venv/"
+        exclude: '(^|/|\\)\.venv($|/)'
 
   # ----------------- Node / JS / TS -----------------
   - repo: https://github.com/pre-commit/mirrors-eslint
@@ -72,22 +72,23 @@ repos:
     rev: v0.19.1
     hooks:
       - id: gitlint
-        exclude: "(^|/)[.]venv/"
+        exclude: '(^|/|\\)\.venv($|/)'
 
   - repo: https://github.com/pycqa/bandit
     rev: 1.8.6
     hooks:
       - id: bandit
+        language_version: python3.12
         args:
           [
+            "-c",
+            "bandit.yaml",
             "-r",
             ".",
             "-f",
             "custom",
             "--msg-template",
             "{relpath}:{line}:{col} {severity} {test_id} {msg}",
-            "--exclude",
-            "(^|/)[.]venv/",
-            "-ll", "-iii", "-x B404,B108"
           ]
+        pass_filenames: false
         additional_dependencies: [ "charset-normalizer" ]
