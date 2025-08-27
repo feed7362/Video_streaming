@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent
 
 class BaseAppSettings(BaseSettings):
     class Config:
-        env_file_encoding = 'utf-8'
+        env_file_encoding = "utf-8"
 
 
 class S3Settings(BaseAppSettings):

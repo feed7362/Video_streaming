@@ -1,20 +1,19 @@
 import time
-from typing import List, Callable
-from fastapi import Request, APIRouter
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from typing import Callable, List
+
+from fastapi import APIRouter, Request
 from fastapi.responses import Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.middleware.base import BaseHTTPMiddleware
+
 from ..schemas.metric import (
+    EXCEPTIONS_TOTAL,
     REQUEST_DURATION_HIST,
     REQUESTS_IN_PROGRESS,
-    EXCEPTIONS_TOTAL,
     RESPONSES_TOTAL,
 )
 
-router_metrics = APIRouter(
-    prefix="/api/metrics",
-    tags=["monitoring"]
-)
+router_metrics = APIRouter(prefix="/api/metrics", tags=["monitoring"])
 
 
 @router_metrics.get("", include_in_schema=True)
@@ -26,7 +25,12 @@ async def get_metrics_doc():
 
 
 EXCLUDE_PATH_PREFIXES: List[str] = [
-    "/api/metrics", "/api/health", "/static", "/docs", "/openapi.json", "/redoc"
+    "/api/metrics",
+    "/api/health",
+    "/static",
+    "/docs",
+    "/openapi.json",
+    "/redoc",
 ]
 
 
@@ -36,7 +40,6 @@ def is_excluded_path(path: str) -> bool:
 
 class PrometheusMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable):
-
         if is_excluded_path(request.url.path):
             return await call_next(request)
 
@@ -55,13 +58,19 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             status_code = str(response.status_code)
 
-            RESPONSES_TOTAL.labels(status_code=status_code, method=method, path=path_label).inc()
+            RESPONSES_TOTAL.labels(
+                status_code=status_code, method=method, path=path_label
+            ).inc()
             return response
         except Exception as exc:
             exc_type = type(exc).__name__
-            EXCEPTIONS_TOTAL.labels(exception_type=exc_type, method=method, path=path_label).inc()
+            EXCEPTIONS_TOTAL.labels(
+                exception_type=exc_type, method=method, path=path_label
+            ).inc()
             raise
         finally:
             duration = time.perf_counter() - start
-            REQUEST_DURATION_HIST.labels(method=method, path=path_label).observe(duration)
+            REQUEST_DURATION_HIST.labels(method=method, path=path_label).observe(
+                duration
+            )
             REQUESTS_IN_PROGRESS.labels(method=method, path=path_label).dec()

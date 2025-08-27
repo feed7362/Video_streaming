@@ -1,13 +1,29 @@
-import enum
+from datetime import datetime
+from typing import Optional
+from uuid import UUID
+
+from pydantic import BaseModel
+
+from .enum import Privacy, VideoStatus
 
 
-class VideoStatus(str, enum.Enum):
-    PROCESSING = "processing"
-    READY = "ready"
-    FAILED = "failed"
+class VideoBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    size: float
+    privacy: Privacy = Privacy.PUBLIC
 
 
-class Privacy(str, enum.Enum):
-    PUBLIC = "public"
-    PRIVATE = "private"
-    UNLISTED = "unlisted"
+class VideoCreate(VideoBase):
+    hash: str
+
+
+class VideoRead(VideoBase):
+    id: UUID
+    user_id: UUID
+    is_verified: bool
+    status: VideoStatus
+    registered_at: datetime
+
+    class Config:
+        from_attributes = True

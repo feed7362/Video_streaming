@@ -1,7 +1,9 @@
-from pydantic import BaseModel
-from typing import Optional, List
-from uuid import UUID
 from datetime import datetime
+from typing import List, Optional
+from uuid import UUID
+
+from pydantic import BaseModel
+from video import VideoRead
 
 
 class PlaylistBase(BaseModel):
@@ -17,7 +19,7 @@ class PlaylistRead(PlaylistBase):
     id: UUID
     user_id: UUID
     created_at: datetime
-    videos: List['VideoRead'] = []
+    videos: List["VideoRead"] = []
 
     class Config:
         from_attributes = True

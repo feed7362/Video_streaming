@@ -1,11 +1,21 @@
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from sqlalchemy.orm import relationship
-from ..schemas.video import Privacy, VideoStatus
-from ..services.database import Base
+
 from sqlalchemy import (
-    Column, String, DateTime, Boolean, Float, ForeignKey, Text, Enum, func
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    String,
+    Text,
+    func,
 )
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
+from ..schemas.enum import Privacy, VideoStatus
+from ..services.database import Base
 
 
 class Video(Base):

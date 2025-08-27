@@ -1,15 +1,16 @@
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
+
+from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Text, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+
 from ..services.database import Base
-from sqlalchemy import (
-    Column, String, DateTime, Table, Text, ForeignKey, func
-)
 
 playlist_video = Table(
-    "playlist_video", Base.metadata,
+    "playlist_video",
+    Base.metadata,
     Column("playlist_id", UUID(as_uuid=True), ForeignKey("playlists.id")),
-    Column("video_id", UUID(as_uuid=True), ForeignKey("videos.id"))
+    Column("video_id", UUID(as_uuid=True), ForeignKey("videos.id")),
 )
 
 

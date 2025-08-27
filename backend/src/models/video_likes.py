@@ -1,10 +1,10 @@
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+
 from ..services.database import Base
-from sqlalchemy import (
-    Column, DateTime, Boolean, ForeignKey, func
-)
 
 
 class VideoLike(Base):

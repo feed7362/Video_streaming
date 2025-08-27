@@ -1,13 +1,15 @@
+import logging
 from contextlib import asynccontextmanager
-from src.services.rabbit_client import rabbit_broker
-from src.api.files import router_files
-from src.api.health import router_health
-from src.api.metrics import router_metrics, PrometheusMiddleware
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from src.api.files import router_files
+from src.api.health import router_health
+from src.api.metrics import PrometheusMiddleware, router_metrics
 from src.i18n import LanguageMiddleware
+from src.services.rabbit_client import rabbit_broker
 from src.services.s3_client import s3_client
-import logging
 
 
 @asynccontextmanager
@@ -20,10 +22,7 @@ async def lifespan(app: FastAPI):
     await rabbit_broker.close()
 
 
-app = FastAPI(title="My API",
-              description="BFF",
-              version="1.0.0",
-              lifespan=lifespan)
+app = FastAPI(title="My API", description="BFF", version="1.0.0", lifespan=lifespan)
 
 # app.mount("/api/metrics", metrics_app)
 app.include_router(router_health)

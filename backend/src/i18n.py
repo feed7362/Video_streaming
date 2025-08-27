@@ -1,4 +1,5 @@
 import gettext
+
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -27,10 +28,7 @@ class TranslationWrapper:
         locales_dir = r"./translations"
 
         self.translations = gettext.translation(
-            "messages",
-            localedir=locales_dir,
-            languages=[lang],
-            fallback=True
+            "messages", localedir=locales_dir, languages=[lang], fallback=True
         )
         self.translations.install()
 
@@ -92,15 +90,14 @@ class LanguageMiddleware(BaseHTTPMiddleware):
             or route handler.
         """
         await set_locale(request)
-        response = await call_next(
-            request
-        )
+        response = await call_next(request)
         return response
 
 
 def _(message: str) -> str:
     translation_wrapper = TranslationWrapper()
     return translation_wrapper.gettext(message)
+
 
 # pybabel extract -o ./translations/messages.pot .
 

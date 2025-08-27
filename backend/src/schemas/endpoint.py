@@ -1,5 +1,7 @@
 from typing import List
+
 from pydantic import BaseModel
+
 
 class FileMeta(BaseModel):
     filename: str
@@ -15,6 +17,7 @@ class UploadResponse(BaseModel):
 class ErrorResponse(BaseModel):
     status: str = "error"
     message: str
+
 
 class StatusMessage(BaseModel):
     video_id: str
