@@ -49,6 +49,7 @@ jobs:
           cd ${{ matrix.service }}
           uv sync --frozen
           uv lock
+          uv pip install -e .
 
       - name: Cache uv
         uses: actions/cache@v3
