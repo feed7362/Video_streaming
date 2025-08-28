@@ -7,6 +7,7 @@ on:
 
 env:
   UV_CACHE_DIR: "~/.cache/uv"
+  ACTIONS_STEP_DEBUG: true
 
 jobs:
   # ---------------- pre-commit hooks ----------------
@@ -80,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: ${{ matrix.service }}/coverage.xml
+          path: ${{ matrix.service }}/report.xml
 
       # --------- SECURITY ----------
       - name: Run pip-audit (extra dep scanning)
