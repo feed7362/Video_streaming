@@ -74,9 +74,6 @@ jobs:
       - name: Install dependencies and run tests
         run: |
           cd ${{ matrix.service }}
-          uv lock          # обновляем lock-файл, чтобы все зависимости были в sync
-          uv sync --frozen # синхронизируем зависимости
-          uv pip install -e .
           uvx pytest tests/ --junitxml=report.xml
 
 
