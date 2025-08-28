@@ -83,10 +83,10 @@ jobs:
           path: ${{ matrix.service }}/coverage.xml
 
       # --------- SECURITY ----------
-      - name: Run Safety (dependency vulnerability check)
+      - name: Run Safety (dependency vulnerability scan)
         run: |
           cd ${{ matrix.service }}
-          uvx safety@latest check --full-report
+          uvx safety@latest scan --full-report --json
 
       - name: Run pip-audit (extra dep scanning)
         run: |
