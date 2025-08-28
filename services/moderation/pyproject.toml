@@ -52,5 +52,6 @@ dev = [
     "pytest-cov>=6.2.1",
 ]
 
-[tool.setuptools.packages.find]
-where = ["moderation"]
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

@@ -70,3 +70,7 @@ warn_unused_ignores = true
 strict_optional = true
 explicit_package_bases = true
 exclude = "(alembic|.venv)"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

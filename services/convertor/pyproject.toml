@@ -58,5 +58,6 @@ dev = [
     "pytest-cov>=6.2.1",
 ]
 
-[tool.setuptools.packages.find]
-where = ["convertor"]
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
