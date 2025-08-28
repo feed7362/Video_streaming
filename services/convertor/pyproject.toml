@@ -52,3 +52,8 @@ warn_unused_ignores = true
 strict_optional = true
 explicit_package_bases = true
 exclude = "(alembic|.venv)"
+
+[dependency-groups]
+dev = [
+    "pytest-cov>=6.2.1",
+]
