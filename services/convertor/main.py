@@ -3,6 +3,7 @@ import logging
 import shutil
 import subprocess
 from pathlib import Path
+from typing import AsyncIterable
 
 LOCAL_BASE = Path("/tmp/processing")
 
@@ -15,7 +16,7 @@ async def prepare_dirs(video_id: str) -> Path:
     return base
 
 
-def cleanup_dirs(video_id: str):
+def cleanup_dirs(video_id: str) -> None:
     base = LOCAL_BASE / video_id
     try:
         shutil.rmtree(base)
@@ -24,7 +25,9 @@ def cleanup_dirs(video_id: str):
         logging.error(f"Failed to cleanup local dirs for {video_id}, Error: {e}")
 
 
-async def stream_ffmpeg(input_async_iter, output_dir: Path):
+async def stream_ffmpeg(
+    input_async_iter: AsyncIterable[bytes], output_dir: Path
+) -> int:
     out_template = str(output_dir / "stream_%v" / "seg_%03d.ts")
     out_playlist = str(output_dir / "stream_%v" / "playlist.m3u8")
     cmd = [
@@ -127,7 +130,10 @@ async def stream_ffmpeg(input_async_iter, output_dir: Path):
         *cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
     )
 
-    async def feed_stdin():
+    async def feed_stdin() -> None:
+        if process.stdin is None:
+            logging.error("ffmpeg stdin is None")
+            return
         try:
             async for chunk in input_async_iter:
                 process.stdin.write(chunk)
@@ -139,7 +145,10 @@ async def stream_ffmpeg(input_async_iter, output_dir: Path):
                 process.stdin.close()
                 await process.stdin.wait_closed()
 
-    async def log_stderr():
+    async def log_stderr() -> None:
+        if process.stderr is None:
+            logging.error("ffmpeg stderr is None")
+            return
         while True:
             chunk = await process.stderr.read(1024)
             if not chunk:

@@ -17,7 +17,7 @@ router_metrics = APIRouter(prefix="/api/metrics", tags=["monitoring"])
 
 
 @router_metrics.get("", include_in_schema=True)
-async def get_metrics_doc():
+async def get_metrics_doc() -> Response:
     """
     Prometheus metrics endpoint
     """
@@ -39,7 +39,7 @@ def is_excluded_path(path: str) -> bool:
 
 
 class PrometheusMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: Callable):
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
         if is_excluded_path(request.url.path):
             return await call_next(request)
 

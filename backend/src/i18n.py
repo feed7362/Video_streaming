@@ -1,16 +1,17 @@
 import gettext
+from typing import Callable, Optional
 
-from fastapi import Request
+from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
 class TranslationWrapper:
-    _instance = None
+    _instance: Optional["TranslationWrapper"] = None
 
-    def __init__(self):
-        self.translations = None
+    def __init__(self) -> None:
+        self.translations: gettext.NullTranslations = gettext.NullTranslations()
 
-    def __new__(cls):
+    def __new__(cls) -> "TranslationWrapper":
         """
         Create a new instance of the class if it doesn't
         exist, otherwise return the existing instance.
@@ -23,7 +24,7 @@ class TranslationWrapper:
             cls._instance.init_translation()
         return cls._instance
 
-    def init_translation(self):
+    def init_translation(self) -> None:
         lang = "en"
         locales_dir = r"./translations"
 
@@ -36,7 +37,7 @@ class TranslationWrapper:
         return self.translations.gettext(message)
 
 
-async def set_locale(request: Request):
+async def set_locale(request: Request) -> None:
     """
     Set the locale based on the request headers.
 
@@ -72,7 +73,7 @@ class LanguageMiddleware(BaseHTTPMiddleware):
         None
     """
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """
         Dispatch method to set the language for the request.
 

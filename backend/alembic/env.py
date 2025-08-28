@@ -1,8 +1,7 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
-
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 from src.config import get_database_settings
 from src.models import *  # noqa: F403, F401
 from src.services.database import Base

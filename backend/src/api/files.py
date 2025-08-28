@@ -57,7 +57,7 @@ async def get_file(
     mode: Literal["download", "stream"] = Query(
         "download", description="Streaming mode"
     ),
-):
+) -> StreamingResponse:
     """
     Endpoint to stream a file.
 

@@ -3,7 +3,7 @@ FROM jrottenberg/ffmpeg:7.1-nvidia2204
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    python3.12  \
+    python3.10  \
     python3-pip  \
     && rm -rf /var/lib/apt/lists/*
 

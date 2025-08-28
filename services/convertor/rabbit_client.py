@@ -3,9 +3,9 @@ import logging
 from faststream.asgi import AsgiFastStream
 from faststream.rabbit import RabbitBroker
 from prometheus_client import CollectorRegistry, make_asgi_app
-from s3_client import s3_client
 
 from main import cleanup_dirs, prepare_dirs, stream_ffmpeg
+from s3_client import s3_client
 
 broker = RabbitBroker("amqp://guest:guest@rabbitmq:5672/")
 registry = CollectorRegistry()
@@ -18,7 +18,7 @@ app = AsgiFastStream(
 
 
 @broker.subscriber("video.encode")
-async def encode_video(video_id: str):
+async def encode_video(video_id: str) -> None:
     try:
         base_dir = await prepare_dirs(video_id)
         async_gen = s3_client.download_file(video_id, 1024 * 1024 * 30)

@@ -1,7 +1,8 @@
 import logging
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator, BinaryIO, Dict
 
-from aiobotocore.session import get_session
+from aiobotocore.session import AioBaseClient, get_session
 from botocore.exceptions import ClientError
 
 from ..config import get_s3_settings
@@ -19,7 +20,7 @@ class S3Client:
         bucket_name: str,
         region_name: str,
     ):
-        self.config = {
+        self.config: Dict[str, str] = {
             "aws_access_key_id": access_key,
             "aws_secret_access_key": secret_key,
             "endpoint_url": endpoint_url,
@@ -28,7 +29,7 @@ class S3Client:
         self.bucket_name = bucket_name
         self.session = get_session()
 
-    async def check_bucket_exists(self):
+    async def check_bucket_exists(self) -> None:
         async with self._get_client() as client:
             try:
                 await client.head_bucket(Bucket=self.bucket_name)
@@ -38,7 +39,7 @@ class S3Client:
                 logging.info(f"Bucket '{self.bucket_name}' created")
 
     @asynccontextmanager
-    async def _get_client(self):
+    async def _get_client(self) -> AsyncGenerator[AioBaseClient, None]:
         """
         Async context manager to create and yield an S3 client.
 
@@ -51,7 +52,7 @@ class S3Client:
         async with self.session.create_client("s3", **self.config) as client:
             yield client
 
-    async def upload_file(self, filename: str, file_obj):
+    async def upload_file(self, filename: str, file_obj: BinaryIO) -> None:
         try:
             async with self._get_client() as client:
                 resp = await client.create_multipart_upload(
@@ -88,7 +89,7 @@ class S3Client:
             )
             logging.error(f"Error uploading file: {e}")
 
-    async def delete_file(self, object_name: str):
+    async def delete_file(self, object_name: str) -> None:
         try:
             async with self._get_client() as client:
                 await client.delete_object(Bucket=self.bucket_name, Key=object_name)
@@ -96,7 +97,9 @@ class S3Client:
         except ClientError as e:
             logging.error(f"Error deleting file: {e}")
 
-    async def download_file(self, object_name: str, chunk_size: int):
+    async def download_file(
+        self, object_name: str, chunk_size: int
+    ) -> AsyncGenerator[bytes, None]:
         try:
             async with self._get_client() as client:
                 head = await client.head_object(

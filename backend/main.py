@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +14,7 @@ from src.services.s3_client import s3_client
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator:
     await rabbit_broker.connect()
     await s3_client.check_bucket_exists()
     logging.info("Startup complete. Metrics exposed.")
