@@ -57,7 +57,3 @@ exclude = "(alembic|.venv)"
 dev = [
     "pytest-cov>=6.2.1",
 ]
-
-[build-system]
-requires = ["setuptools>=61", "wheel"]
-build-backend = "setuptools.build_meta"

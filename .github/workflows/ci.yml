@@ -49,7 +49,6 @@ jobs:
           cd ${{ matrix.service }}
           uv sync --frozen
           uv lock
-          uv pip install -e .
 
       - name: Cache uv
         uses: actions/cache@v3
@@ -77,7 +76,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           cd ${{ matrix.service }}
-          pytest --junitxml=report.xml
+          uvx pytest@latest --junitxml=report.xml
         continue-on-error: false
 
       - name: Upload coverage report

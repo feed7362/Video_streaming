@@ -70,7 +70,3 @@ warn_unused_ignores = true
 strict_optional = true
 explicit_package_bases = true
 exclude = "(alembic|.venv)"
-
-[build-system]
-requires = ["setuptools>=61", "wheel"]
-build-backend = "setuptools.build_meta"
