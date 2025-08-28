@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import App from './App'
+import App from '../src/App.jsx'
 
 test('renders logos and heading', () => {
   render(<App />)
