@@ -51,3 +51,6 @@ exclude = "(alembic|.venv)"
 dev = [
     "pytest-cov>=6.2.1",
 ]
+
+[tool.setuptools.packages.find]
+where = ["moderation"]

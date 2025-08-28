@@ -1,4 +1,4 @@
-from ..main import main
+from moderation.main import main
 
 
 def test_import_main() -> None:

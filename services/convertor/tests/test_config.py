@@ -1,4 +1,4 @@
-from ..config import S3Settings, get_s3_settings
+from convertor.config import S3Settings, get_s3_settings
 
 
 def test_import_config() -> None:
