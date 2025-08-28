@@ -47,7 +47,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd ${{ matrix.service }}
-          uv sync --frozen --no-dev
+          uv sync --frozen
           uv lock
 
       - name: Cache uv
