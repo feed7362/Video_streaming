@@ -7,7 +7,6 @@ on:
 
 env:
   UV_CACHE_DIR: "~/.cache/uv"
-  ACTIONS_STEP_DEBUG: true
 
 jobs:
   # ---------------- pre-commit hooks ----------------
@@ -74,6 +73,7 @@ jobs:
       - name: Install dependencies and run tests
         run: |
           cd ${{ matrix.service }}
+          uv sync --frozen
           pytest tests/ --junitxml=report.xml
 
       - name: Upload coverage report
