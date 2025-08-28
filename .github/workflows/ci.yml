@@ -34,12 +34,11 @@ jobs:
       matrix:
         service:
           [ backend, services/convertor, services/auth, services/moderation ]
-        python-version: [ 3.11,3.12 ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.12
       - uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
@@ -162,12 +161,11 @@ jobs:
 #    strategy:
 #      matrix:
 #        service: [ backend, services/convertor, services/auth, services/moderation ]
-#        python-version: [ 3.11, 3.12 ]
 #    steps:
 #      - uses: actions/checkout@v4
 #      - uses: actions/setup-python@v5
 #        with:
-#          python-version: ${{ matrix.python-version }}
+#          python-version: 3.12
 #      - uses: astral-sh/setup-uv@v6
 #
 #      - name: Cache uv
