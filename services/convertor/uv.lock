@@ -203,12 +203,14 @@ dependencies = [
     { name = "aiobotocore" },
     { name = "faststream", extra = ["cli", "prometheus", "rabbit"] },
     { name = "pydantic-settings" },
+    { name = "pytest" },
     { name = "pyyaml" },
     { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "pytest" },
     { name = "pytest-cov" },
 ]
 
@@ -217,12 +219,16 @@ requires-dist = [
     { name = "aiobotocore", specifier = ">=2.24.1" },
     { name = "faststream", extras = ["cli", "prometheus", "rabbit"], specifier = ">=0.5.48" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
+    { name = "pytest", specifier = ">=8.4.1" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "uvicorn", specifier = ">=0.35.0" },
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest-cov", specifier = ">=6.2.1" }]
+dev = [
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
+]
 
 [[package]]
 name = "coverage"

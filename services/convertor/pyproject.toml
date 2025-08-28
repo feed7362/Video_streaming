@@ -8,6 +8,7 @@ dependencies = [
     "aiobotocore>=2.24.1",
     "faststream[cli,prometheus,rabbit]>=0.5.48",
     "pydantic-settings>=2.10.1",
+    "pytest>=8.4.1",
     "pyyaml>=6.0.2",
     "uvicorn>=0.35.0",
 ]
@@ -55,6 +56,7 @@ exclude = "(alembic|.venv)"
 
 [dependency-groups]
 dev = [
+    "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
 ]
 
