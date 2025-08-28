@@ -2,9 +2,8 @@ import logging
 
 from faststream.asgi import AsgiFastStream
 from faststream.rabbit import RabbitBroker
-from prometheus_client import CollectorRegistry, make_asgi_app
-
 from main import cleanup_dirs, prepare_dirs, stream_ffmpeg
+from prometheus_client import CollectorRegistry, make_asgi_app
 from s3_client import s3_client
 
 broker = RabbitBroker("amqp://guest:guest@rabbitmq:5672/")

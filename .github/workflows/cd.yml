@@ -1,0 +1,15 @@
+#name: Continuous Deployment
+#
+#on:
+#  push:
+#    branches: ["dev", "main"]
+#  workflow_dispatch:
+#    inputs:
+#      environment:
+#        description: "Target environment (dev or main)"
+#        required: true
+#      image_tag:
+#        description: "Docker image tag to deploy"
+#        required: true
+#
+#jobs:

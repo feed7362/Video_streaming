@@ -2,9 +2,7 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ "dev" ]
   workflow_dispatch:
 
 env:
@@ -189,3 +187,19 @@ jobs:
 #        run: |
 #          cd ${{ matrix.service }}
 #          uv build
+
+#  create-pr-to-main:
+#    name: Create Pull Request to main
+#    needs: ci-dev  # job с тестами и линтингом
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Create Pull Request
+#        uses: peter-evans/create-pull-request@v5
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          commit-message: "Sync dev -> main after successful CI"
+#          branch: dev
+#          base: main
+#          title: "Update main from dev"
+#          body: "Automatic PR from dev to main after successful CI"
