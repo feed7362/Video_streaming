@@ -48,22 +48,24 @@ jobs:
             path: ./services/moderation
           - service: frontend
             path: ./frontend
-    if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'stage' }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Build Docker image
+        if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
         run: |
           IMAGE=myregistry/${{ matrix.service }}:${{ github.sha }}
           docker build -t $IMAGE ${{ matrix.path }}
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
-#
+
 #      - name: Push Docker image
+#        if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
 #        run: |
 #          echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login myregistry -u ${{ secrets.REGISTRY_USER }} --password-stdin
 #          docker push $IMAGE
 #
 #      - name: Deploy to Kubernetes
+#        if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
 #        run: |
 #          kubectl set image deployment/${{ matrix.service }} ${{ matrix.service }}=$IMAGE --record
