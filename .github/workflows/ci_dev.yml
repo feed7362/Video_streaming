@@ -62,14 +62,21 @@ jobs:
         id: prepare-artifact
         run: |
           sanitized="${{ matrix.service }}"
-
           sanitized="${sanitized#services/}"
-          sanitized="${sanitized#service/}"
-
           sanitized="${sanitized//\//-}"
 
-          echo "artifact_name=coverage-report-${sanitized}" >> $GITHUB_OUTPUT
-          echo "artifact_path=${{ matrix.service }}/report.xml" >> $GITHUB_OUTPUT
+          # coverage
+          echo "coverage_name=coverage-report-${sanitized}" >> $GITHUB_OUTPUT
+          echo "coverage_path=${{ matrix.service }}/report.xml" >> $GITHUB_OUTPUT
+
+          # audit
+          echo "audit_name=audit-${sanitized}" >> $GITHUB_OUTPUT
+          echo "audit_path=${{ matrix.service }}/audit.json" >> $GITHUB_OUTPUT
+
+          # license
+          echo "license_name=licenses-${sanitized}" >> $GITHUB_OUTPUT
+          echo "license_path=${{ matrix.service }}/licenses.json" >> $GITHUB_OUTPUT
+
 
       - name: Upload per-service coverage report
         uses: actions/upload-artifact@v4
@@ -88,8 +95,8 @@ jobs:
       - name: Upload per-service audit report
         uses: actions/upload-artifact@v4
         with:
-          name: audit-${{ matrix.service }}
-          path: ${{ matrix.service }}/audit.json
+          name: ${{ steps.prepare-artifact.outputs.audit_name }}
+          path: ${{ steps.prepare-artifact.outputs.audit_path }}
           if-no-files-found: warn
           overwrite: true
 
@@ -102,8 +109,8 @@ jobs:
       - name: Upload license report
         uses: actions/upload-artifact@v4
         with:
-          name: licenses-${{ matrix.service }}
-          path: ${{ matrix.service }}/licenses.json
+          name: ${{ steps.prepare-artifact.outputs.license_name }}
+          path: ${{ steps.prepare-artifact.outputs.license_path }}
           if-no-files-found: warn
           overwrite: true
 
