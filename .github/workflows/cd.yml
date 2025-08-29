@@ -1,15 +1,56 @@
-#name: Continuous Deployment
+name: CD Pipeline
+
+on:
+  push:
+    branches: [ "stage" ]
+  workflow_dispatch:
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.filter.outputs.all }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            auth:
+              - 'services/auth/**'
+            convertor:
+              - 'services/convertor/**'
+            moderation:
+              - 'services/moderation/**'
+            frontend:
+              - 'frontend/**'
+
+#  deploy:
+#    needs: detect-changes
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        service: [ backend, services/auth, services/convertor, services/moderation, frontend ]
+#      max-parallel: 2
 #
-#on:
-#  push:
-#    branches: ["dev", "main"]
-#  workflow_dispatch:
-#    inputs:
-#      environment:
-#        description: "Target environment (dev or main)"
-#        required: true
-#      image_tag:
-#        description: "Docker image tag to deploy"
-#        required: true
+#    if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
+#    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'stage' }}
+#    steps:
+#      - uses: actions/checkout@v4
 #
-#jobs:
+#      - name: Build Docker image
+#        run: |
+#          IMAGE=myregistry/${{ matrix.service }}:${{ github.sha }}
+#          docker build -t $IMAGE ./services/${{ matrix.service }}
+#          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+#
+#      - name: Push Docker image
+#        run: |
+#          echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login myregistry -u ${{ secrets.REGISTRY_USER }} --password-stdin
+#          docker push $IMAGE
+#
+#      - name: Deploy to Kubernetes
+#        run: |
+#          kubectl set image deployment/${{ matrix.service }} ${{ matrix.service }}=$IMAGE --record

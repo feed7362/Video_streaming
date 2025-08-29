@@ -1,0 +1,26 @@
+name: Auto PR to Stage
+
+on:
+  workflow_run:
+    workflows: [ "ci_dev" ]
+    types:
+      - completed
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'dev'
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Auto PR from dev → stage"
+          branch: dev
+          base: stage
+          title: "Merge dev into stage (auto PR)"
+          body: "This PR was automatically created after successful CI."
