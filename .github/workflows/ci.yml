@@ -76,11 +76,16 @@ jobs:
           uv sync --frozen
           uv run pytest tests/ --junitxml=report.xml
 
-      - name: Upload coverage report
+      - name: Merge coverage reports
+        run: |
+          mkdir -p combined-reports
+          cp */report.xml combined-reports/
+
+      - name: Upload combined coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report-${{ matrix.service // '/' -> '-' }}
-          path: ${{ matrix.service }}/report.xml
+          name: coverage-report
+          path: combined-reports/
           overwrite: true
 
       # --------- SECURITY ----------
@@ -177,7 +182,7 @@ jobs:
 
 #  create-pr-to-main:
 #    name: Create Pull Request to main
-#    needs: ci-dev  # job с тестами и линтингом
+#    needs: ci-dev
 #    runs-on: ubuntu-latest
 #    steps:
 #      - uses: actions/checkout@v4
