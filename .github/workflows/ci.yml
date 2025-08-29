@@ -93,7 +93,7 @@ jobs:
       - name: Run Gitleaks (secrets detection)
         uses: gitleaks/gitleaks-action@v2
         with:
-          args: detect --source . --no-banner --redact || true
+          args: detect --redact -v --exit-code=2 --report-format=sarif --report-path=results-${{ github.run_id }}.sarif
 
       # --------- LICENSE ----------
       - name: Check licenses

@@ -1,13 +1,12 @@
 import logging
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, BinaryIO, Dict
+from typing import AsyncGenerator, BinaryIO, Dict, Optional
 
 from aiobotocore.session import AioBaseClient, get_session
 from botocore.exceptions import ClientError
 
 from ..config import get_s3_settings
 
-settings = get_s3_settings()
 PART_SIZE = 1024 * 1024 * 10
 
 
@@ -122,10 +121,23 @@ class S3Client:
             logging.error(f"Error downloading file: {e}")
 
 
-s3_client = S3Client(
-    settings.MINIO_ROOT_USER,
-    settings.MINIO_ROOT_PASSWORD,
-    settings.MINIO_ENDPOINT_URL,
-    settings.MINIO_BUCKET_NAME,
-    settings.MINIO_REGION_NAME,
-)
+settings = get_s3_settings()
+
+_s3_client_instance: Optional[S3Client] = None
+
+
+def get_s3_client() -> S3Client:
+    """
+    Lazy initialization of the S3 client.
+    The client will only be created on the first call to this function.
+    """
+    global _s3_client_instance
+    if _s3_client_instance is None:
+        _s3_client_instance = S3Client(
+            access_key=settings.MINIO_ROOT_USER,
+            secret_key=settings.MINIO_ROOT_PASSWORD,
+            endpoint_url=settings.MINIO_ENDPOINT_URL,
+            bucket_name=settings.MINIO_BUCKET_NAME,
+            region_name=settings.MINIO_REGION_NAME,
+        )
+    return _s3_client_instance

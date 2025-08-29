@@ -1,11 +1,12 @@
+import asyncio
 import logging
-from typing import List, Literal
+from typing import List
 
-from fastapi import APIRouter, HTTPException, Query, UploadFile
+from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
 from ..schemas.endpoint import ErrorResponse, FileMeta, UploadResponse
-from ..services import s3_client
+from ..services import get_s3_client
 from ..services.rabbit_client import rabbit_broker
 
 router_files = APIRouter(prefix="/api/files", tags=["files"])
@@ -29,9 +30,11 @@ async def upload_files(
         raise HTTPException(status_code=400, detail="No files provided")
 
     files_meta: List[FileMeta] = []
+    s3_client = get_s3_client()
+    semaphore = asyncio.Semaphore(5)
 
-    try:
-        for uploaded_file in uploaded_files:
+    async def upload_single_file(uploaded_file: UploadFile):
+        async with semaphore:
             uploaded_file.file.seek(0, 2)
             size = uploaded_file.file.tell()
             uploaded_file.file.seek(0)
@@ -42,6 +45,9 @@ async def upload_files(
             await s3_client.upload_file(uploaded_file.filename, uploaded_file.file)
             await rabbit_broker.publish(uploaded_file.filename, queue="video.encode")
 
+    try:
+        tasks = [upload_single_file(f) for f in uploaded_files]
+        await asyncio.gather(*tasks)
     except Exception as e:
         logging.error(f"Error uploading files: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -51,39 +57,36 @@ async def upload_files(
     )
 
 
-@router_files.get("/download/{filename}")
-async def get_file(
-    filename: str,
-    mode: Literal["download", "stream"] = Query(
-        "download", description="Streaming mode"
-    ),
-) -> StreamingResponse:
-    """
-    Endpoint to stream a file.
-
-    Args:
-        filename (str): The name of the file to be streamed.
-
-    Returns:
-        StreamingResponse: The file is streamed as a response with the specified type.
-        :param filename:
-        :param mode:
-    """
+@router_files.get("/streaming/{filename}")
+async def stream_video(filename: str) -> StreamingResponse:
+    s3_client = get_s3_client()
     try:
         logging.info(f"Streaming file: {filename}")
         chunk_generator = s3_client.download_file(filename, 1024 * 1024 * 3)
-        if mode == "stream":
-            headers = {"Content-Disposition": f'inline; filename="{filename}"'}
-            logging.info(f"Streaming file: {filename} in streaming mode")
-            return StreamingResponse(
-                chunk_generator, media_type="video/mp4", headers=headers
-            )
-        else:
-            headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
-            logging.info(f"Streaming file: {filename} in download mode")
-            return StreamingResponse(
-                chunk_generator, media_type="application/octet-stream", headers=headers
-            )
+        headers = {"Content-Disposition": f'inline; filename="{filename}"'}
+        logging.info(f"Streaming file: {filename} in streaming mode")
+        return StreamingResponse(
+            chunk_generator, media_type="video/mp4", headers=headers
+        )
+    except FileNotFoundError:
+        logging.error(f"File '{filename}' not found")
+        raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
+    except Exception as e:
+        logging.error(f"Error streaming file: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router_files.get("/download/{filename}")
+async def get_file(filename: str) -> StreamingResponse:
+    s3_client = get_s3_client()
+    try:
+        logging.info(f"Streaming file: {filename}")
+        chunk_generator = s3_client.download_file(filename, 1024 * 1024 * 3)
+        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+        logging.info(f"Streaming file: {filename} in download mode")
+        return StreamingResponse(
+            chunk_generator, media_type="application/octet-stream", headers=headers
+        )
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
     except Exception as e:
