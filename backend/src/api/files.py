@@ -33,7 +33,7 @@ async def upload_files(
     s3_client = get_s3_client()
     semaphore = asyncio.Semaphore(5)
 
-    async def upload_single_file(uploaded_file: UploadFile):
+    async def upload_single_file(uploaded_file: UploadFile) -> None:
         async with semaphore:
             uploaded_file.file.seek(0, 2)
             size = uploaded_file.file.tell()
