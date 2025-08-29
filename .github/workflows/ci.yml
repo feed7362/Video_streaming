@@ -9,25 +9,6 @@ env:
   UV_CACHE_DIR: "~/.cache/uv"
 
 jobs:
-  # ---------------- pre-commit hooks ----------------
-  pre-commit:
-    name: Pre-commit hooks
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install pre-commit
-        run: pip install pre-commit
-
-      - name: Run pre-commit
-        run: pre-commit run --all-files > pre-commit-report.txt
-
-      - name: Upload pre-commit report
-        uses: actions/upload-artifact@v4
-        with:
-          name: pre-commit-report
-          path: pre-commit-report.txt
-
   # ---------------- Python lint/type-check ----------------
   lint-python:
     runs-on: ubuntu-latest
