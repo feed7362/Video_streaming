@@ -9,7 +9,11 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      changed: ${{ steps.filter.outputs.all }}
+      backend: ${{ steps.filter.outputs.backend }}
+      auth: ${{ steps.filter.outputs.auth }}
+      convertor: ${{ steps.filter.outputs.convertor }}
+      moderation: ${{ steps.filter.outputs.moderation }}
+      frontend: ${{ steps.filter.outputs.frontend }}
     steps:
       - uses: actions/checkout@v4
       - id: filter
@@ -28,24 +32,32 @@ jobs:
               - 'frontend/**'
       - run: echo "Detect changes workflow running"
 
-#  deploy:
-#    needs: detect-changes
-#    runs-on: ubuntu-latest
-#    strategy:
-#      matrix:
-#        service: [ backend, services/auth, services/convertor, services/moderation, frontend ]
-#      max-parallel: 2
-#
-#    if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
-#    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'stage' }}
-#    steps:
-#      - uses: actions/checkout@v4
-#
-#      - name: Build Docker image
-#        run: |
-#          IMAGE=myregistry/${{ matrix.service }}:${{ github.sha }}
-#          docker build -t $IMAGE ./services/${{ matrix.service }}
-#          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+  deploy:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: backend
+            path: ./backend
+          - service: auth
+            path: ./services/auth
+          - service: convertor
+            path: ./services/convertor
+          - service: moderation
+            path: ./services/moderation
+          - service: frontend
+            path: ./frontend
+    if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'stage' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          IMAGE=myregistry/${{ matrix.service }}:${{ github.sha }}
+          docker build -t $IMAGE ${{ matrix.path }}
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
 #
 #      - name: Push Docker image
 #        run: |
