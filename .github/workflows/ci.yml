@@ -18,8 +18,8 @@ jobs:
 
       - name: Run pre-commit in Docker
         run: |
-          docker run --rm -v $PWD:/repo -w /repo pre-commit/pre-commit:latest \
-          pre-commit run --all-files > pre-commit-report.txt
+          docker run --rm -v ${{ github.workspace }}:/repo -w /repo pre-commit/pre-commit:latest run --all-files > pre-commit-report.txt
+
 
       - name: Upload pre-commit report
         uses: actions/upload-artifact@v4
