@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
 
 from ..main import app
 from ..src import services
@@ -10,7 +11,7 @@ client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
-def mock_services(monkeypatch) -> None:
+def mock_services(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(services.rabbit_client.rabbit_broker, "connect", AsyncMock())
     monkeypatch.setattr(services.rabbit_client.rabbit_broker, "close", AsyncMock())
     monkeypatch.setattr(services.s3_client, "check_bucket_exists", AsyncMock())
