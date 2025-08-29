@@ -121,8 +121,6 @@ class S3Client:
             logging.error(f"Error downloading file: {e}")
 
 
-settings = get_s3_settings()
-
 _s3_client_instance: Optional[S3Client] = None
 
 
@@ -131,6 +129,7 @@ def get_s3_client() -> S3Client:
     Lazy initialization of the S3 client.
     The client will only be created on the first call to this function.
     """
+    settings = get_s3_settings()
     global _s3_client_instance
     if _s3_client_instance is None:
         _s3_client_instance = S3Client(
