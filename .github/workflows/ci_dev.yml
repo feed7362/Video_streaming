@@ -81,8 +81,8 @@ jobs:
       - name: Upload per-service coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.prepare-artifact.outputs.artifact_name }}
-          path: ${{ steps.prepare-artifact.outputs.artifact_path }}
+          name: ${{ steps.prepare-artifact.outputs.coverage_name }}
+          path: ${{ steps.prepare-artifact.outputs.coverage_path }}
           if-no-files-found: warn
           overwrite: true
 
