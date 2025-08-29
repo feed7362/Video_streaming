@@ -19,7 +19,7 @@ jobs:
       - name: Run pre-commit in Docker
         run: |
           docker run --rm -v $PWD:/repo -w /repo pre-commit/pre-commit:latest \
-          pre-commit run --all-files > pre-commit-report.txt || true
+          pre-commit run --all-files > pre-commit-report.txt
 
       - name: Upload pre-commit report
         uses: actions/upload-artifact@v4
@@ -101,7 +101,7 @@ jobs:
       - name: Run pip-audit (extra dep scanning)
         run: |
           cd ${{ matrix.service }}
-          uvx pip-audit@latest || true
+          uvx pip-audit@latest
 
       # --------- LICENSE ----------
       - name: Check licenses
@@ -146,11 +146,11 @@ jobs:
       - name: Security scan
         run: |
           cd ${{ matrix.service }}
-          npm audit || true
+          npm audit
 
       - name: Check licenses (npm)
         run: |
-          if [ -f package.json ]; then npx license-checker --json > licenses.json || true; fi
+          if [ -f package.json ]; then npx license-checker --json > licenses.json ; fi
 
       - name: Upload license report
         uses: actions/upload-artifact@v4
