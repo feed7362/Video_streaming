@@ -76,16 +76,25 @@ jobs:
           uv sync --frozen
           uv run pytest tests/ --junitxml=report.xml
 
-      - name: Merge coverage reports
+      - name: Prepare artifact metadata
+        id: prepare-artifact
         run: |
-          mkdir -p combined-reports
-          cp */report.xml combined-reports/
+          sanitized="${{ matrix.service }}"
 
-      - name: Upload combined coverage report
+          sanitized="${sanitized#services/}"
+          sanitized="${sanitized#service/}"
+
+          sanitized="${sanitized//\//-}"
+
+          echo "artifact_name=coverage-report-${sanitized}" >> $GITHUB_OUTPUT
+          echo "artifact_path=${{ matrix.service }}/report.xml" >> $GITHUB_OUTPUT
+
+      - name: Upload per-service coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: combined-reports/
+          name: ${{ steps.prepare-artifact.outputs.artifact_name }}
+          path: ${{ steps.prepare-artifact.outputs.artifact_path }}
+          if-no-files-found: warn
           overwrite: true
 
       # --------- SECURITY ----------
