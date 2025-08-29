@@ -225,6 +225,7 @@ dependencies = [
     { name = "python-multipart" },
     { name = "sqlalchemy" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "uvloop" },
 ]
 
 [package.dev-dependencies]
@@ -253,6 +254,7 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.20" },
     { name = "sqlalchemy", specifier = ">=2.0.43" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.35.0" },
+    { name = "uvloop" },
 ]
 
 [package.metadata.requires-dev]

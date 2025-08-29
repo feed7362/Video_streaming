@@ -21,5 +21,4 @@ RUN uv sync --no-dev
 
 COPY . .
 
-ENTRYPOINT ["python3", "-m", "uvicorn", "rabbit_client:app", "--host", "0.0.0.0", "--port", "8002",
-"--loop", "uvloop", "--http", "httptools", "--workers", "4", "--log-config", "log_conf.yaml"]
+ENTRYPOINT ["python3", "-m", "uvicorn", "rabbit_client:app", "--host", "0.0.0.0", "--port", "8002","--loop", "uvloop", "--http", "httptools", "--workers", "4", "--log-config", "log_conf.yaml"]
