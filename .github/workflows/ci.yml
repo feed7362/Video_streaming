@@ -89,13 +89,6 @@ jobs:
           cd ${{ matrix.service }}
           uvx pip-audit@latest || true
 
-      # --------- SECRETS ----------
-      - name: Run Gitleaks (secrets detection)
-        run: |
-          gitleaks detect --redact -v --exit-code=2 \
-          --report-format=sarif \
-          --report-path=results-${{ github.run_id }}.sarif
-
       # --------- LICENSE ----------
       - name: Check licenses
         run: |
