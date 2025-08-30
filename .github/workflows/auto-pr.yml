@@ -16,11 +16,10 @@ permissions:
 jobs:
   create-pr:
     runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'workflow_dispatch' ||
+    if: github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'dev')
+      github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_branch, 'dev'))
     steps:
       - name: Checkout dev (full fetch)
         uses: actions/checkout@v4
