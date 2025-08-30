@@ -17,7 +17,7 @@ jobs:
       moderation: ${{ steps.filter.outputs.moderation }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - id: filter
         uses: dorny/paths-filter@v3
         with:
@@ -52,8 +52,7 @@ jobs:
             path: ./frontend
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'stage' }}
     steps:
-      - uses: actions/checkout@v4
-
+      - uses: actions/checkout@v5
       - name: Build Docker image
         if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
         run: |
