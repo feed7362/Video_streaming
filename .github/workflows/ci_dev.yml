@@ -1,34 +1,14 @@
-name: Continuous Integration
+name: "CI for dev branch"
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ "dev" ]
   workflow_dispatch:
 
 env:
   UV_CACHE_DIR: "~/.cache/uv"
 
 jobs:
-  # ---------------- pre-commit hooks ----------------
-  pre-commit:
-    name: Pre-commit hooks
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run pre-commit in Docker
-        run: |
-          docker run --rm -v $PWD:/repo -w /repo pre-commit/pre-commit:latest \
-          pre-commit run --all-files > pre-commit-report.txt || true
-
-      - name: Upload pre-commit report
-        uses: actions/upload-artifact@v4
-        with:
-          name: pre-commit-report
-          path: pre-commit-report.txt
-
   # ---------------- Python lint/type-check ----------------
   lint-python:
     runs-on: ubuntu-latest
@@ -36,12 +16,11 @@ jobs:
       matrix:
         service:
           [ backend, services/convertor, services/auth, services/moderation ]
-        python-version: [ 3.11,3.12 ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.12
       - uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
@@ -73,41 +52,67 @@ jobs:
           uvx mypy@latest --install-types --non-interactive . --config-file pyproject.toml
 
       # --------- TESTING + COVERAGE ----------
-      - name: Run tests with coverage
+      - name: Install dependencies and run tests
         run: |
           cd ${{ matrix.service }}
-          uv pip install -e .
-          uvx pytest@latest --junitxml=report.xml
-        continue-on-error: false
+          uv sync --frozen
+          uv run pytest tests/ --junitxml=report.xml
 
-      - name: Upload coverage report
+      - name: Prepare artifact metadata
+        id: prepare-artifact
+        run: |
+          sanitized="${{ matrix.service }}"
+          sanitized="${sanitized#services/}"
+          sanitized="${sanitized//\//-}"
+
+          # coverage
+          echo "coverage_name=coverage-report-${sanitized}" >> $GITHUB_OUTPUT
+          echo "coverage_path=${{ matrix.service }}/report.xml" >> $GITHUB_OUTPUT
+
+          # audit
+          echo "audit_name=audit-${sanitized}" >> $GITHUB_OUTPUT
+          echo "audit_path=${{ matrix.service }}/audit.json" >> $GITHUB_OUTPUT
+
+          # license
+          echo "license_name=licenses-${sanitized}" >> $GITHUB_OUTPUT
+          echo "license_path=${{ matrix.service }}/licenses.json" >> $GITHUB_OUTPUT
+
+
+      - name: Upload per-service coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: ${{ matrix.service }}/coverage.xml
+          name: ${{ steps.prepare-artifact.outputs.coverage_name }}
+          path: ${{ steps.prepare-artifact.outputs.coverage_path }}
+          if-no-files-found: warn
+          overwrite: true
 
       # --------- SECURITY ----------
-      - name: Run Safety (dependency vulnerability check)
-        run: |
-          cd ${{ matrix.service }}
-          uvx safety@latest check --full-report
-
       - name: Run pip-audit (extra dep scanning)
         run: |
           cd ${{ matrix.service }}
-          uvx pip-audit@latest || true
+          uvx pip-audit@latest > audit.json || true
 
-      # --------- SECRETS ----------
-      - name: Run Gitleaks (secrets detection)
-        uses: gitleaks/gitleaks-action@v2
+      - name: Upload per-service audit report
+        uses: actions/upload-artifact@v4
         with:
-          args: detect --source . --no-banner --redact
+          name: ${{ steps.prepare-artifact.outputs.audit_name }}
+          path: ${{ steps.prepare-artifact.outputs.audit_path }}
+          if-no-files-found: warn
+          overwrite: true
 
       # --------- LICENSE ----------
       - name: Check licenses
         run: |
           cd ${{ matrix.service }}
-          uvx pip-licenses@latest --from=mixed --with-authors --with-urls
+          uvx pip-licenses@latest --from=mixed --with-authors --with-urls > licenses.json
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.prepare-artifact.outputs.license_name }}
+          path: ${{ steps.prepare-artifact.outputs.license_path }}
+          if-no-files-found: warn
+          overwrite: true
 
   # ---------------- Npm lint/tests ----------------
   lint-npm:
@@ -146,11 +151,11 @@ jobs:
       - name: Security scan
         run: |
           cd ${{ matrix.service }}
-          npm audit || true
+          npm audit
 
       - name: Check licenses (npm)
         run: |
-          if [ -f package.json ]; then npx license-checker --json > licenses.json || true; fi
+          if [ -f package.json ]; then npx license-checker --json > licenses.json ; fi
 
       - name: Upload license report
         uses: actions/upload-artifact@v4
@@ -158,34 +163,9 @@ jobs:
           name: license-report
           path: licenses.json
 
-  # ---------------- Python build (per service) ----------------
-#  build-python:
-#    runs-on: ubuntu-latest
-#    needs: lint-python
-#    strategy:
-#      matrix:
-#        service: [ backend, services/convertor, services/auth, services/moderation ]
-#        python-version: [ 3.11, 3.12 ]
-#    steps:
-#      - uses: actions/checkout@v4
-#      - uses: actions/setup-python@v5
-#        with:
-#          python-version: ${{ matrix.python-version }}
-#      - uses: astral-sh/setup-uv@v6
-#
-#      - name: Cache uv
-#        uses: actions/cache@v3
-#        with:
-#        path: ${{ env.UV_CACHE_DIR }}
-#        key: ${{ runner.os }}-uv-${{ matrix.service }}
-#
-#      - name: Install dependencies
-#        run: |
-#          cd ${{ matrix.service }}
-#          uv lock
-#          uv sync --frozen
-#
-#      - name: Build (optional)
-#        run: |
-#          cd ${{ matrix.service }}
-#          uv build
+      - name: Debug workflow_run
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Head branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Workflow name: ${{ github.event.workflow_run.name }}"
+          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"

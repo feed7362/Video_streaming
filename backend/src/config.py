@@ -1,14 +1,13 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent
 
 
 class BaseAppSettings(BaseSettings):
-    class Config:
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(env_file_encoding="utf-8")
 
 
 class DatabaseSettings(BaseAppSettings):
@@ -18,8 +17,7 @@ class DatabaseSettings(BaseAppSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
 
-    class Config:
-        env_file = str(BASE_DIR / "database.env")
+    model_config = SettingsConfigDict(env_file=str(BASE_DIR / "database.env"))
 
 
 class S3Settings(BaseAppSettings):
@@ -29,8 +27,7 @@ class S3Settings(BaseAppSettings):
     MINIO_BUCKET_NAME: str
     MINIO_REGION_NAME: str
 
-    class Config:
-        env_file = str(BASE_DIR / "s3.env")
+    model_config = SettingsConfigDict(env_file=str(BASE_DIR / "s3.env"))
 
 
 @lru_cache()

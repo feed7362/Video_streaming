@@ -4,7 +4,8 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+]
 
 [tool.black]
 line-length = 88
@@ -49,5 +50,10 @@ exclude = "(alembic|.venv)"
 
 [dependency-groups]
 dev = [
+    "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

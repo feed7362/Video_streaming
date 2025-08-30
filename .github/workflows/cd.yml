@@ -1,0 +1,73 @@
+name: "CD Pipeline"
+
+on:
+  push:
+    branches: [ "stage" ]
+  pull_request:
+    branches: [ "stage" ]
+  workflow_dispatch:
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      auth: ${{ steps.filter.outputs.auth }}
+      convertor: ${{ steps.filter.outputs.convertor }}
+      moderation: ${{ steps.filter.outputs.moderation }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            auth:
+              - 'services/auth/**'
+            convertor:
+              - 'services/convertor/**'
+            moderation:
+              - 'services/moderation/**'
+            frontend:
+              - 'frontend/**'
+      - run: echo "Detect changes workflow running"
+
+  deploy:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: backend
+            path: ./backend
+          - service: auth
+            path: ./services/auth
+          - service: convertor
+            path: ./services/convertor
+          - service: moderation
+            path: ./services/moderation
+          - service: frontend
+            path: ./frontend
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'stage' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
+        run: |
+          IMAGE=myregistry/${{ matrix.service }}:${{ github.sha }}
+          docker build -t $IMAGE ${{ matrix.path }}
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+#      - name: Push Docker image
+#        if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
+#        run: |
+#          echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login myregistry -u ${{ secrets.REGISTRY_USER }} --password-stdin
+#          docker push $IMAGE
+#
+#      - name: Deploy to Kubernetes
+#        if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
+#        run: |
+#          kubectl set image deployment/${{ matrix.service }} ${{ matrix.service }}=$IMAGE --record
