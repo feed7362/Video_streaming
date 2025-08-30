@@ -53,7 +53,6 @@ jobs:
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'stage' }}
     steps:
       - uses: actions/checkout@v5
-
       - name: Build Docker image
         if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
         run: |
