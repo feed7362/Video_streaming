@@ -4,40 +4,40 @@ on:
   workflow_run:
     workflows: [ "CI for dev branch" ]
     types: [ completed ]
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  debug-and-pr:
+  create-pr:
     runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'dev')
     steps:
-      - name: Debug workflow_run
-        run: |
-          echo "==== workflow_run Event Info ===="
-          echo "Event name: ${{ github.event_name }}"
-          echo "Workflow name: ${{ github.event.workflow_run.name }}"
-          echo "Head branch: ${{ github.event.workflow_run.head_branch }}"
-          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
-
-      - name: Checkout dev branch
-        if: github.event.workflow_run.conclusion == 'success' &&
-          startsWith(github.event.workflow_run.head_branch, 'dev')
+      - name: Checkout dev (full fetch)
         uses: actions/checkout@v4
         with:
           ref: dev
           fetch-depth: 0
 
-      - name: Create Pull Request (auto-pull-request)
-        if: github.event.workflow_run.conclusion == 'success' &&
-          startsWith(github.event.workflow_run.head_branch, 'dev')
-        id: create_pr
+  pull-request:
+    needs: create-pr
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: pull-request
         uses: diillson/auto-pull-request@v1.0.1
         with:
-          source_branch: dev
-          destination_branch: stage
-          pr_title: "Merge dev into stage (auto PR)"
-          pr_body: "This PR was automatically created after successful CI."
-          pr_label: "auto-pr"
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          source_branch: "dev"
+          destination_branch: "stage"
+          pr_title: "Pulling ${{ github.ref }} into master"
+          pr_body: |
+            :crown: *An automated PR*
