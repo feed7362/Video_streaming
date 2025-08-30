@@ -3,8 +3,7 @@ name: "Auto PR to Stage"
 on:
   workflow_run:
     workflows: [ "CI for dev branch" ]
-    types:
-      - completed
+    types: [ completed ]
 
 jobs:
   create-pr:
@@ -14,7 +13,11 @@ jobs:
       github.event.workflow_run.head_branch == 'dev'
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
