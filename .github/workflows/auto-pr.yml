@@ -4,35 +4,34 @@ on:
   workflow_run:
     workflows: [ "CI for dev branch" ]
     types: [ completed ]
-  workflow_dispatch:
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  create-pr:
+  debug-and-pr:
     runs-on: ubuntu-latest
-    #    if: >
-    #      github.event_name == 'workflow_dispatch' ||
-    #      (github.event_name == 'workflow_run' &&
-    #       github.event.workflow_run.conclusion == 'success' &&
-    #       github.event.workflow_run.head_branch == 'dev')
     steps:
       - name: Debug workflow_run
         run: |
-          echo "Event: ${{ github.event_name }}"
-          echo "Head branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "==== workflow_run Event Info ===="
+          echo "Event name: ${{ github.event_name }}"
           echo "Workflow name: ${{ github.event.workflow_run.name }}"
+          echo "Head branch: ${{ github.event.workflow_run.head_branch }}"
           echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
 
-      - name: Checkout dev (full fetch)
+      - name: Checkout dev branch
+        if: github.event.workflow_run.conclusion == 'success' &&
+          startsWith(github.event.workflow_run.head_branch, 'dev')
         uses: actions/checkout@v4
         with:
           ref: dev
           fetch-depth: 0
 
       - name: Create Pull Request (auto-pull-request)
+        if: github.event.workflow_run.conclusion == 'success' &&
+          startsWith(github.event.workflow_run.head_branch, 'dev')
         id: create_pr
         uses: diillson/auto-pull-request@v1.0.1
         with:
