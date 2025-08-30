@@ -6,21 +6,26 @@ updates:
       interval: "weekly"
 
   - package-ecosystem: "uv"
-    directory: "/service/auth"
+    directory: "/services/auth"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "uv"
-    directory: "/service/convertor"
+    directory: "/services/convertor"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "uv"
-    directory: "/service/moderation"
+    directory: "/services/moderation"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "npm"
     directory: "/frontend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
       interval: "weekly"
