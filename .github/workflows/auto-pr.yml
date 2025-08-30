@@ -2,8 +2,9 @@ name: "Auto PR to Stage"
 
 on:
   workflow_run:
-    workflows: [ 'CI for dev branch' ]
-
+    workflows: [ "CI for dev branch" ]
+    types:
+      - completed
 
 permissions:
   contents: write
@@ -12,10 +13,7 @@ permissions:
 jobs:
   auto-pr:
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      startsWith(github.event.workflow_run.head_branch, 'dev'))
+    if: github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Checkout dev branch
         uses: actions/checkout@v4
@@ -29,6 +27,6 @@ jobs:
           source_branch: dev
           destination_branch: stage
           pr_title: "Merge dev into stage (auto PR)"
-          pr_body: "Auto PR after successful CI or manual trigger"
+          pr_body: "Auto PR after successful CI"
           pr_label: auto-pr
           github_token: ${{ secrets.GITHUB_TOKEN }}
