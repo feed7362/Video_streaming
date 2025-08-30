@@ -1,4 +1,4 @@
-name: ci_dev
+name: "CI for dev branch"
 
 on:
   push:

@@ -1,7 +1,9 @@
-name: CD Pipeline
+name: "CD Pipeline"
 
 on:
   push:
+    branches: [ "stage" ]
+  pull_request:
     branches: [ "stage" ]
   workflow_dispatch:
 

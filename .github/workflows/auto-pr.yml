@@ -1,8 +1,8 @@
-name: Auto PR to Stage
+name: "Auto PR to Stage"
 
 on:
   workflow_run:
-    workflows: [ "ci_dev" ]
+    workflows: [ "CI for dev branch" ]
     types:
       - completed
 
