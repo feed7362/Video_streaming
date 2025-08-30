@@ -13,12 +13,19 @@ permissions:
 jobs:
   create-pr:
     runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'dev')
+    #    if: >
+    #      github.event_name == 'workflow_dispatch' ||
+    #      (github.event_name == 'workflow_run' &&
+    #       github.event.workflow_run.conclusion == 'success' &&
+    #       github.event.workflow_run.head_branch == 'dev')
     steps:
+      - name: Debug workflow_run
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Head branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Workflow name: ${{ github.event.workflow_run.name }}"
+          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+
       - name: Checkout dev (full fetch)
         uses: actions/checkout@v4
         with:

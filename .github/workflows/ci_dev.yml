@@ -162,3 +162,10 @@ jobs:
         with:
           name: license-report
           path: licenses.json
+
+      - name: Debug workflow_run
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Head branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Workflow name: ${{ github.event.workflow_run.name }}"
+          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
