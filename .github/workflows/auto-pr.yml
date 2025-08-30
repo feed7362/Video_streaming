@@ -24,12 +24,12 @@ jobs:
           fetch-depth: 0
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
+        id: create_pr
+        uses: diillson/auto-pull-request@v1.0.1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Auto PR from dev → stage"
-          branch: dev
-          base: stage
-          title: "Merge dev into stage (auto PR)"
-          body: "This PR was automatically created after successful CI."
-          labels: "auto-pr"
+          source_branch: dev
+          destination_branch: stage
+          pr_title: "Merge dev into stage (auto PR)"
+          pr_body: "This PR was automatically created after successful CI."
+          pr_label: "auto-pr"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
