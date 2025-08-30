@@ -4,6 +4,9 @@ on:
   workflow_run:
     workflows: [ "CI for dev branch" ]
     types: [ completed ]
+  push:
+    branches: [ "dev" ]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -13,8 +16,9 @@ jobs:
   create-pr:
     runs-on: ubuntu-latest
     if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'dev'
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'dev') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/dev') ||
+      (github.event_name == 'workflow_dispatch')
 
     steps:
       - name: Checkout dev (full fetch)
@@ -23,7 +27,7 @@ jobs:
           ref: dev
           fetch-depth: 0
 
-      - name: Create Pull Request
+      - name: Create Pull Request (auto-pull-request)
         id: create_pr
         uses: diillson/auto-pull-request@v1.0.1
         with:
