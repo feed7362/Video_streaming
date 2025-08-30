@@ -2,10 +2,9 @@ name: "Auto PR to Stage"
 
 on:
   workflow_run:
-    workflows: [ CI for dev branch ]
-    types: [ requested ]
-    branches: [ dev ]
-  workflow_dispatch:
+    workflows: [ "CI for dev branch" ]
+    types:
+      - completed
 
 permissions:
   contents: write
