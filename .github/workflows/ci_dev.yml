@@ -9,32 +9,6 @@ env:
   UV_CACHE_DIR: "~/.cache/uv"
 
 jobs:
-  debug-ci:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Print GitHub Event Info
-        run: |
-          echo "==== Event Info ===="
-          echo "Event name: ${{ github.event_name }}"
-          echo "Workflow name: ${{ github.workflow }}"
-          echo "Action: ${{ github.action }}"
-          echo "Actor: ${{ github.actor }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "Head ref: ${{ github.head_ref }}"
-          echo "Base ref: ${{ github.base_ref }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "SHA: ${{ github.sha }}"
-          echo "Run ID: ${{ github.run_id }}"
-          echo "Run number: ${{ github.run_number }}"
-          echo "Job: ${{ github.job }}"
-          echo "Event payload keys:"
-          jq -r 'keys[]' < $GITHUB_EVENT_PATH || echo "jq not installed"
-        env:
-          GITHUB_EVENT_PATH: ${{ github.event_path }}
-
   # ---------------- Python lint/type-check ----------------
   lint-python:
     runs-on: ubuntu-latest
