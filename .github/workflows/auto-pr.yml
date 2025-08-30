@@ -5,6 +5,10 @@ on:
     workflows: [ "CI for dev branch" ]
     types: [ completed ]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   create-pr:
     runs-on: ubuntu-latest
@@ -13,10 +17,11 @@ jobs:
       github.event.workflow_run.head_branch == 'dev'
 
     steps:
-      - name: Checkout dev
+      - name: Checkout dev (full fetch)
         uses: actions/checkout@v4
         with:
           ref: dev
+          fetch-depth: 0
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
@@ -27,3 +32,4 @@ jobs:
           base: stage
           title: "Merge dev into stage (auto PR)"
           body: "This PR was automatically created after successful CI."
+          labels: "auto-pr"
