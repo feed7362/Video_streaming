@@ -130,7 +130,7 @@ class S3Client:
             logging.error(f"Error downloading file: {e}")
 
     async def generate_presigned_url(
-        self, object_name: str, client_method: str, expires_in=1000
+        self, object_name: str, client_method: str, expires_in: int = 1000
     ) -> str | None:
         try:
             async with self._get_client() as client:
