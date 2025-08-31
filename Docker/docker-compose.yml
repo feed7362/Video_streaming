@@ -35,7 +35,7 @@ services:
     expose:
       - "${POSTGRES_PORT}"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 1m30s
       timeout: 5s
       retries: 5
@@ -83,6 +83,10 @@ services:
     environment:
       MINIO_BROWSER_REDIRECT_URL: http://localhost/minio/ui
       MINIO_PROMETHEUS_URL: http://prometheus:9090
+    #      MINIO_AUDIT_WEBHOOK_ENABLE_logger: "on"
+    #      MINIO_AUDIT_WEBHOOK_ENDPOINT_logger: "http://loki:3100/loki/api/v1/push"
+    #      MINIO_KMS_AUTO_ENCRYPTION: "on"
+    #      MINIO_KMS_MASTER_KEY: "my-key:32byteslongsecretkeymustbe!"
     command: minio server /minio_data --console-address ":9001"
     volumes:
       - minio_data:/minio_data

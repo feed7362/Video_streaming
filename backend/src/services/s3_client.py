@@ -35,6 +35,10 @@ class S3Client:
                 logging.info(f"Bucket '{self.bucket_name}' already exists")
             except ClientError:
                 await client.create_bucket(Bucket=self.bucket_name)
+                await client.put_bucket_versioning(
+                    Bucket=self.bucket_name,
+                    VersioningConfiguration={"Status": "Enabled"},
+                )
                 logging.info(f"Bucket '{self.bucket_name}' created")
 
     @asynccontextmanager
@@ -55,7 +59,7 @@ class S3Client:
         try:
             async with self._get_client() as client:
                 resp = await client.create_multipart_upload(
-                    Bucket=self.bucket_name, Key=filename
+                    Bucket=self.bucket_name, Key=filename, ServerSideEncryption="AES256"
                 )
                 upload_id = resp["UploadId"]
                 parts = []
@@ -113,12 +117,35 @@ class S3Client:
                         Key=object_name,
                         Range=f"bytes={start}-{end}",
                     )
-                    yield await resp["Body"].read()
+                    async with resp["Body"] as stream:
+                        while True:
+                            chunk = await stream.read(chunk_size)
+                            if not chunk:
+                                break
+                            yield chunk
                 logging.info(
                     f"File {object_name} downloaded with chunk size {chunk_size}"
                 )
         except ClientError as e:
             logging.error(f"Error downloading file: {e}")
+
+    async def generate_presigned_url(
+        self, object_name: str, client_method: str, expires_in=1000
+    ) -> str | None:
+        try:
+            async with self._get_client() as client:
+                url = await client.generate_presigned_url(
+                    ClientMethod=client_method,
+                    Params={"Bucket": self.bucket_name, "Key": object_name},
+                    ExpiresIn=expires_in,
+                )
+                logging.info(f"Presigned URL generated for file '{object_name}'.")
+                return url
+        except ClientError:
+            logging.error(
+                f"Couldn't get a presigned URL for client method '{client_method}'."
+            )
+            return None
 
 
 _s3_client_instance: Optional[S3Client] = None

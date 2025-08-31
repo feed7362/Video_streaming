@@ -9,7 +9,7 @@ from ..schemas.endpoint import ErrorResponse, FileMeta, UploadResponse
 from ..services import get_s3_client
 from ..services.rabbit_client import rabbit_broker
 
-router_files = APIRouter(prefix="/api/files", tags=["files"])
+router_files = APIRouter(prefix="/api/video", tags=["files"])
 
 
 # ----- Endpoints -----
@@ -57,37 +57,34 @@ async def upload_files(
     )
 
 
-@router_files.get("/streaming/{filename}")
-async def stream_video(filename: str) -> StreamingResponse:
+@router_files.get("/streaming/{filename:path}")
+async def stream_video(filename: str) -> str:
     s3_client = get_s3_client()
     try:
         logging.info(f"Streaming file: {filename}")
-        chunk_generator = s3_client.download_file(filename, 1024 * 1024 * 3)
-        headers = {"Content-Disposition": f'inline; filename="{filename}"'}
-        logging.info(f"Streaming file: {filename} in streaming mode")
-        return StreamingResponse(
-            chunk_generator, media_type="video/mp4", headers=headers
-        )
-    except FileNotFoundError:
-        logging.error(f"File '{filename}' not found")
-        raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
+        presigned_url = await s3_client.generate_presigned_url(filename, "get_object")
+        if presigned_url is None:
+            logging.error(f"File '{filename}' not found or URL could not be generated")
+            raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
+        return presigned_url
     except Exception as e:
         logging.error(f"Error streaming file: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router_files.get("/download/{filename}")
+@router_files.get("/download/{filename:path}")
 async def get_file(filename: str) -> StreamingResponse:
     s3_client = get_s3_client()
     try:
-        logging.info(f"Streaming file: {filename}")
+        logging.info(f"Downloading file: {filename}")
         chunk_generator = s3_client.download_file(filename, 1024 * 1024 * 3)
         headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
-        logging.info(f"Streaming file: {filename} in download mode")
         return StreamingResponse(
             chunk_generator, media_type="application/octet-stream", headers=headers
         )
     except FileNotFoundError:
+        logging.error(f"File '{filename}' not found")
         raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
     except Exception as e:
+        logging.error(f"Error downloading file: {e}")
         raise HTTPException(status_code=500, detail=str(e))
