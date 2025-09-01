@@ -39,7 +39,23 @@ class S3Client:
                     Bucket=self.bucket_name,
                     VersioningConfiguration={"Status": "Enabled"},
                 )
-                logging.info(f"Bucket '{self.bucket_name}' created")
+                await client.put_bucket_cors(
+                    Bucket=self.bucket_name,
+                    CORSConfiguration={
+                        "CORSRules": [
+                            {
+                                "AllowedHeaders": ["Authorization"],
+                                "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+                                "AllowedOrigins": ["*"],
+                                "ExposeHeaders": ["ETag", "x-amz-request-id"],
+                                "MaxAgeSeconds": 3000,
+                            }
+                        ]
+                    },
+                )
+                logging.info(
+                    f"Bucket '{self.bucket_name}' with versioning and cors created"
+                )
 
     @asynccontextmanager
     async def _get_client(self) -> AsyncGenerator[AioBaseClient, None]:
