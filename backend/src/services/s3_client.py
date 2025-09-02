@@ -116,6 +116,24 @@ class S3Client:
         except ClientError as e:
             logging.error(f"Error deleting file: {e}")
 
+    async def list_objects(self, bucket: str) -> list[str]:
+        """
+        Lists objects in a bucket.
+        :param bucket: The name of the bucket.
+        :return: The list of objects in the bucket.
+        """
+        try:
+            async with self._get_client() as client:
+                response = await client.list_objects_v2(Bucket=bucket)
+                return response.get("Contents", [])
+        except ClientError as client_error:
+            logging.error(
+                "Couldn't list objects in bucket %s. Here's why: %s",
+                bucket,
+                client_error.response["Error"]["Message"],
+            )
+            raise
+
     async def download_file(
         self, object_name: str, chunk_size: int
     ) -> AsyncGenerator[bytes, None]:
