@@ -1,6 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, BinaryIO, Dict, Optional
+from typing import AsyncGenerator, BinaryIO, Dict, List, Optional
 
 from aiobotocore.session import AioBaseClient, get_session
 from botocore.exceptions import ClientError
@@ -133,6 +133,11 @@ class S3Client:
                 client_error.response["Error"]["Message"],
             )
             raise
+
+    async def get_bucket_list(self) -> List[str]:
+        async with self._get_client() as client:
+            response = await client.list_buckets()
+            return [b["Name"] for b in response.get("Buckets", [])]
 
     async def download_file(
         self, object_name: str, chunk_size: int
