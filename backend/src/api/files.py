@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from typing import List
+from urllib.parse import urlparse, urlunparse
 
 from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
@@ -57,15 +58,35 @@ async def upload_files(
     )
 
 
+def proxify_minio_url(presigned_url: str, public_base: str) -> str:
+    parsed = urlparse(presigned_url)
+    public = urlparse(public_base)
+
+    return urlunparse(
+        (
+            public.scheme,  # http/https
+            public.netloc,  # localhost or domain
+            f"/minio{parsed.path}",  # prepend /minio for proxy
+            "",
+            parsed.query,
+            "",
+        )
+    )
+
+
 @router_files.get("/streaming/{filename:path}")
 async def stream_video(filename: str) -> str:
     s3_client = get_s3_client()
     try:
         logging.info(f"Streaming file: {filename}")
-        presigned_url = await s3_client.generate_presigned_url(filename, "get_object")
-        if presigned_url is None:
+        raw_presigned_url = await s3_client.generate_presigned_url(
+            filename, "get_object"
+        )
+        if raw_presigned_url is None:
             logging.error(f"File '{filename}' not found or URL could not be generated")
             raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
+
+        presigned_url = proxify_minio_url(raw_presigned_url, "http://localhost")
         return presigned_url
     except Exception as e:
         logging.error(f"Error streaming file: {e}")
