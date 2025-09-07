@@ -11,7 +11,7 @@ import {BrowserRouter, useLocation} from "react-router-dom";
 function AppContent() {
     const location = useLocation();
 
-    const hideLayout = ["/login", "/register", "/reset", "/forgot", "/privacy", "/terms"];
+    const hideLayout = ["/login", "/register", "/reset", "/forgot", "/privacy", "/terms", "/*"];
     const showLayout = !hideLayout.includes(location.pathname);
 
     return (

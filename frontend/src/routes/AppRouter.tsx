@@ -2,7 +2,7 @@ import {Routes, Route} from "react-router-dom"
 import Home from "@/pages/Home"
 import Upload from "@/pages/Upload"
 import Profile from "@/pages/Profile"
-// import NotFound from "@/pages/NotFound"
+import NotFound from "@/pages/NotFound"
 // import Watch from "@/pages/Watch"
 import Login from "@/pages/Login"
 import Register from "@/pages/Register"
@@ -12,7 +12,6 @@ export default function AppRouter() {
         <Routes>
             {/* General routes */}
             <Route path="/" element={<Home/>}/>
-            {/*<Route path="*" element={<NotFound/>}/>*/}
 
             {/* Video routes */}
             <Route path="/upload" element={<Upload/>}/>
@@ -26,6 +25,9 @@ export default function AppRouter() {
             {/*<Route path="/forgot-password" element={<Login/>}/>*/}
             {/*<Route path="/privacy" element={<Login/>}/>*/}
             {/*<Route path="/terms" element={<Login/>}/>*/}
+
+            {/* Catch-all route */}
+            <Route path="*" element={<NotFound/>}/>
 
         </Routes>
     );
