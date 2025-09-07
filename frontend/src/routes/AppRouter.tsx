@@ -15,16 +15,29 @@ export default function AppRouter() {
 
             {/* Video routes */}
             <Route path="/upload" element={<Upload/>}/>
-            {/*<Route path="/watch" element={<Watch/>}/>*/}
+            {/*<Route path="/watch/:videoId" element={<Watch/>}/>*/}
 
             {/* Auth routes */}
             <Route path="/profile" element={<Profile/>}/>
+            {/*<Route path="/user/:userId" element={<UserProfile/>}/>*/}
+            {/*<Route path="/settings" element={<Settings/>}/>*/}
             <Route path="/login" element={<Login/>}/>
             <Route path="/register" element={<Register/>}/>
-            {/*<Route path="/reset-password" element={<Login/>}/>*/}
-            {/*<Route path="/forgot-password" element={<Login/>}/>*/}
-            {/*<Route path="/privacy" element={<Login/>}/>*/}
-            {/*<Route path="/terms" element={<Login/>}/>*/}
+
+            {/* Auth Helpers routers */}
+            {/*<Route path="/reset-password" element={<ResetPassword/>}/>*/}
+            {/*<Route path="/forgot-password" element={<ForgotPassword/>}/>*/}
+
+            {/* Engagement routes */}
+            {/*<Route path="/history" element={<WatchHistory/>}/>*/}
+            {/*<Route path="/liked" element={<LikedVideos/>}/>*/}
+            {/*<Route path="/subscriptions" element={<Subscriptions/>}/>*/}
+
+            {/* Static Pages routers */}
+            {/*<Route path="/privacy" element={<PrivacyPolicy/>}/>*/}
+            {/*<Route path="/terms" element={<TermsOfService/>}/>*/}
+            {/*<Route path="/about" element={<About/>}/>*/}
+            {/*<Route path="/contact" element={<Contact/>}/>*/}
 
             {/* Catch-all route */}
             <Route path="*" element={<NotFound/>}/>
