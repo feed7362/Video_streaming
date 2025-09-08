@@ -1,5 +1,5 @@
 import ChangelogForm from "@/components/changelog-form";
 
-export default function ChangelogPage() {
+export default function Changelog() {
     return <ChangelogForm/>;
 }

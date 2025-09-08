@@ -6,7 +6,8 @@ import NotFound from "@/pages/NotFound";
 // import Watch from "@/pages/Watch";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
-import ChangelogPage from "@/pages/Changelog";
+import Changelog from "@/pages/Changelog";
+import Pricing from "@/pages/Pricing";
 
 export default function AppRouter() {
     return (
@@ -39,7 +40,8 @@ export default function AppRouter() {
             {/*<Route path="/terms" element={<TermsOfService/>}/>*/}
             {/*<Route path="/about" element={<About/>}/>*/}
             {/*<Route path="/contact" element={<Contact/>}/>*/}
-            <Route path="/changelog" element={<ChangelogPage/>}/>
+            <Route path="/changelog" element={<Changelog/>}/>
+            <Route path="/pricing-table" element={<Pricing/>}/>
 
             {/* Catch-all route */}
             <Route path="*" element={<NotFound/>}/>

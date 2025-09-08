@@ -79,15 +79,16 @@ export function NavUser({
                         <DropdownMenuSeparator/>
                         <DropdownMenuGroup>
                             <DropdownMenuItem>
-                                <Sparkles/>
-                                Upgrade to Pro
+                                <Link to="/pricing-table" className="flex items-center gap-2">
+                                    <Sparkles/>Upgrade plan
+                                </Link>
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator/>
                         <DropdownMenuGroup>
                             <DropdownMenuItem>
                                 <Link to="/profile" className="flex items-center gap-2">
-                                    <BadgeCheck/> Account
+                                    <BadgeCheck/>Account
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
