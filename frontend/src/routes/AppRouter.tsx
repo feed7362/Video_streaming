@@ -1,11 +1,11 @@
-import {Routes, Route} from "react-router-dom"
-import Home from "@/pages/Home"
-import Upload from "@/pages/Upload"
-import Profile from "@/pages/Profile"
-import NotFound from "@/pages/NotFound"
-// import Watch from "@/pages/Watch"
-import Login from "@/pages/Login"
-import Register from "@/pages/Register"
+import {Routes, Route} from "react-router-dom";
+import Home from "@/pages/Home";
+import Upload from "@/pages/Upload";
+import Profile from "@/pages/Profile";
+import NotFound from "@/pages/NotFound";
+// import Watch from "@/pages/Watch";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 
 export default function AppRouter() {
     return (
