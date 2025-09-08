@@ -15,7 +15,7 @@ function AppContent() {
     const showLayout = !hideLayout.includes(location.pathname);
 
     return (
-        <div className="[--header-height:calc(--spacing(14))]">
+        <div className="h-screen overflow-hidden flex flex-col [--header-height:calc(--spacing(14))]">
             {showLayout ? (
                 <SidebarProvider className="flex flex-col" defaultOpen={false}>
                     <AppSidebar/>

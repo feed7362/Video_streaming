@@ -3,7 +3,7 @@ import Home from "@/pages/Home";
 import Upload from "@/pages/Upload";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
-// import Watch from "@/pages/Watch";
+import Watch from "@/pages/Watch";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Changelog from "@/pages/Changelog";
@@ -17,7 +17,7 @@ export default function AppRouter() {
 
             {/* Video routes */}
             <Route path="/upload" element={<Upload/>}/>
-            {/*<Route path="/watch/:videoId" element={<Watch/>}/>*/}
+            <Route path="/watch/:videoId" element={<Watch/>}/>
 
             {/* Auth routes */}
             <Route path="/profile" element={<Profile/>}/>
@@ -33,7 +33,6 @@ export default function AppRouter() {
             {/* Engagement routes */}
             {/*<Route path="/history" element={<WatchHistory/>}/>*/}
             {/*<Route path="/liked" element={<LikedVideos/>}/>*/}
-            {/*<Route path="/subscriptions" element={<Subscriptions/>}/>*/}
 
             {/* Static Pages routers */}
             {/*<Route path="/privacy" element={<PrivacyPolicy/>}/>*/}
