@@ -26,6 +26,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import {Link} from "react-router-dom";
 
 export function NavUser({
                             user
@@ -85,8 +86,9 @@ export function NavUser({
                         <DropdownMenuSeparator/>
                         <DropdownMenuGroup>
                             <DropdownMenuItem>
-                                <BadgeCheck/>
-                                Account
+                                <Link to="/profile" className="flex items-center gap-2">
+                                    <BadgeCheck/> Account
+                                </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                                 <CreditCard/>

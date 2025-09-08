@@ -6,6 +6,7 @@ import NotFound from "@/pages/NotFound";
 // import Watch from "@/pages/Watch";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import ChangelogPage from "@/pages/Changelog";
 
 export default function AppRouter() {
     return (
@@ -38,6 +39,7 @@ export default function AppRouter() {
             {/*<Route path="/terms" element={<TermsOfService/>}/>*/}
             {/*<Route path="/about" element={<About/>}/>*/}
             {/*<Route path="/contact" element={<Contact/>}/>*/}
+            <Route path="/changelog" element={<ChangelogPage/>}/>
 
             {/* Catch-all route */}
             <Route path="*" element={<NotFound/>}/>
