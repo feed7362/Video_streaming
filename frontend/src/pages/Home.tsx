@@ -1,53 +1,62 @@
 import {useEffect, useState} from "react";
 import VideoCard from "@/components/VideoCard";
-import axios from "axios";
-import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area"
-import {Skeleton} from "@/components/ui/skeleton"
 
-export function SkeletonCard() {
-    return (
-        <div className="flex flex-col space-y-3">
-            <Skeleton className="h-[125px] w-[250px] rounded-xl"/>
-            <div className="space-y-2">
-                <Skeleton className="h-4 w-[250px]"/>
-                <Skeleton className="h-4 w-[200px]"/>
-            </div>
-        </div>
-    )
-}
+// import axios from "axios";
 
 interface Video {
     id: string;
     title: string;
     thumbnail: string;
+    channel_avatar: string;
+    channel_name: string;
 }
 
 export default function Home() {
     const [videos, setVideos] = useState<Video[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Mock video data
+    const mockVideos: Video[] = Array.from({length: 120}).map((_, i) => ({
+        id: `video-${i + 1}`,
+        title: `Mock Video ${i + 1}`,
+        thumbnail: `https://via.placeholder.com/250x125?text=Video+${i + 1}`,
+        channel_avatar: "https://via.placeholder.com/40x40?text=A",
+        channel_name: `Channel ${i + 1}`,
+    }));
+
     useEffect(() => {
-        axios.get("http://localhost:8000/api/videos")
-            .then(res => {
-                setVideos(res.data);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error(err);
-                setLoading(false);
-            });
+        // Simulate API loading delay
+        const timer = setTimeout(() => {
+            setVideos(mockVideos);
+            setLoading(false);
+        }, 1500);
+
+        return () => clearTimeout(timer);
     }, []);
 
     return (
-        <ScrollArea className="flex-1 w-full rounded-md">
-            <div
-                className="grid auto-rows-min grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-6 p-4 justify-start ml-[30px]">
-                {loading
-                    ? Array.from({length: 24}).map((_, i) => <SkeletonCard key={i}/>)
-                    : videos.map(video => <VideoCard key={video.id} video={video}/>)
-                }
+        <div className="p-4">
+            <div className="max-w-[1400px] mx-auto">
+                <div
+                    className="grid auto-rows-min gap-6"
+                    style={{gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))"}}
+                >
+                    {loading
+                        ? Array.from({length: 24}).map((_, i) => (
+                            <VideoCard key={i} loading/>
+                        ))
+                        : videos.map(video => (
+                            <VideoCard
+                                key={video.id}
+                                id={video.id}
+                                title={video.title}
+                                thumbnail={video.thumbnail}
+                                channel_avatar={video.channel_avatar}
+                                channel_name={video.channel_name}
+                            />
+                        ))}
+                </div>
             </div>
-            <ScrollBar orientation="vertical"/>
-        </ScrollArea>
+        </div>
     );
 }

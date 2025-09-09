@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/*debug*/
+/** {*/
+/*  outline: 1px solid red !important;*/
+/*}*/
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
