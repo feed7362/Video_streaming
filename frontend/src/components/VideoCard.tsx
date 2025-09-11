@@ -1,7 +1,6 @@
 import {Skeleton} from "@/components/ui/skeleton";
 import {Card} from "@/components/ui/card";
 import {Avatar, AvatarImage} from "@/components/ui/avatar";
-import {Link} from "react-router-dom";
 
 interface VideoCardProps {
     id?: string;
@@ -20,7 +19,6 @@ export const CARD_CONFIG = {
 };
 
 export default function VideoCard({
-                                      id,
                                       title,
                                       thumbnail,
                                       channel_avatar,
@@ -54,25 +52,24 @@ export default function VideoCard({
     }
 
     return (
-        <Link to={`/video/${id}`} className="w-full">
-            <Card className="p-0 gap-0 rounded-xl overflow-hidden w-full" style={{height}}>
-                <img
-                    src={thumbnail}
-                    alt={title}
-                    className="rounded-t-xl block w-full"
-                    style={{height: thumbnailHeight, objectFit: "cover", display: "block"}}
-                />
-                <div className="flex items-start gap-3 px-3 py-2" style={{height: metaHeight}}>
-                    <Avatar className="rounded-full" style={{width: avatarSize, height: avatarSize}}>
-                        <AvatarImage src={channel_avatar} alt={channel_name}/>
-                    </Avatar>
-                    <div className="flex flex-col flex-1 min-w-0">
-                        <h2 className="font-semibold truncate">{title}</h2>
-                        <h4 className="text-sm text-gray-500 truncate">{channel_name}</h4>
-                        <h3 className="text-sm text-gray-500">Views · date</h3>
-                    </div>
+
+        <Card className="p-0 gap-0 rounded-xl overflow-hidden w-full" style={{height}}>
+            <img
+                src={thumbnail}
+                alt={title}
+                className="rounded-t-xl block w-full"
+                style={{height: thumbnailHeight, objectFit: "cover", display: "block"}}
+            />
+            <div className="flex items-start gap-3 px-3 py-2" style={{height: metaHeight}}>
+                <Avatar className="rounded-full" style={{width: avatarSize, height: avatarSize}}>
+                    <AvatarImage src={channel_avatar} alt={channel_name}/>
+                </Avatar>
+                <div className="flex flex-col flex-1 min-w-0">
+                    <h2 className="font-semibold truncate">{title}</h2>
+                    <h4 className="text-sm text-gray-500 truncate">{channel_name}</h4>
+                    <h3 className="text-sm text-gray-500">Views · date</h3>
                 </div>
-            </Card>
-        </Link>
+            </div>
+        </Card>
     );
 }

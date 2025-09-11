@@ -1,6 +1,7 @@
 import {useEffect, useState} from "react";
 import VideoCard from "@/components/VideoCard";
 import InfiniteScroll from "@/components/infinite-scroll";
+import {Link} from "react-router-dom";
 
 interface Video {
     id: string;
@@ -58,14 +59,21 @@ export default function Home() {
                         : (
                             <InfiniteScroll loadMore={loadMore} hasMore={hasMore}>
                                 {videos.map((video) => (
-                                    <VideoCard
+                                    <Link
                                         key={video.id}
-                                        id={video.id}
-                                        title={video.title}
-                                        thumbnail={video.thumbnail}
-                                        channel_avatar={video.channel_avatar}
-                                        channel_name={video.channel_name}
-                                    />
+                                        to={`/watch?v=${video.id}&ab_channel=${encodeURIComponent(video.channel_name)}`}
+                                        className="w-full"
+                                    >
+                                        <VideoCard
+                                            key={video.id}
+                                            id={video.id}
+                                            title={video.title}
+                                            thumbnail={video.thumbnail}
+                                            channel_avatar={video.channel_avatar}
+                                            channel_name={video.channel_name}
+                                        />
+                                    </Link>
+
                                 ))}
                             </InfiniteScroll>
                         )}

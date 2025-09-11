@@ -17,7 +17,7 @@ export default function AppRouter() {
 
             {/* Video routes */}
             <Route path="/upload" element={<Upload/>}/>
-            <Route path="/watch/:videoId" element={<Watch/>}/>
+            <Route path="/watch" element={<Watch/>}/>
 
             {/* Auth routes */}
             <Route path="/profile" element={<Profile/>}/>
