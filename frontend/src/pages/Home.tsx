@@ -22,7 +22,7 @@ export default function Home() {
         id: `video-${i + 1}`,
         title: `Mock Video ${i + 1}`,
         thumbnail: `https://via.placeholder.com/250x125?text=Video+${i + 1}`,
-        channel_avatar: "https://via.placeholder.com/40x40?text=A",
+        channel_avatar: "https://api.dicebear.com/7.x/identicon/svg?seed",
         channel_name: `Channel ${i + 1}`,
     }));
 

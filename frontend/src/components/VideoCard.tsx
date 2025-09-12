@@ -1,6 +1,5 @@
 import {Skeleton} from "@/components/ui/skeleton";
 import {Card} from "@/components/ui/card";
-import {Avatar, AvatarImage} from "@/components/ui/avatar";
 
 interface VideoCardProps {
     id?: string;
@@ -33,7 +32,6 @@ export default function VideoCard({
     if (loading) {
         return (
             <div className="w-full">
-                {/* NO space-y-3 here — use gap-0 so skeleton img touches meta */}
                 <div className="flex flex-col gap-0 w-full" style={{height}}>
                     <Skeleton
                         className="rounded-t-xl block w-full"
@@ -61,9 +59,16 @@ export default function VideoCard({
                 style={{height: thumbnailHeight, objectFit: "cover", display: "block"}}
             />
             <div className="flex items-start gap-3 px-3 py-2" style={{height: metaHeight}}>
-                <Avatar className="rounded-full" style={{width: avatarSize, height: avatarSize}}>
-                    <AvatarImage src={channel_avatar} alt={channel_name}/>
-                </Avatar>
+                <img
+                    className="avatar-img rounded-full"
+                    src={channel_avatar}
+                    alt={channel_name || "channel avatar"}
+                    width={avatarSize}
+                    height={avatarSize}
+                    decoding="async"
+                    loading="lazy"
+                    style={{width: avatarSize, height: avatarSize, display: "block", objectFit: "cover"}}
+                />
                 <div className="flex flex-col flex-1 min-w-0">
                     <h2 className="font-semibold truncate">{title}</h2>
                     <h4 className="text-sm text-gray-500 truncate">{channel_name}</h4>
