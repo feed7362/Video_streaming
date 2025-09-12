@@ -27,14 +27,13 @@ export default function VideoPlayer({src}: VideoPlayerProps) {
     }, [src]);
 
     return (
-        <Card className="w-full max-w-4xl mx-auto rounded-lg overflow-hidden">
-            <div className="relative w-full" style={{paddingTop: "56.25%"}}>
-                <video
-                    ref={videoRef}
-                    controls
-                    className="absolute top-0 left-0 w-full h-full"
-                />
-            </div>
+        <Card className="w-full max-w-4xl mx-auto rounded-lg overflow-hidden p-0">
+            <video
+                ref={videoRef}
+                controls
+                className="w-full h-auto block"
+                style={{aspectRatio: "16/9", display: "block"}}
+            />
         </Card>
     );
 }
