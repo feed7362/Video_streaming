@@ -18,7 +18,7 @@ jobs:
           [ backend, services/convertor, services/auth, services/moderation ]
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.12
       - uses: astral-sh/setup-uv@v6
