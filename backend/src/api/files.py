@@ -1,10 +1,15 @@
 import asyncio
 import logging
+import uuid
+from datetime import datetime
 from typing import List
 from urllib.parse import urlparse, urlunparse
 
 from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
+
+from schemas.enum import VideoStatus
+from schemas.video import VideoInfo
 
 from ..schemas.endpoint import ErrorResponse, FileMeta, UploadResponse
 from ..services import get_s3_client
@@ -109,3 +114,16 @@ async def get_file(filename: str) -> StreamingResponse:
     except Exception as e:
         logging.error(f"Error downloading file: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router_files.get("/info/{video_id}", response_model=VideoInfo)
+async def get_video_info(video_id: str) -> VideoInfo:
+    return VideoInfo(
+        id=uuid.UUID(video_id),
+        name="test.mp4",
+        description="Test Description",
+        user_id=uuid.uuid4(),
+        is_verified=True,
+        status=VideoStatus.READY,
+        registered_at=datetime.now(),
+    )

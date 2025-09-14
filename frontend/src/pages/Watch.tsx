@@ -64,29 +64,28 @@ export default function Watch() {
     useEffect(() => {
         if (!videoId) return;
 
-        const timer = setTimeout(() => {
-            const mockVideo: Video = {
-                id: videoId,
-                title: `Mock Video ${videoId}`,
-                thumbnail: `https://via.placeholder.com/640x360?text=Video+${videoId}`,
-                src: "https://www.w3schools.com/html/mov_bbb.mp4",
-            };
+        const fetchVideoData = async () => {
+            try {
+                const res = await fetch(`/api/videos/${videoId}`);
+                if (!res.ok) throw new Error("Video not found");
+                const data = await res.json();
 
-            if (videoId === "404") {
-                setError("Video not found");
-            } else {
-                setVideo(mockVideo);
+                setVideo({
+                    id: data.id,
+                    title: data.title,
+                    thumbnail: data.thumbnail,
+                    src: data.src,
+                    channel_avatar: data.channel.avatar,
+                    channel_name: data.channel.name,
+                });
 
-                // Mock comments
-                setComments([
-                    {id: "c1", author: "User123", text: "Great video!"},
-                    {id: "c2", author: "JaneDoe", text: "Really helpful tutorial."},
-                    {id: "c3", author: "CoderGuy", text: "Can you explain more about hooks?"},
-                ]);
+                setComments(data.comments || []);
+            } catch (err) {
+                setError((err as Error).message);
             }
-        }, 800);
+        };
 
-        return () => clearTimeout(timer);
+        fetchVideoData();
     }, [videoId]);
 
     // Initial sidebar load

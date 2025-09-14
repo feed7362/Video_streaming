@@ -27,3 +27,8 @@ class VideoRead(VideoBase):
 
     class Config:
         from_attributes = True
+
+
+class VideoInfo(VideoRead):
+    thumbnail_url: Optional[str] = None
+    avatar_poster_url: Optional[str] = None

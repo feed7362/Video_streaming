@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -13,10 +14,12 @@ class HLSFileCreate(HLSFileBase):
     pass
 
 
-class HLSFileRead(HLSFileBase):
+class HLSFileRead(BaseModel):
     id: UUID
     video_id: UUID
-    created_at: datetime
+    resolution: str
+    url: str
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

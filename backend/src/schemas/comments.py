@@ -16,6 +16,7 @@ class CommentRead(CommentBase):
     id: UUID
     video_id: UUID
     user_id: UUID
+    content: str
     created_at: datetime
 
     class Config:
