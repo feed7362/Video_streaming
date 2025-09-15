@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from faststream.asgi import AsgiFastStream
 from faststream.rabbit import RabbitBroker
@@ -20,7 +21,9 @@ app = AsgiFastStream(
 @broker.subscriber("video.encode")
 async def encode_video(video_id: str) -> None:
     try:
-        base_dir = await prepare_dirs(video_id)
+        filename = Path(video_id).stem
+
+        base_dir = await prepare_dirs(filename)
         async_gen = s3_client.download_file(video_id, 1024 * 1024 * 30)
         logging.debug("[ffmpeg] Starting encoding task for video %s", video_id)
 
@@ -30,7 +33,7 @@ async def encode_video(video_id: str) -> None:
         await stream_ffmpeg(async_gen, base_dir)
         logging.debug(f"Encoding task for video: {video_id} finished")
 
-        await s3_client.upload_dir(video_id, base_dir)
+        await s3_client.upload_dir(filename, base_dir)
         await broker.publish(
             {"video_id": video_id, "status": "done"}, queue="video.encode.status"
         )

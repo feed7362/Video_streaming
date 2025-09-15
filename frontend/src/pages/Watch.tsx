@@ -22,13 +22,10 @@ interface Comment {
 export default function Watch() {
     const [searchParams] = useSearchParams();
     const videoId = searchParams.get("v");
-    const channel = searchParams.get("ab_channel");
 
     const [video, setVideo] = useState<Video | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    const channel_name = channel ?? "Unknown Channel";
-    const channel_avatar = `https://api.dicebear.com/7.x/identicon/svg?seed`;
     const avatarSize = 40;
 
     // Comments
@@ -113,13 +110,13 @@ export default function Watch() {
                 <div className="flex items-center gap-3 mb-4">
                     <img
                         className="rounded-full"
-                        src={channel_avatar}
-                        alt={channel_name || "channel avatar"}
+                        src={video.channel_avatar}
+                        alt={video.channel_name}
                         width={avatarSize}
                         height={avatarSize}
                         style={{objectFit: "cover"}}
                     />
-                    <span className="text-gray-700 font-medium">{channel_name}</span>
+                    <span className="text-gray-700 font-medium">{video.channel_name}</span>
                 </div>
 
                 {/* Description */}

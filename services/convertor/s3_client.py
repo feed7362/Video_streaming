@@ -45,6 +45,8 @@ class S3Client:
             yield client
 
     async def upload_file(self, filename: str, file_obj: BinaryIO) -> None:
+        upload_id = None
+
         try:
             async with self._get_client() as client:
                 resp = await client.create_multipart_upload(
@@ -76,9 +78,10 @@ class S3Client:
                 )
                 logging.info(f"File {filename} uploaded to {self.bucket_name}")
         except ClientError as e:
-            await client.abort_multipart_upload(
-                Bucket=self.bucket_name, Key=filename, UploadId=upload_id
-            )
+            if upload_id is not None:
+                await client.abort_multipart_upload(
+                    Bucket=self.bucket_name, Key=filename, UploadId=upload_id
+                )
             logging.error(f"Error uploading file: {e}")
 
     async def upload_dir(self, dirname: str, directory: Path) -> None:
