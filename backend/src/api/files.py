@@ -128,6 +128,8 @@ async def get_video_info(video_id: str) -> VideoPlayback:
             likes_count=123,
             views_count=111,
             dislikes_count=22,
+            thumbnail_url="test",
+            avatar_url="test",
         )
     except Exception as e:
         logging.error(f"Error streaming file: {e}")
