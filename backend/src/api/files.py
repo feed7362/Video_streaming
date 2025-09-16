@@ -51,7 +51,9 @@ async def upload_files(
             files_meta.append(FileMeta(filename=new_filename, size=size))
 
             logging.info(f"Starting encoding task for file: {new_filename}")
-            await s3_client.upload_file(new_filename, uploaded_file.file)
+            await s3_client.upload_file(
+                new_filename, uploaded_file.file, bucket_name="videos"
+            )
             await rabbit_broker.publish(new_filename, queue="video.encode")
 
     try:
@@ -87,7 +89,9 @@ async def get_file(filename: str) -> StreamingResponse:
     s3_client = get_s3_client()
     try:
         logging.info(f"Downloading file: {filename}")
-        chunk_generator = s3_client.download_file(filename, 1024 * 1024 * 3)
+        chunk_generator = s3_client.download_file(
+            filename, 1024 * 1024 * 3, bucket_name="videos"
+        )
         headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
         return StreamingResponse(
             chunk_generator, media_type="application/octet-stream", headers=headers
@@ -104,11 +108,11 @@ async def get_file(filename: str) -> StreamingResponse:
 async def get_video_info(video_id: str) -> VideoPlayback:
     s3_client = get_s3_client()
 
-    s3_object = f"{s3_client.bucket_name}/{video_id}/master.m3u8"
+    s3_object = f"videos/{video_id}/master.m3u8"
     try:
         logging.info(f"Streaming file: {video_id}")
         raw_presigned_url = await s3_client.generate_presigned_url(
-            s3_object, "get_object", expires_in=3600
+            s3_object, "get_object", expires_in=3600, bucket_name="videos"
         )
         if raw_presigned_url is None:
             logging.error(f"File '{video_id}' not found or URL could not be generated")

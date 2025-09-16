@@ -24,7 +24,6 @@ class S3Settings(BaseAppSettings):
     MINIO_ROOT_USER: str
     MINIO_ROOT_PASSWORD: str
     MINIO_ENDPOINT_URL: str
-    MINIO_BUCKET_NAME: str
     MINIO_REGION_NAME: str
 
     model_config = SettingsConfigDict(env_file=str(BASE_DIR / "s3.env"))

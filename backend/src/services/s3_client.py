@@ -16,7 +16,6 @@ class S3Client:
         access_key: str,
         secret_key: str,
         endpoint_url: str,
-        bucket_name: str,
         region_name: str,
         server_side_encryption: str | None = None,
     ):
@@ -26,38 +25,43 @@ class S3Client:
             "endpoint_url": endpoint_url,
             "region_name": region_name,
         }
-        self.bucket_name = bucket_name
         self.server_side_encryption = server_side_encryption
         self.session = get_session()
 
-    async def check_bucket_exists(self) -> None:
+    async def check_bucket_exists(
+        self, bucket_names: Optional[List[str]] = None
+    ) -> None:
+        if bucket_names is None:
+            bucket_names = ["videos", "video-thumbnails", "channel-avatars"]
+
         async with self._get_client() as client:
-            try:
-                await client.head_bucket(Bucket=self.bucket_name)
-                logging.info(f"Bucket '{self.bucket_name}' already exists")
-            except ClientError:
-                await client.create_bucket(Bucket=self.bucket_name)
-                await client.put_bucket_versioning(
-                    Bucket=self.bucket_name,
-                    VersioningConfiguration={"Status": "Enabled"},
-                )
-                await client.put_bucket_cors(
-                    Bucket=self.bucket_name,
-                    CORSConfiguration={
-                        "CORSRules": [
-                            {
-                                "AllowedHeaders": ["Authorization"],
-                                "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
-                                "AllowedOrigins": ["*"],
-                                "ExposeHeaders": ["ETag", "x-amz-request-id"],
-                                "MaxAgeSeconds": 3000,
-                            }
-                        ]
-                    },
-                )
-                logging.info(
-                    f"Bucket '{self.bucket_name}' with versioning and cors created"
-                )
+            for bucket_name in bucket_names:
+                try:
+                    await client.head_bucket(Bucket=bucket_name)
+                    logging.info(f"Bucket '{bucket_name}' already exists")
+                except ClientError:
+                    await client.create_bucket(Bucket=bucket_name)
+                    await client.put_bucket_versioning(
+                        Bucket=bucket_name,
+                        VersioningConfiguration={"Status": "Enabled"},
+                    )
+                    await client.put_bucket_cors(
+                        Bucket=bucket_name,
+                        CORSConfiguration={
+                            "CORSRules": [
+                                {
+                                    "AllowedHeaders": ["Authorization"],
+                                    "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+                                    "AllowedOrigins": ["*"],
+                                    "ExposeHeaders": ["ETag", "x-amz-request-id"],
+                                    "MaxAgeSeconds": 3000,
+                                }
+                            ]
+                        },
+                    )
+                    logging.info(
+                        f"Bucket '{bucket_name}' created with versioning and cors"
+                    )
 
     @asynccontextmanager
     async def _get_client(self) -> AsyncGenerator[AioBaseClient, None]:
@@ -73,12 +77,17 @@ class S3Client:
         async with self.session.create_client("s3", **self.config) as client:
             yield client
 
-    async def upload_file(self, filename: str, file_obj: BinaryIO) -> None:
+    async def upload_file(
+        self, filename: str, file_obj: BinaryIO, bucket_name: Optional[str] = None
+    ) -> None:
         upload_id = None
+        if not bucket_name:
+            raise ValueError("bucket_name must be provided")
+
         try:
             async with self._get_client() as client:
                 resp = await client.create_multipart_upload(
-                    Bucket=self.bucket_name,
+                    Bucket=bucket_name,
                     Key=filename,
                     # ServerSideEncryption=self.server_side_encryption
                 )
@@ -91,7 +100,7 @@ class S3Client:
                     if not chunk:
                         break
                     part_resp = await client.upload_part(
-                        Bucket=self.bucket_name,
+                        Bucket=bucket_name,
                         Key=filename,
                         PartNumber=part_number,
                         UploadId=upload_id,
@@ -101,41 +110,49 @@ class S3Client:
                     part_number += 1
 
                 await client.complete_multipart_upload(
-                    Bucket=self.bucket_name,
+                    Bucket=bucket_name,
                     Key=filename,
                     UploadId=upload_id,
                     MultipartUpload={"Parts": parts},
                 )
-                logging.info(f"File {filename} uploaded to {self.bucket_name}")
+                logging.info(f"File {filename} uploaded to {bucket_name}")
         except ClientError as e:
             if upload_id is not None:
                 await client.abort_multipart_upload(
-                    Bucket=self.bucket_name, Key=filename, UploadId=upload_id
+                    Bucket=bucket_name, Key=filename, UploadId=upload_id
                 )
             logging.error(f"Error uploading file: {e}")
 
-    async def delete_file(self, object_name: str) -> None:
+    async def delete_file(
+        self, object_name: str, bucket_name: Optional[str] = None
+    ) -> None:
+        if not bucket_name:
+            raise ValueError("bucket_name must be provided")
+
         try:
             async with self._get_client() as client:
-                await client.delete_object(Bucket=self.bucket_name, Key=object_name)
-                logging.info(f"File {object_name} deleted from {self.bucket_name}")
+                await client.delete_object(Bucket=bucket_name, Key=object_name)
+                logging.info(f"File {object_name} deleted from {bucket_name}")
         except ClientError as e:
             logging.error(f"Error deleting file: {e}")
 
-    async def list_objects(self, bucket: str) -> list[str]:
+    async def list_objects(self, bucket_name: str) -> list[str]:
         """
         Lists objects in a bucket.
-        :param bucket: The name of the bucket.
+        :param bucket_name: The name of the bucket.
         :return: The list of objects in the bucket.
         """
+        if not bucket_name:
+            raise ValueError("bucket_name must be provided")
+
         try:
             async with self._get_client() as client:
-                response = await client.list_objects_v2(Bucket=bucket)
+                response = await client.list_objects_v2(Bucket=bucket_name)
                 return response.get("Contents", [])
         except ClientError as client_error:
             logging.error(
                 "Couldn't list objects in bucket %s. Here's why: %s",
-                bucket,
+                bucket_name,
                 client_error.response["Error"]["Message"],
             )
             raise
@@ -146,19 +163,20 @@ class S3Client:
             return [b["Name"] for b in response.get("Buckets", [])]
 
     async def download_file(
-        self, object_name: str, chunk_size: int
+        self, object_name: str, chunk_size: int, bucket_name: Optional[str] = None
     ) -> AsyncGenerator[bytes, None]:
+        if not bucket_name:
+            raise ValueError("bucket_name must be provided")
+
         try:
             async with self._get_client() as client:
-                head = await client.head_object(
-                    Bucket=self.bucket_name, Key=object_name
-                )
+                head = await client.head_object(Bucket=bucket_name, Key=object_name)
                 size = head["ContentLength"]
 
                 for start in range(0, size, chunk_size):
                     end = min(start + chunk_size - 1, size - 1)
                     resp = await client.get_object(
-                        Bucket=self.bucket_name,
+                        Bucket=bucket_name,
                         Key=object_name,
                         Range=f"bytes={start}-{end}",
                     )
@@ -175,13 +193,20 @@ class S3Client:
             logging.error(f"Error downloading file: {e}")
 
     async def generate_presigned_url(
-        self, object_name: str, client_method: str, expires_in: int = 100
+        self,
+        object_name: str,
+        client_method: str,
+        expires_in: int = 100,
+        bucket_name: Optional[str] = None,
     ) -> str | None:
+        if not bucket_name:
+            raise ValueError("bucket_name must be provided")
+
         try:
             async with self._get_client() as client:
                 url = await client.generate_presigned_url(
                     ClientMethod=client_method,
-                    Params={"Bucket": self.bucket_name, "Key": object_name},
+                    Params={"Bucket": bucket_name, "Key": object_name},
                     ExpiresIn=expires_in,
                 )
                 logging.info(f"Presigned URL generated for file '{object_name}'.")
@@ -208,7 +233,6 @@ def get_s3_client() -> S3Client:
             access_key=settings.MINIO_ROOT_USER,
             secret_key=settings.MINIO_ROOT_PASSWORD,
             endpoint_url=settings.MINIO_ENDPOINT_URL,
-            bucket_name=settings.MINIO_BUCKET_NAME,
             region_name=settings.MINIO_REGION_NAME,
         )
     return _s3_client_instance
