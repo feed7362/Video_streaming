@@ -2,6 +2,7 @@ import enum
 
 
 class VideoStatus(str, enum.Enum):
+    QUEUED = "queued"
     PROCESSING = "processing"
     READY = "ready"
     FAILED = "failed"

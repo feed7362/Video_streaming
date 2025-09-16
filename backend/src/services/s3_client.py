@@ -18,6 +18,7 @@ class S3Client:
         endpoint_url: str,
         bucket_name: str,
         region_name: str,
+        server_side_encryption: str | None = None,
     ):
         self.config: Dict[str, str] = {
             "aws_access_key_id": access_key,
@@ -26,6 +27,7 @@ class S3Client:
             "region_name": region_name,
         }
         self.bucket_name = bucket_name
+        self.server_side_encryption = server_side_encryption
         self.session = get_session()
 
     async def check_bucket_exists(self) -> None:
@@ -72,10 +74,13 @@ class S3Client:
             yield client
 
     async def upload_file(self, filename: str, file_obj: BinaryIO) -> None:
+        upload_id = None
         try:
             async with self._get_client() as client:
                 resp = await client.create_multipart_upload(
-                    Bucket=self.bucket_name, Key=filename, ServerSideEncryption="AES256"
+                    Bucket=self.bucket_name,
+                    Key=filename,
+                    # ServerSideEncryption=self.server_side_encryption
                 )
                 upload_id = resp["UploadId"]
                 parts = []
@@ -103,9 +108,10 @@ class S3Client:
                 )
                 logging.info(f"File {filename} uploaded to {self.bucket_name}")
         except ClientError as e:
-            await client.abort_multipart_upload(
-                Bucket=self.bucket_name, Key=filename, UploadId=upload_id
-            )
+            if upload_id is not None:
+                await client.abort_multipart_upload(
+                    Bucket=self.bucket_name, Key=filename, UploadId=upload_id
+                )
             logging.error(f"Error uploading file: {e}")
 
     async def delete_file(self, object_name: str) -> None:

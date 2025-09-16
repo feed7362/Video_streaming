@@ -1,23 +1,20 @@
 from datetime import datetime
+from typing import List
 from uuid import UUID
 
 from pydantic import BaseModel
 
 
-class CommentBase(BaseModel):
-    content: str
-
-
-class CommentCreate(CommentBase):
-    video_id: UUID
-
-
-class CommentRead(CommentBase):
+class Comment(BaseModel):
     id: UUID
     video_id: UUID
-    user_id: UUID
-    content: str
     created_at: datetime
+    author: str
+    text: str
 
-    class Config:
-        from_attributes = True
+
+class CommentPage(BaseModel):
+    items: List[Comment]
+    page: int
+    size: int
+    total: int
