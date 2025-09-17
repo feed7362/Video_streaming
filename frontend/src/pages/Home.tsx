@@ -61,7 +61,7 @@ export default function Home() {
                                 {videos.map((video) => (
                                     <Link
                                         key={video.id}
-                                        to={`/watch?v=${video.id}&ab_channel=${encodeURIComponent(video.channel_name)}`}
+                                        to={`/watch?v=${video.id}`}
                                         className="w-full"
                                     >
                                         <VideoCard

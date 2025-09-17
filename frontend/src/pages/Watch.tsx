@@ -63,17 +63,17 @@ export default function Watch() {
 
         const fetchVideoData = async () => {
             try {
-                const res = await fetch(`/api/videos/${videoId}`);
+                const res = await fetch(`/api/video/info/${videoId}`);
                 if (!res.ok) throw new Error("Video not found");
                 const data = await res.json();
 
                 setVideo({
                     id: data.id,
-                    title: data.title,
-                    thumbnail: data.thumbnail,
-                    src: data.src,
-                    channel_avatar: data.channel.avatar,
-                    channel_name: data.channel.name,
+                    title: data.name,
+                    thumbnail: data.thumbnail_url,
+                    src: data.master_hls_url,
+                    channel_avatar: data.avatar_url,
+                    channel_name: data.channel_name,
                 });
 
                 setComments(data.comments || []);
