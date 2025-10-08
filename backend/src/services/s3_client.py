@@ -50,10 +50,10 @@ class S3Client:
                         CORSConfiguration={
                             "CORSRules": [
                                 {
-                                    "AllowedHeaders": ["Authorization"],
-                                    "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
-                                    "AllowedOrigins": ["*"],
-                                    "ExposeHeaders": ["ETag", "x-amz-request-id"],
+                                    "AllowedHeaders": ["Authorization", "Range"],
+                                    "AllowedMethods": ["GET"],
+                                    "AllowedOrigins": ["http://localhost/"],
+                                    "ExposeHeaders": ["ETag"],
                                     "MaxAgeSeconds": 3000,
                                 }
                             ]

@@ -4,10 +4,9 @@ import os
 import uuid
 from datetime import datetime
 from typing import List
-from urllib.parse import urlparse, urlunparse
 
 from fastapi import APIRouter, HTTPException, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 
 from ..schemas.comments import Comment, CommentPage
 from ..schemas.endpoint import ErrorResponse, FileMeta, UploadResponse
@@ -68,22 +67,6 @@ async def upload_files(
     )
 
 
-def proxify_minio_url(presigned_url: str, public_base: str) -> str:
-    parsed = urlparse(presigned_url)
-    public = urlparse(public_base)
-
-    return urlunparse(
-        (
-            public.scheme,  # http/https
-            public.netloc,  # localhost or domain
-            f"/minio{parsed.path}",  # prepend /minio for proxy
-            "",
-            parsed.query,
-            "",
-        )
-    )
-
-
 @router_files.get("/download/{filename:path}")
 async def get_file(filename: str) -> StreamingResponse:
     s3_client = get_s3_client()
@@ -104,28 +87,35 @@ async def get_file(filename: str) -> StreamingResponse:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router_files.get("/info/{video_id}", response_model=VideoPlayback)
-async def get_video_info(video_id: str) -> VideoPlayback:
+@router_files.get("/sign_url")
+async def sign_object(path: str):
     s3_client = get_s3_client()
-
-    s3_object = f"videos/{video_id}/master.m3u8"
+    path = path.replace("/minio/videos/", "")
     try:
-        logging.info(f"Streaming file: {video_id}")
         raw_presigned_url = await s3_client.generate_presigned_url(
-            s3_object, "get_object", expires_in=3600, bucket_name="videos"
+            path, "get_object", expires_in=3600, bucket_name="videos"
         )
         if raw_presigned_url is None:
-            logging.error(f"File '{video_id}' not found or URL could not be generated")
-            raise HTTPException(status_code=404, detail=f"File '{video_id}' not found")
+            logging.error(f"File '{path}' not found or URL could not be generated")
+            raise HTTPException(status_code=404, detail=f"File '{path}' not found")
+    except Exception as e:
+        logging.error(f"Error streaming file: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-        presigned_url = proxify_minio_url(raw_presigned_url, "http://localhost")
+    return Response(status_code=200, headers={"X-Signed-Url": raw_presigned_url})
 
+
+@router_files.get("/info/{video_id}", response_model=VideoPlayback)
+async def get_video_info(video_id: str) -> VideoPlayback:
+    s3_object = f"{video_id}/master.m3u8"
+    try:
+        logging.info(f"Streaming playlist master: {video_id}")
         return VideoPlayback(
             id=uuid.UUID(video_id),
             name="test.mp4",
             description="Test Description",
             created_at=datetime.now(),
-            master_hls_url=presigned_url,
+            master_hls_url=f"http://localhost/minio/videos/{s3_object}",
             privacy=Privacy.PUBLIC,
             resolutions=["360p", "720p"],
             channel_name="Channel Name",

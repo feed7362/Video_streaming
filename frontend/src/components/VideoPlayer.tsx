@@ -20,20 +20,21 @@ export default function VideoPlayer({src}: VideoPlayerProps) {
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 video.play();
             });
+            hls.on(Hls.Events.ERROR, function (event, data) {
+                console.error('HLS.js error:', event, data);
+            });
             return () => hls.destroy();
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
             video.src = src;
         }
     }, [src]);
 
-    return (
-        <Card className="w-full max-w-4xl mx-auto rounded-lg overflow-hidden p-0">
+    return (<Card className="w-full max-w-4xl mx-auto rounded-lg overflow-hidden p-0">
             <video
                 ref={videoRef}
                 controls
                 className="w-full h-auto block"
                 style={{aspectRatio: "16/9", display: "block"}}
             />
-        </Card>
-    );
+        </Card>);
 }
