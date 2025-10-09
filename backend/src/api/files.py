@@ -107,7 +107,10 @@ async def sign_object(path: str):
 
 @router_files.get("/info/{video_id}", response_model=VideoPlayback)
 async def get_video_info(video_id: str) -> VideoPlayback:
-    s3_object = f"{video_id}/master.m3u8"
+    channel_name = "Channel Name"
+    s3_video = f"{video_id}/master.m3u8"
+    s3_thumbnail = f"{video_id}/thumbnail.jpg"
+    s3_channel_avatar = f"{channel_name}/avatar.jpg"
     try:
         logging.info(f"Streaming playlist master: {video_id}")
         return VideoPlayback(
@@ -115,15 +118,15 @@ async def get_video_info(video_id: str) -> VideoPlayback:
             name="test.mp4",
             description="Test Description",
             created_at=datetime.now(),
-            master_hls_url=f"http://localhost/minio/videos/{s3_object}",
+            master_hls_url=f"/minio/videos/{s3_video}",
             privacy=Privacy.PUBLIC,
             resolutions=["360p", "720p"],
             channel_name="Channel Name",
             likes_count=123,
             views_count=111,
             dislikes_count=22,
-            thumbnail_url="test",
-            avatar_url="test",
+            thumbnail_url=f"/minio/thumbnail/{s3_thumbnail}",
+            avatar_url=f"/minio/avatar/{s3_channel_avatar}",
         )
     except Exception as e:
         logging.error(f"Error streaming file: {e}")

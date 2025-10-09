@@ -126,6 +126,24 @@ class S3Client:
         except ClientError as e:
             logging.error(f"Error downloading file: {e}")
 
+    async def download_file_by_range(
+        self, object_name: str, range_start: int = 0, range_end: int = 1024
+    ) -> AsyncGenerator[bytes, None]:
+        try:
+            async with self._get_client() as client:
+                resp = await client.get_object(
+                    Bucket=self.bucket_name,
+                    Key=object_name,
+                    Range=f"bytes={range_start}-{range_end}",
+                )
+                logging.info(
+                    f"File {object_name} downloaded with chunk range "
+                    f"{range_start} - {range_end} Bytes"
+                )
+                yield await resp["Body"].read()
+        except ClientError as e:
+            logging.error(f"Error downloading file: {e}")
+
 
 s3_client = S3Client(
     settings.MINIO_ROOT_USER,

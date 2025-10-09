@@ -1,5 +1,7 @@
 import asyncio
+import json
 import logging
+import math
 import shutil
 import subprocess
 from pathlib import Path
@@ -26,10 +28,16 @@ def cleanup_dirs(video_id: str) -> None:
 
 
 async def stream_ffmpeg(
-    input_async_iter: AsyncIterable[bytes], output_dir: Path
+    input_async_iter: AsyncIterable[bytes],
+    output_dir: Path,
+    fps: int,
+    segment_duration=3,
 ) -> int:
     out_template = str(output_dir / "stream_%v" / "seg_%03d.ts")
     out_playlist = str(output_dir / "stream_%v" / "playlist.m3u8")
+
+    gop_size = math.ceil(fps * segment_duration)
+    print(f"Calculated GOP size for -g parameter: {gop_size}")
     cmd = [
         # input
         "ffmpeg",
@@ -52,7 +60,7 @@ async def stream_ffmpeg(
         "-map",
         "[v360]",
         "-map",
-        "a:0",
+        "a:0?",
         "-c:v:0",
         "h264_nvenc",
         "-b:v:0",
@@ -112,8 +120,14 @@ async def stream_ffmpeg(
         # output
         "-f",
         "hls",
+        "-g",
+        str(gop_size),
+        "-keyint_min",
+        str(gop_size),
+        "-sc_threshold",
+        "0",
         "-hls_time",
-        "6",
+        str(segment_duration),
         "-hls_playlist_type",
         "vod",
         "-hls_segment_filename",
@@ -159,3 +173,56 @@ async def stream_ffmpeg(
 
     rc = await process.wait()
     return rc
+
+
+async def get_video_properties(input_async_iter: AsyncIterable[bytes]) -> dict:
+    cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=r_frame_rate,width,height",
+        "-of",
+        "json",
+        "pipe:0",
+    ]
+
+    process = await asyncio.create_subprocess_exec(
+        *cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+
+    try:
+        if process.stdin is not None:
+            async for chunk in input_async_iter:
+                if process.stdin.is_closing():
+                    break  # ffprobe closed its stdin — stop feeding
+                process.stdin.write(chunk)
+                await process.stdin.drain()
+    except BrokenPipeError:
+        logging.warning("ffprobe closed stdin early (likely got enough data).")
+    except Exception as e:
+        logging.error(f"Error reading initial chunks for ffprobe: {e}")
+        process.kill()
+        raise
+    finally:
+        if process.stdin and not process.stdin.is_closing():
+            process.stdin.close()
+
+    stdout, stderr = await process.communicate()
+
+    if process.returncode != 0:
+        logging.error(f"ffprobe stderr: {stderr.decode(errors='ignore')}")
+        raise RuntimeError(f"ffprobe failed: {stderr.decode()}")
+
+    data = json.loads(stdout)["streams"][0]
+    fps_fraction = data.get("r_frame_rate", "0/1")
+    numerator, denominator = map(int, fps_fraction.split("/"))
+    fps = numerator / denominator if denominator != 0 else 0
+
+    return {
+        "fps": fps,
+        "width": data.get("width", 0),
+        "height": data.get("height", 0),
+    }
