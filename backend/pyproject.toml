@@ -5,31 +5,31 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "aiobotocore>=2.24.1",
+    "aiobotocore>=2.24.2",
     "alembic>=1.16.5",
     "asyncpg>=0.30.0",
     "babel>=2.17.0",
-    "fastapi>=0.116.1",
+    "fastapi>=0.116.2",
     "faststream[rabbit]>=0.5.48",
     "httpx>=0.28.1",
-    "prometheus-client>=0.22.1",
-    "pydantic>=2.11.7",
-    "pydantic-settings>=2.10.1",
+    "prometheus-client>=0.23.1",
+    "pydantic>=2.11.10",
+    "pydantic-settings>=2.11.0",
     "python-multipart>=0.0.20",
     "sqlalchemy>=2.0.43",
-    "uvicorn[standard]>=0.35.0",
-    "uvloop",
+    "uvicorn[standard]>=0.37.0",
+    "uvloop; sys_platform == 'linux'",
 ]
 
 [dependency-groups]
 dev = [
-    "black>=25.1.0",
-    "isort>=6.0.1",
-    "mypy>=1.17.1",
+    "black>=25.9.0",
+    "isort>=6.1.0",
+    "mypy>=1.18.2",
     "pre-commit>=4.3.0",
-    "pytest>=8.4.1",
-    "pytest-cov>=6.2.1",
-    "ruff>=0.12.10",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.13.3",
 ]
 
 [tool.black]

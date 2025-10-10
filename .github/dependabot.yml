@@ -3,29 +3,29 @@ updates:
   - package-ecosystem: "uv"
     directory: "/backend"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
   - package-ecosystem: "uv"
     directory: "/services/auth"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
   - package-ecosystem: "uv"
     directory: "/services/convertor"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
   - package-ecosystem: "uv"
     directory: "/services/moderation"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"

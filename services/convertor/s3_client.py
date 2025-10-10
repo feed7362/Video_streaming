@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncGenerator, BinaryIO, Dict
+from typing import AsyncGenerator, BinaryIO, Dict, Optional
 
 from aiobotocore.session import AioBaseClient, get_session
 from botocore.exceptions import ClientError
@@ -45,6 +45,8 @@ class S3Client:
             yield client
 
     async def upload_file(self, filename: str, file_obj: BinaryIO) -> None:
+        upload_id = None
+
         try:
             async with self._get_client() as client:
                 resp = await client.create_multipart_upload(
@@ -76,9 +78,10 @@ class S3Client:
                 )
                 logging.info(f"File {filename} uploaded to {self.bucket_name}")
         except ClientError as e:
-            await client.abort_multipart_upload(
-                Bucket=self.bucket_name, Key=filename, UploadId=upload_id
-            )
+            if upload_id is not None:
+                await client.abort_multipart_upload(
+                    Bucket=self.bucket_name, Key=filename, UploadId=upload_id
+                )
             logging.error(f"Error uploading file: {e}")
 
     async def upload_dir(self, dirname: str, directory: Path) -> None:
@@ -123,11 +126,47 @@ class S3Client:
         except ClientError as e:
             logging.error(f"Error downloading file: {e}")
 
+    async def download_file_by_range(
+        self, object_name: str, range_start: int = 0, range_end: int = 1024
+    ) -> AsyncGenerator[bytes, None]:
+        try:
+            async with self._get_client() as client:
+                resp = await client.get_object(
+                    Bucket=self.bucket_name,
+                    Key=object_name,
+                    Range=f"bytes={range_start}-{range_end}",
+                )
+                logging.info(
+                    f"File {object_name} downloaded with chunk range "
+                    f"{range_start} - {range_end} Bytes"
+                )
+                yield await resp["Body"].read()
+        except ClientError as e:
+            logging.error(f"Error downloading file: {e}")
 
-s3_client = S3Client(
-    settings.MINIO_ROOT_USER,
-    settings.MINIO_ROOT_PASSWORD,
-    settings.MINIO_ENDPOINT_URL,
-    settings.MINIO_BUCKET_NAME,
-    settings.MINIO_REGION_NAME,
-)
+
+_s3_client_instance: Optional[S3Client] = None
+
+
+def get_s3_client() -> S3Client:
+    """
+    Lazy initialization of the S3 client.
+    The client will only be created on the first call to this function.
+    """
+    settings = get_s3_settings()
+    assert settings.MINIO_ROOT_USER is not None, "MINIO_ROOT_USER is not set"
+    assert settings.MINIO_ROOT_PASSWORD is not None, "MINIO_ROOT_PASSWORD is not set"
+    assert settings.MINIO_ENDPOINT_URL is not None, "MINIO_ENDPOINT_URL is not set"
+    assert settings.MINIO_BUCKET_NAME is not None, "MINIO_BUCKET_NAME is not set"
+    assert settings.MINIO_REGION_NAME is not None, "MINIO_REGION_NAME is not set"
+
+    global _s3_client_instance
+    if _s3_client_instance is None:
+        _s3_client_instance = S3Client(
+            access_key=settings.MINIO_ROOT_USER,
+            secret_key=settings.MINIO_ROOT_PASSWORD,
+            endpoint_url=settings.MINIO_ENDPOINT_URL,
+            bucket_name=settings.MINIO_BUCKET_NAME,
+            region_name=settings.MINIO_REGION_NAME,
+        )
+    return _s3_client_instance
