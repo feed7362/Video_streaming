@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {useSearchParams, Link} from "react-router-dom";
 import VideoPlayer from "@/components/VideoPlayer";
 import VideoCard from "@/components/VideoCard";
@@ -37,7 +37,7 @@ export default function Watch() {
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
 
-    // All available sidebar videos
+    // Mock video list
     const allVideos: Video[] = Array.from({length: 120}).map((_, i) => ({
         id: `video-${i + 1}`,
         title: `Mock Video ${i + 1}`,
@@ -47,8 +47,7 @@ export default function Watch() {
         channel_name: `Channel ${i + 1}`,
     }));
 
-    // Load next page of videos (20 at a time)
-    const loadMore = () => {
+    const loadMore = useCallback(() => {
         const nextPage = page + 1;
         const pageSize = 20;
         const newVideos = allVideos.slice(0, nextPage * pageSize);
@@ -56,7 +55,7 @@ export default function Watch() {
         setVideos(newVideos);
         setPage(nextPage);
         setHasMore(newVideos.length < allVideos.length);
-    };
+    }, [page, allVideos]);
 
     useEffect(() => {
         if (!videoId) return;
@@ -93,7 +92,7 @@ export default function Watch() {
         }, 1000);
 
         return () => clearTimeout(timer);
-    }, []);
+    }, [loadMore]);
 
     if (error) return <p className="text-red-500">{error}</p>;
     if (!video) return <p>Loading video...</p>;
@@ -128,7 +127,9 @@ export default function Watch() {
 
                 {/* Comments */}
                 <div className="mt-6">
-                    <h2 className="text-lg font-semibold mb-3">{comments.length} Comments</h2>
+                    <h2 className="text-lg font-semibold mb-3">
+                        {comments.length} Comments
+                    </h2>
                     <div className="space-y-4">
                         {comments.map((comment) => (
                             <div key={comment.id} className="border-b pb-2">
@@ -150,7 +151,9 @@ export default function Watch() {
                         {videos.map((vid) => (
                             <Link
                                 key={vid.id}
-                                to={`/watch?v=${vid.id}&ab_channel=${encodeURIComponent(vid.channel_name || "")}`}
+                                to={`/watch?v=${vid.id}&ab_channel=${encodeURIComponent(
+                                    vid.channel_name || ""
+                                )}`}
                             >
                                 <VideoCard
                                     id={vid.id}

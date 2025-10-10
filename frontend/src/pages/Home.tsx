@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import VideoCard from "@/components/VideoCard";
 import InfiniteScroll from "@/components/infinite-scroll";
 import {Link} from "react-router-dom";
@@ -17,17 +17,19 @@ export default function Home() {
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
 
-    // Mock all available videos
-    const allVideos: Video[] = Array.from({length: 120}).map((_, i) => ({
-        id: `video-${i + 1}`,
-        title: `Mock Video ${i + 1}`,
-        thumbnail: `https://via.placeholder.com/250x125?text=Video+${i + 1}`,
-        channel_avatar: "https://api.dicebear.com/7.x/identicon/svg?seed",
-        channel_name: `Channel ${i + 1}`,
-    }));
+    const allVideos: Video[] = useMemo(
+        () =>
+            Array.from({length: 120}).map((_, i) => ({
+                id: `video-${i + 1}`,
+                title: `Mock Video ${i + 1}`,
+                thumbnail: `https://via.placeholder.com/250x125?text=Video+${i + 1}`,
+                channel_avatar: "https://api.dicebear.com/7.x/identicon/svg?seed",
+                channel_name: `Channel ${i + 1}`,
+            })),
+        []
+    );
 
-    // Load page of 20 videos
-    const loadMore = () => {
+    const loadMore = useCallback(() => {
         const nextPage = page + 1;
         const pageSize = 20;
         const newVideos = allVideos.slice(0, nextPage * pageSize);
@@ -35,7 +37,7 @@ export default function Home() {
         setVideos(newVideos);
         setPage(nextPage);
         setHasMore(newVideos.length < allVideos.length);
-    };
+    }, [page, allVideos]);
 
     useEffect(() => {
         // Simulate API delay for first page
@@ -45,7 +47,7 @@ export default function Home() {
         }, 1000);
 
         return () => clearTimeout(timer);
-    }, []);
+    }, [loadMore]);
 
     return (
         <div className="p-4">

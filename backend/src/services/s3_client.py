@@ -227,6 +227,11 @@ def get_s3_client() -> S3Client:
     The client will only be created on the first call to this function.
     """
     settings = get_s3_settings()
+    assert settings.MINIO_ROOT_USER is not None, "MINIO_ROOT_USER is not set"
+    assert settings.MINIO_ROOT_PASSWORD is not None, "MINIO_ROOT_PASSWORD is not set"
+    assert settings.MINIO_ENDPOINT_URL is not None, "MINIO_ENDPOINT_URL is not set"
+    assert settings.MINIO_REGION_NAME is not None, "MINIO_REGION_NAME is not set"
+
     global _s3_client_instance
     if _s3_client_instance is None:
         _s3_client_instance = S3Client(

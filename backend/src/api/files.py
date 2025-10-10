@@ -41,7 +41,12 @@ async def upload_files(
 
     async def upload_single_file(uploaded_file: UploadFile) -> None:
         async with semaphore:
-            ext = os.path.splitext(uploaded_file.filename)[-1]
+            filename = uploaded_file.filename
+            if filename is None:
+                raise HTTPException(
+                    status_code=400, detail="Uploaded file has no filename"
+                )
+            ext = os.path.splitext(filename)[-1]
             new_filename = f"{str(uuid.uuid4())}{ext}"
             uploaded_file.file.seek(0, 2)
             size = uploaded_file.file.tell()
@@ -88,7 +93,7 @@ async def get_file(filename: str) -> StreamingResponse:
 
 
 @router_files.get("/sign_url")
-async def sign_object(path: str):
+async def sign_object(path: str) -> Response:
     s3_client = get_s3_client()
     path = path.replace("/minio/videos/", "")
     try:
@@ -134,7 +139,7 @@ async def get_video_info(video_id: str) -> VideoPlayback:
 
 
 @router_files.get("/comments/{video_id}", response_model=CommentPage)
-async def get_comments(video_id: str, page: int = 1, size: int = 20):
+async def get_comments(video_id: str, page: int = 1, size: int = 20) -> CommentPage:
     total = 53
     comments = [
         Comment(

@@ -1,5 +1,6 @@
 import {Skeleton} from "@/components/ui/skeleton";
 import {Card} from "@/components/ui/card";
+import {CARD_CONFIG} from "@/components/CARD_CONFIG.tsx";
 
 interface VideoCardProps {
     id?: string;
@@ -9,13 +10,6 @@ interface VideoCardProps {
     channel_name?: string;
     loading?: boolean; // if true, render skeleton
 }
-
-export const CARD_CONFIG = {
-    width: 420,
-    height: 315,
-    avatarSize: 36,
-    metaRatio: 0.25,
-};
 
 export default function VideoCard({
                                       title,

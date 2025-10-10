@@ -8,6 +8,7 @@ import {SiteHeader} from "@/components/site-header";
 import {ThemeProvider} from "@/components/theme-provider";
 import {BrowserRouter, useLocation} from "react-router-dom";
 
+// eslint-disable-next-line react-refresh/only-export-components
 function AppContent() {
     const location = useLocation();
 

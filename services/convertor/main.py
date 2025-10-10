@@ -31,7 +31,7 @@ async def stream_ffmpeg(
     input_async_iter: AsyncIterable[bytes],
     output_dir: Path,
     fps: int,
-    segment_duration=3,
+    segment_duration: int = 3,
 ) -> int:
     out_template = str(output_dir / "stream_%v" / "seg_%03d.ts")
     out_playlist = str(output_dir / "stream_%v" / "playlist.m3u8")
@@ -175,7 +175,9 @@ async def stream_ffmpeg(
     return rc
 
 
-async def get_video_properties(input_async_iter: AsyncIterable[bytes]) -> dict:
+async def get_video_properties(
+    input_async_iter: AsyncIterable[bytes],
+) -> dict[str, float | int]:
     cmd = [
         "ffprobe",
         "-v",
