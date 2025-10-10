@@ -1,12 +1,23 @@
-# React + Vite
+# Frontend Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This directory contains the source code for the user-facing web application, built with React and Vite.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Framework**: React 19
+- **Build Tool**: Vite
+- **Linting**: ESLint
+- **Styling**: Standard CSS with options to expand.
 
-## Expanding the ESLint configuration
+## Available Scripts
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+In the project directory, you can run:
+
+- `npm install`: Installs the required dependencies.
+- `npm run dev`: Runs the app in development mode. Open [http://localhost:8001](http://localhost:8001) to view it in the
+  browser (Note: the docker-compose setup proxies this to `http://localhost`).
+- `npm run build`: Builds the app for production to the `dist` folder.
+- `npm run lint`: Lints the source code using ESLint.
+- `npm test`: Runs the test suite using Vitest.
+
+This project was bootstrapped with [Create Vite](https://vitejs.dev/guide/).

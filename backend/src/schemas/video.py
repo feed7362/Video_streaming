@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -7,23 +7,35 @@ from pydantic import BaseModel
 from .enum import Privacy, VideoStatus
 
 
-class VideoBase(BaseModel):
-    name: str
-    description: Optional[str] = None
+class VideoProcessingJob(BaseModel):
+    video_id: UUID
     size: float
-    privacy: Privacy = Privacy.PUBLIC
+    status: VideoStatus  # e.g., "queued", "processing", "done", "failed"
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
 
 
-class VideoCreate(VideoBase):
-    hash: str
+class VideoProcessingResult(BaseModel):
+    video_id: UUID
+    resolutions: List[str]  # ["360p", "720p", "1080p"]
+    duration: float  # seconds
+    thumbnail_url: Optional[str] = None
 
 
-class VideoRead(VideoBase):
+class VideoPlayback(BaseModel):
     id: UUID
-    user_id: UUID
-    is_verified: bool
-    status: VideoStatus
-    registered_at: datetime
+    name: str
+    description: Optional[str]
+    privacy: Privacy
+    created_at: datetime
+    resolutions: List[str] = []  # available variants
 
-    class Config:
-        from_attributes = True
+    # UI/UX
+    thumbnail_url: Optional[str] = None
+    avatar_url: Optional[str] = None
+    channel_name: str
+    likes_count: int
+    dislikes_count: int
+    views_count: int
+
+    master_hls_url: Optional[str] = None

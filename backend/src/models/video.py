@@ -21,16 +21,16 @@ from ..services.database import Base
 class Video(Base):
     __tablename__ = "videos"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False)
-    description = Column(Text)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    size = Column(Float, nullable=False)
-    hash = Column(String, unique=True, nullable=False)
-    is_verified = Column(Boolean, default=False)
-    privacy = Column(Enum(Privacy), default=Privacy.PUBLIC)
-    status = Column(Enum(VideoStatus), default=VideoStatus.PROCESSING)
-    registered_at = Column(DateTime(timezone=True), server_default=func.now())
+    id: Column = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Column = Column(String, nullable=False)
+    description: Column = Column(Text)
+    user_id: Column = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    size: Column = Column(Float, nullable=False)
+    hash: Column = Column(String, unique=True, nullable=False)
+    is_verified: Column = Column(Boolean, default=False)
+    privacy: Column = Column(Enum(Privacy), default=Privacy.PUBLIC)
+    status: Column = Column(Enum(VideoStatus), default=VideoStatus.PROCESSING)
+    registered_at: Column = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="videos")
     hls_files = relationship("HLSFile", back_populates="video")
