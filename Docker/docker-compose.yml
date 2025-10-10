@@ -111,8 +111,10 @@ services:
     volumes:
       - ../gateway/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
-      - bff
-      - frontend
+      bff:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
     logging:
       driver: "json-file"
       options:
