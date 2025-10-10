@@ -11,6 +11,8 @@ services:
       - ffmpeg
       - minio
       - rabbitmq
+    volumes:
+      - ../backend/alembic/versions:/app/alembic/versions
     logging:
       driver: "json-file"
       options:
