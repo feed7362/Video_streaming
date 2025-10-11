@@ -28,7 +28,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "hls.js": "^1.6.11",
+    "hls.js": "^1.6.13",
     "lucide-react": "^0.542.0",
     "next-themes": "^0.4.6",
     "plyr-react": "^5.3.0",
