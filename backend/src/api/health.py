@@ -1,9 +1,18 @@
 from fastapi import APIRouter
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse
 
 router_health = APIRouter(prefix="/api/health", tags=["health_check"])
 
 
 @router_health.get("/live")
-async def perform_liveness_checks() -> Response:
-    return Response(status_code=200)
+async def perform_liveness_checks() -> JSONResponse:
+    return JSONResponse({"status": "ok"})
+
+
+# @router_health.get("/ready")
+# async def readiness_check():
+#     # Example: check DB connectivity
+#     db_ok = True
+#     if db_ok:
+#         return JSONResponse({"status": "ready"})
+#     return JSONResponse({"status": "not ready"}, status_code=503)

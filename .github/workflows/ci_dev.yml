@@ -2,7 +2,7 @@ name: "CI for dev branch"
 
 on:
   push:
-    branches: [ "dev" ]
+    branches: [ "dev*"]
   workflow_dispatch:
 
 env:
