@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useMemo, useState} from "react";
 import VideoCard from "@/components/VideoCard";
 import InfiniteScroll from "@/components/infinite-scroll";
 import {Link} from "react-router-dom";
@@ -14,7 +14,7 @@ interface Video {
 export default function Home() {
     const [videos, setVideos] = useState<Video[]>([]);
     const [page, setPage] = useState(0);
-    const [loading, setLoading] = useState(true);
+    const [loading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
 
     const allVideos: Video[] = useMemo(
@@ -39,15 +39,9 @@ export default function Home() {
         setHasMore(newVideos.length < allVideos.length);
     }, [page, allVideos]);
 
-    useEffect(() => {
-        // Simulate API delay for first page
-        const timer = setTimeout(() => {
-            loadMore();
-            setLoading(false);
-        }, 1000);
-
-        return () => clearTimeout(timer);
-    }, [loadMore]);
+    if (loading && videos.length === 0) {
+        loadMore();
+    }
 
     return (
         <div className="p-4">
