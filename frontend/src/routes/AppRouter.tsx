@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import Loading from "@/pages/Loading";
 import AppLayout from "@/layouts/AppLayout";
+import ForgotPass from "../pages/ForgotPass";
 
 const Home = lazy(() => import("@/pages/Home"));
 const Upload = lazy(() => import("@/pages/Upload"));
@@ -26,6 +27,7 @@ export default function AppRouter() {
                     <Route path="/pricing-table" element={<Pricing />} />
                 </Route>
 
+                <Route path="/forgotpass" element={<ForgotPass />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/loading" element={<Loading />} />

@@ -41,7 +41,7 @@ export default function Register() {
                     <Link to="/login">
                         <Button variant="ghost">Login</Button>
                     </Link>
-                    <Link to="/home">
+                    <Link to="/">
                         <Button variant="ghost">Home</Button>
                     </Link>
                 </div>
