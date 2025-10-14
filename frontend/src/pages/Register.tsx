@@ -1,13 +1,11 @@
-import {RegisterForm} from "@/components/register-form";
-import {Button} from "@/components/ui/button";
-import {Link} from "react-router-dom";
+import { RegisterForm } from "@/components/register-form";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export default function Register() {
     return (
-        <div
-            className="relative container min-h-screen items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
-            <div className="relative hidden h-full flex-col p-10 lg:flex dark:border-r">
-
+        <div className="flex h-screen w-screen overflow-hidden">
+            <div className="relative hidden w-1/2 flex-col p-10 lg:flex dark:border-r">
                 <div
                     className="absolute inset-0 bg-primary/5"
                     style={{
@@ -27,7 +25,7 @@ export default function Register() {
                         strokeLinejoin="round"
                         className="mr-2 h-6 w-6"
                     >
-                        <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/>
+                        <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
                     </svg>
                     Acme Inc
                 </div>
@@ -38,15 +36,17 @@ export default function Register() {
                     </blockquote>
                 </div>
             </div>
-            <div className="flex items-center justify-center lg:p-8">
-                <Link
-                    to="/login"
-                    className="absolute top-4 right-4 md:top-8 md:right-8 z-50"
-                >
-                    <Button variant="ghost">Login</Button>
-                </Link>
-                <RegisterForm className="mt-18"/>
+            <div className="relative flex w-full items-center justify-center lg:w-1/2">
+                <div className="absolute top-2 right-4 md:top-4 md:right-8 z-50 flex space-x-2">
+                    <Link to="/login">
+                        <Button variant="ghost">Login</Button>
+                    </Link>
+                    <Link to="/home">
+                        <Button variant="ghost">Home</Button>
+                    </Link>
+                </div>
+                <RegisterForm />
             </div>
         </div>
-    )
+    );
 }
