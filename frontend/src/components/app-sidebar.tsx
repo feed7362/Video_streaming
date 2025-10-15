@@ -16,12 +16,16 @@ const data = {
     navMain: [
         {
             title: "Getting Started",
-            url: "#",
+            url: "/register",
             items: [
                 {
                     title: "Home",
-                    url: "#",
+                    url: "/",
                     isActive: true,
+                },
+                {
+                    title: "Upload new video",
+                    url: "/upload",
                 },
                 {
                     title: "Subscriptions",

@@ -2,7 +2,7 @@ import {useCallback, useMemo, useState} from "react";
 import VideoCard from "@/components/VideoCard";
 import InfiniteScroll from "@/components/infinite-scroll";
 import {Link} from "react-router-dom";
-
+import { Button } from "@/components/ui/button";
 interface Video {
     id: string;
     title: string;
@@ -11,11 +11,29 @@ interface Video {
     channel_name: string;
 }
 
+const categories = [
+    "All",
+    "Music",
+    "Gaming",
+    "News",
+    "Movies",
+    "Sports",
+    "Podcasts",
+    "Education",
+    "Fashion",
+    "Comedy",
+    "Technology",
+    "Nature",
+    "Fitness",
+    "New for you",
+];
+
 export default function Home() {
     const [videos, setVideos] = useState<Video[]>([]);
     const [page, setPage] = useState(0);
     const [loading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
+    const [active, setActive] = useState("All");
 
     const allVideos: Video[] = useMemo(
         () =>
@@ -44,7 +62,20 @@ export default function Home() {
     }
 
     return (
-        <div className="p-4">
+        <div className="my-4">
+            <div className="ml-13 mb-4 overflow-x-auto overflow-y-hidden flex no-scrollbar">
+                {categories.map((category) => (
+                    <Button
+                        key={category}
+                        onClick={() => setActive(category)}
+                        variant={active === category ? "default" : "outline"}
+                        className={`mx-2 whitespace-nowrap transition-all ${active === category ? "bg-black text-white" : ""
+                            }`}
+                    >
+                        {category}
+                    </Button>
+                ))}
+            </div>
             <div className="max-w-[1400px] mx-auto">
                 <div
                     className="grid auto-rows-min gap-6"
