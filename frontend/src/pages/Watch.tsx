@@ -1,8 +1,33 @@
-import {useCallback, useEffect, useState} from "react";
-import {useSearchParams, Link} from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import VideoPlayer from "@/components/VideoPlayer";
 import VideoCard from "@/components/VideoCard";
+import { Button }  from "@/components/ui/button";
 import InfiniteScroll from "@/components/infinite-scroll";
+
+const categories = [
+    "All",
+    "Blogs",
+    "Comedy",
+    "Education",
+    "Fashion",
+    "Films",
+    "Fitness",
+    "Food",
+    "Gaming",
+    "Literature",
+    "Movies",
+    "Music",
+    "Nature",
+    "New for you",
+    "News",
+    "Online strim",
+    "Podcasts",
+    "Science",
+    "Sports",
+    "Technology",
+    "Watched",
+];
 
 interface Video {
     id: string;
@@ -25,6 +50,7 @@ export default function Watch() {
 
     const [video, setVideo] = useState<Video | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [active, setActive] = useState("All");
 
     const avatarSize = 40;
 
@@ -37,8 +63,7 @@ export default function Watch() {
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
 
-    // Mock video list
-    const allVideos: Video[] = Array.from({length: 120}).map((_, i) => ({
+    const allVideos: Video[] = Array.from({ length: 120 }).map((_, i) => ({
         id: `video-${i + 1}`,
         title: `Mock Video ${i + 1}`,
         thumbnail: `https://via.placeholder.com/250x125?text=Video+${i + 1}`,
@@ -60,6 +85,9 @@ export default function Watch() {
     useEffect(() => {
         if (!videoId) return;
 
+        // =============================
+        // Оригінальний fetch закоментований
+        /*
         const fetchVideoData = async () => {
             try {
                 const res = await fetch(`/api/video/info/${videoId}`);
@@ -82,14 +110,28 @@ export default function Watch() {
         };
 
         fetchVideoData();
-    }, [videoId]);
+        */
+        // =============================
+
+        // Використовуємо мокові дані
+        const vid = allVideos.find(v => v.id === videoId);
+        if (vid) {
+            setVideo(vid);
+            setComments([
+                { id: "1", author: "Alice", text: "Great video!" },
+                { id: "2", author: "Bob", text: "Thanks for sharing." },
+            ]);
+        } else {
+            setError("Video not found");
+        }
+    }, [videoId, allVideos]);
 
     // Initial sidebar load
     useEffect(() => {
         const timer = setTimeout(() => {
             loadMore();
             setLoading(false);
-        }, 1000);
+        }, 500); // трохи швидше, ніж 1000ms
 
         return () => clearTimeout(timer);
     }, [loadMore]);
@@ -102,7 +144,7 @@ export default function Watch() {
             {/* Main content */}
             <div className="flex-1 max-w-4xl ml-[80px]">
                 {/* Video player */}
-                <VideoPlayer src={video.src}/>
+                <VideoPlayer src={video.src} />
                 <h1 className="text-2xl font-bold my-4">{video.title}</h1>
 
                 {/* Channel info */}
@@ -113,7 +155,7 @@ export default function Watch() {
                         alt={video.channel_name}
                         width={avatarSize}
                         height={avatarSize}
-                        style={{objectFit: "cover"}}
+                        style={{ objectFit: "cover" }}
                     />
                     <span className="text-gray-700 font-medium">{video.channel_name}</span>
                 </div>
@@ -140,10 +182,43 @@ export default function Watch() {
                     </div>
                 </div>
             </div>
-
             {/* Sidebar (Video bar) */}
             <div className="w-100">
                 <h2 className="font-semibold mb-2">Up Next</h2>
+                <div
+                    className="mb-6 flex overflow-x-auto overflow-y-hidden no-scrollbar cursor-grab active:cursor-grabbing select-none"
+                    onMouseDown={(e: React.MouseEvent<HTMLDivElement>) => {
+                        const container = e.currentTarget;
+                        const startX = e.pageX - container.offsetLeft;
+                        const scrollLeft = container.scrollLeft;
+
+                        const mouseMoveHandler = (eMove: MouseEvent) => {
+                            const x = eMove.pageX - container.offsetLeft;
+                            const walk = (x - startX) * 1.2;
+                            container.scrollLeft = scrollLeft - walk;
+                        };
+
+                        const mouseUpHandler = () => {
+                            document.removeEventListener("mousemove", mouseMoveHandler);
+                            document.removeEventListener("mouseup", mouseUpHandler);
+                        };
+
+                        document.addEventListener("mousemove", mouseMoveHandler);
+                        document.addEventListener("mouseup", mouseUpHandler);
+                    }}
+                >
+                    {categories.map((category) => (
+                        <Button
+                            key={category}
+                            onClick={() => setActive(category)}
+                            variant={active === category ? "default" : "outline"}
+                            className={`mx-2 whitespace-nowrap transition-all ${active === category ? "bg-black text-white" : ""
+                                }`}
+                        >
+                            {category}
+                        </Button>
+                    ))}
+                    </div>
                 {loading ? (
                     <p>Loading...</p>
                 ) : (
@@ -166,6 +241,7 @@ export default function Watch() {
                         ))}
                     </InfiniteScroll>
                 )}
+
             </div>
         </div>
     );

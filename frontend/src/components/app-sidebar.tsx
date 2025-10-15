@@ -29,19 +29,19 @@ const data = {
                 },
                 {
                     title: "Subscriptions",
-                    url: "#",
+                    url: "/subscriptions",
                 },
                 {
                     title: "History",
-                    url: "#",  
+                    url: "/history",  
                 },
                 {
                     title: "Liked",
-                    url: "#",
+                    url: "/liked",
                 },
                 {
                     title: "Watch later",
-                    url: "#",
+                    url: "/watch-later",
                 },
                 {
                     title: "Settings",

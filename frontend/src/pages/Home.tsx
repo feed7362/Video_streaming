@@ -1,8 +1,9 @@
-import {useCallback, useMemo, useState} from "react";
+import { useCallback, useMemo, useState } from "react";
 import VideoCard from "@/components/VideoCard";
 import InfiniteScroll from "@/components/infinite-scroll";
-import {Link} from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+
 interface Video {
     id: string;
     title: string;
@@ -13,31 +14,38 @@ interface Video {
 
 const categories = [
     "All",
-    "Music",
-    "Gaming",
-    "News",
-    "Movies",
-    "Sports",
-    "Podcasts",
+    "Blogs",
+    "Comedy",
     "Education",
     "Fashion",
-    "Comedy",
-    "Technology",
-    "Nature",
+    "Films",
     "Fitness",
+    "Food",
+    "Gaming",
+    "Literature",
+    "Movies",
+    "Music",
+    "Nature",
     "New for you",
+    "News",
+    "Online strim",
+    "Podcasts",
+    "Science",
+    "Sports",
+    "Technology",
+    "Watched",
 ];
 
 export default function Home() {
     const [videos, setVideos] = useState<Video[]>([]);
     const [page, setPage] = useState(0);
-    const [loading] = useState(true);
+    const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
     const [active, setActive] = useState("All");
 
     const allVideos: Video[] = useMemo(
         () =>
-            Array.from({length: 120}).map((_, i) => ({
+            Array.from({ length: 120 }).map((_, i) => ({
                 id: `video-${i + 1}`,
                 title: `Mock Video ${i + 1}`,
                 thumbnail: `https://via.placeholder.com/250x125?text=Video+${i + 1}`,
@@ -55,6 +63,7 @@ export default function Home() {
         setVideos(newVideos);
         setPage(nextPage);
         setHasMore(newVideos.length < allVideos.length);
+        setLoading(false);
     }, [page, allVideos]);
 
     if (loading && videos.length === 0) {
@@ -62,8 +71,29 @@ export default function Home() {
     }
 
     return (
-        <div className="my-4">
-            <div className="ml-13 mb-4 overflow-x-auto overflow-y-hidden flex no-scrollbar">
+        <div className="my-4 mx-auto max-w-[1400px] px-6">
+            <div
+                className="mb-6 flex overflow-x-auto overflow-y-hidden no-scrollbar cursor-grab active:cursor-grabbing select-none"
+                onMouseDown={(e: React.MouseEvent<HTMLDivElement>) => {
+                    const container = e.currentTarget;
+                    const startX = e.pageX - container.offsetLeft;
+                    const scrollLeft = container.scrollLeft;
+
+                    const mouseMoveHandler = (eMove: MouseEvent) => {
+                        const x = eMove.pageX - container.offsetLeft;
+                        const walk = (x - startX) * 1.2;
+                        container.scrollLeft = scrollLeft - walk;
+                    };
+
+                    const mouseUpHandler = () => {
+                        document.removeEventListener("mousemove", mouseMoveHandler);
+                        document.removeEventListener("mouseup", mouseUpHandler);
+                    };
+
+                    document.addEventListener("mousemove", mouseMoveHandler);
+                    document.addEventListener("mouseup", mouseUpHandler);
+                }}
+            >
                 {categories.map((category) => (
                     <Button
                         key={category}
@@ -76,13 +106,12 @@ export default function Home() {
                     </Button>
                 ))}
             </div>
-            <div className="max-w-[1400px] mx-auto">
-                <div
-                    className="grid auto-rows-min gap-6"
-                    style={{gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))"}}
+            <div>
+                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                    style={{ gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))" }}
                 >
                     {loading
-                        ? Array.from({length: 12}).map((_, i) => <VideoCard key={i} loading/>)
+                        ? Array.from({ length: 12 }).map((_, i) => <VideoCard key={i} loading />)
                         : (
                             <InfiniteScroll loadMore={loadMore} hasMore={hasMore}>
                                 {videos.map((video) => (
@@ -100,7 +129,6 @@ export default function Home() {
                                             channel_name={video.channel_name}
                                         />
                                     </Link>
-
                                 ))}
                             </InfiniteScroll>
                         )}

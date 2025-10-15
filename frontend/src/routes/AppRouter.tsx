@@ -13,6 +13,11 @@ const Register = lazy(() => import("@/pages/Register"));
 const Changelog = lazy(() => import("@/pages/Changelog"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+const ResetPass = lazy(() => import("@/pages/ResetPass"));
+const Liked = lazy(() => import("@/pages/Liked"));
+const History = lazy(() => import("@/pages/History"));
+const WatchLater = lazy(() => import("@/pages/WatchLater"));
+const Subscriptions = lazy(() => import("@/pages/Subscriptions"));
 
 export default function AppRouter() {
     return (
@@ -25,22 +30,20 @@ export default function AppRouter() {
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/changelog" element={<Changelog />} />
                     <Route path="/pricing-table" element={<Pricing />} />
+                    <Route path="/liked" element={<Liked />} />
+                    <Route path="/history" element={<History />} />
+                    <Route path="/watch-later" element={<WatchLater />} />
+                    <Route path="/subscriptions" element={<Subscriptions />} />
                 </Route>
 
+                <Route path="/reset-password" element={<ResetPass />} />
                 <Route path="/forgotpass" element={<ForgotPass />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/loading" element={<Loading />} />
-
+                <Route path="/loading" element={<Liked />} />
+          
                 <Route path="/404" element={<NotFound />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />
-                {/* Auth Helpers routers */}
-                {/*<Route path="/reset-password" element={<ResetPassword/>}/>*/}
-                {/*<Route path="/forgot-password" element={<ForgotPassword/>}/>*/}
-
-                {/* Engagement routes */}
-                {/*<Route path="/history" element={<WatchHistory/>}/>*/}
-                {/*<Route path="/liked" element={<LikedVideos/>}/>*/}
 
                 {/* Static Pages routers */}
                 {/*<Route path="/privacy" element={<PrivacyPolicy/>}/>*/}

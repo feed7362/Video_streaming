@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card";
 import { ArrowBigUpDash } from "lucide-react";
+import { useTheme } from "@/components/theme-provider";
 
 export default function Upload() {
     const [file, setFile] = useState<File | null>(null);
+    const { theme } = useTheme();
 
     return (
         <div className="flex items-center justify-center mt-30">
@@ -17,7 +19,9 @@ export default function Upload() {
                 </CardHeader>
 
                 <CardContent className="flex flex-col items-center justify-center space-y-6">
-                    <ArrowBigUpDash className="h-28 w-28 text-black" />
+                    <ArrowBigUpDash
+                        className={`h-28 w-28 ${theme === "dark" ? "text-white" : "text-black"}`}
+                    />
                     <input
                         id="file-upload"
                         type="file"
