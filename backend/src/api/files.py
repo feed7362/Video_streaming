@@ -5,15 +5,20 @@ import uuid
 from datetime import datetime
 from typing import List
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import Response, StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..schemas.comments import Comment, CommentPage
+from ..core.pagination import paginate_query
+from ..infrastructure import get_s3_client
+from ..infrastructure.database import get_async_session
+from ..infrastructure.rabbit_client import rabbit_broker
+from ..models import Video
+from ..models.comments import Comment
+from ..schemas.comments import CommentPage
 from ..schemas.endpoint import ErrorResponse, FileMeta, UploadResponse
 from ..schemas.enum import Privacy
-from ..schemas.video import VideoPlayback
-from ..services import get_s3_client
-from ..services.rabbit_client import rabbit_broker
+from ..schemas.video import VideoPage, VideoPlayback
 
 router_files = APIRouter(prefix="/api/video", tags=["files"])
 
@@ -139,16 +144,35 @@ async def get_video_info(video_id: str) -> VideoPlayback:
 
 
 @router_files.get("/comments/{video_id}", response_model=CommentPage)
-async def get_comments(video_id: str, page: int = 1, size: int = 20) -> CommentPage:
-    total = 53
-    comments = [
-        Comment(
-            id=uuid.UUID(),
-            video_id=uuid.UUID(video_id),
-            created_at=datetime.now(),
-            author=f"User {i}",
-            text=f"Comment {i}",
-        )
-        for i in range((page - 1) * size, min(page * size, total))
-    ]
+async def get_comments(
+    video_id: uuid.UUID,
+    page: int = 1,
+    size: int = 20,
+    session: AsyncSession = Depends(get_async_session),
+):
+    filters = [Comment.video_id == video_id]
+
+    comments, total = await paginate_query(
+        session=session,
+        model=Comment,
+        page=page,
+        size=size,
+        filters=filters,
+        order_by=Comment.created_at.desc(),
+    )
+
     return CommentPage(items=comments, page=page, size=size, total=total)
+
+
+@router_files.get("/videos", response_model=CommentPage)
+async def get_videos(
+    page: int = 1, size: int = 20, session: AsyncSession = Depends(get_async_session)
+):
+    videos, total = await paginate_query(
+        session=session,
+        model=Video,
+        page=page,
+        size=size,
+        order_by=Video.created_at.desc(),
+    )
+    return VideoPage(items=videos, page=page, size=size, total=total)

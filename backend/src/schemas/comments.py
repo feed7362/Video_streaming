@@ -12,6 +12,9 @@ class Comment(BaseModel):
     author: str
     text: str
 
+    class Config:
+        orm_mode = True
+
 
 class CommentPage(BaseModel):
     items: List[Comment]

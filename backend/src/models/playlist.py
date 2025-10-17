@@ -4,7 +4,7 @@ from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from ..services.database import Base
+from ..infrastructure.database import Base
 
 playlist_video = Table(
     "playlist_video",

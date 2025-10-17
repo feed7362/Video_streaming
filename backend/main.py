@@ -9,8 +9,8 @@ from src.api.files import router_files
 from src.api.health import router_health
 from src.api.metrics import PrometheusMiddleware, router_metrics
 from src.i18n import LanguageMiddleware
-from src.services.rabbit_client import rabbit_broker
-from src.services.s3_client import get_s3_client
+from src.infrastructure.rabbit_client import rabbit_broker
+from src.infrastructure.s3_client import get_s3_client
 
 
 @asynccontextmanager

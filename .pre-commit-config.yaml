@@ -10,6 +10,7 @@ repos:
         exclude: '(^|/|\\)\.venv($|/)'
 
       - id: check-yaml
+        args: ["--allow-multiple-documents"]
         exclude: '(^|/|\\)\.venv($|/)'
 
       - id: check-added-large-files

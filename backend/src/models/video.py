@@ -14,8 +14,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
+from ..infrastructure.database import Base
 from ..schemas.enum import Privacy, VideoStatus
-from ..services.database import Base
 
 
 class Video(Base):
@@ -30,7 +30,7 @@ class Video(Base):
     is_verified: Column = Column(Boolean, default=False)
     privacy: Column = Column(Enum(Privacy), default=Privacy.PUBLIC)
     status: Column = Column(Enum(VideoStatus), default=VideoStatus.PROCESSING)
-    registered_at: Column = Column(DateTime(timezone=True), server_default=func.now())
+    created_at: Column = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="videos")
     hls_files = relationship("HLSFile", back_populates="video")
