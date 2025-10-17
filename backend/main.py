@@ -28,7 +28,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 def create_app(use_lifespan: bool = True) -> FastAPI:
     lifespan_ctx = lifespan if use_lifespan else None
     app = FastAPI(
-        title="My API", description="BFF", version="1.0.0", lifespan=lifespan_ctx
+        title="Video Streaming BFF",
+        description="Backend service powering the video streaming experience.",
+        version="1.0.0",
+        docs_url="/api/docs",
+        redoc_url=None,
+        openapi_url="/api/openapi.json",
+        swagger_ui_parameters={
+            "defaultModelsExpandDepth": -1,
+            "displayRequestDuration": True,
+            "docExpansion": "none",
+            "supportedSubmitMethods": [],
+        },
+        lifespan=lifespan_ctx,
     )
 
     app.include_router(router_health)

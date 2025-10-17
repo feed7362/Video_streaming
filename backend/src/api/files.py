@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
 import uuid
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import Response, StreamingResponse
@@ -12,13 +14,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..core.pagination import paginate_query
 from ..infrastructure import get_s3_client
 from ..infrastructure.database import get_async_session
-from ..infrastructure.rabbit_client import rabbit_broker
+from ..infrastructure.rabbit_client import get_rabbit_broker
 from ..models import Video
 from ..models.comments import Comment
 from ..schemas.comments import CommentPage
 from ..schemas.endpoint import ErrorResponse, FileMeta, UploadResponse
 from ..schemas.enum import Privacy
 from ..schemas.video import VideoPage, VideoPlayback
+
+if TYPE_CHECKING:  # pragma: no cover - used only for type checkers
+    from faststream.rabbit import RabbitBroker
+
+    from ..infrastructure.s3_client import S3Client
 
 router_files = APIRouter(prefix="/api/video", tags=["files"])
 
@@ -31,6 +38,8 @@ router_files = APIRouter(prefix="/api/video", tags=["files"])
 )
 async def upload_files(
     uploaded_files: List[UploadFile],
+    s3_client: S3Client = Depends(get_s3_client),
+    broker: RabbitBroker = Depends(get_rabbit_broker),
 ) -> UploadResponse:
     """
     Upload multiple files to S3 asynchronously and trigger encoding tasks in RabbitMQ.
@@ -41,7 +50,6 @@ async def upload_files(
         raise HTTPException(status_code=400, detail="No files provided")
 
     files_meta: List[FileMeta] = []
-    s3_client = get_s3_client()
     semaphore = asyncio.Semaphore(5)
 
     async def upload_single_file(uploaded_file: UploadFile) -> None:
@@ -63,7 +71,7 @@ async def upload_files(
             await s3_client.upload_file(
                 new_filename, uploaded_file.file, bucket_name="videos"
             )
-            await rabbit_broker.publish(new_filename, queue="video.encode")
+            await broker.publish(new_filename, queue="video.encode")
 
     try:
         tasks = [upload_single_file(f) for f in uploaded_files]
@@ -78,8 +86,9 @@ async def upload_files(
 
 
 @router_files.get("/download/{filename:path}")
-async def get_file(filename: str) -> StreamingResponse:
-    s3_client = get_s3_client()
+async def get_file(
+    filename: str, s3_client: S3Client = Depends(get_s3_client)
+) -> StreamingResponse:
     try:
         logging.info(f"Downloading file: {filename}")
         chunk_generator = s3_client.download_file(
@@ -98,8 +107,9 @@ async def get_file(filename: str) -> StreamingResponse:
 
 
 @router_files.get("/sign_url")
-async def sign_object(path: str) -> Response:
-    s3_client = get_s3_client()
+async def sign_object(
+    path: str, s3_client: S3Client = Depends(get_s3_client)
+) -> Response:
     path = path.replace("/minio/videos/", "")
     try:
         raw_presigned_url = await s3_client.generate_presigned_url(

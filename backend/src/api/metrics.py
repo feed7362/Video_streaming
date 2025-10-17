@@ -28,9 +28,8 @@ EXCLUDE_PATH_PREFIXES: List[str] = [
     "/api/metrics",
     "/api/health",
     "/static",
-    "/docs",
-    "/openapi.json",
-    "/redoc",
+    "/api/docs",
+    "/api/openapi.json",
 ]
 
 
