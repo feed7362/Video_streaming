@@ -17,7 +17,6 @@ export default function Subscriptions() {
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
 
-    // 🧠 mock data
     const allChannels: Channel[] = useMemo(
         () =>
             Array.from({ length: 60 }).map((_, i) => ({
@@ -32,7 +31,6 @@ export default function Subscriptions() {
         []
     );
 
-    // ⚙️ load more channels
     const loadMore = useCallback(() => {
         const nextPage = page + 1;
         const pageSize = 10;

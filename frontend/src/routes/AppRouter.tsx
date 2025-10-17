@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import Loading from "@/pages/Loading";
 import AppLayout from "@/layouts/AppLayout";
-import ForgotPass from "../pages/ForgotPass";
+import ForgotPass from "@/pages/ForgotPass";
 
 const Home = lazy(() => import("@/pages/Home"));
 const Upload = lazy(() => import("@/pages/Upload"));
@@ -40,16 +40,18 @@ export default function AppRouter() {
                 <Route path="/forgotpass" element={<ForgotPass />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/loading" element={<Liked />} />
-          
+                <Route path="/loading" element={<Loading />} />
+
                 <Route path="/404" element={<NotFound />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />
 
-                {/* Static Pages routers */}
-                {/*<Route path="/privacy" element={<PrivacyPolicy/>}/>*/}
-                {/*<Route path="/terms" element={<TermsOfService/>}/>*/}
-                {/*<Route path="/about" element={<About/>}/>*/}
-                {/*<Route path="/contact" element={<Contact/>}/>*/} </Routes>
+                {/* Static Pages (optional)
+        <Route path="/privacy" element={<PrivacyPolicy/>}/>
+        <Route path="/terms" element={<TermsOfService/>}/>
+        <Route path="/about" element={<About/>}/>
+        <Route path="/contact" element={<Contact/>}/> 
+        */}
+            </Routes>
         </Suspense>
     );
 }

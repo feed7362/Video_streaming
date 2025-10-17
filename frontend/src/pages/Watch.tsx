@@ -140,12 +140,11 @@ export default function Watch() {
     if (!video) return <p>Loading video...</p>;
 
     return (
-        <div className="flex items-start gap-10 p-6">
+        <div className="flex flex-col lg:flex-row items-start gap-6 lg:gap-10 p-4 sm:p-6">
             {/* Main content */}
-            <div className="flex-1 max-w-4xl ml-[80px]">
-                {/* Video player */}
+            <div className="w-full lg:flex-1 lg:max-w-4xl">
                 <VideoPlayer src={video.src} />
-                <h1 className="text-2xl font-bold my-4">{video.title}</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold my-4">{video.title}</h1>
 
                 {/* Channel info */}
                 <div className="flex items-center gap-3 mb-4">
@@ -161,32 +160,31 @@ export default function Watch() {
                 </div>
 
                 {/* Description */}
-                <div className="mb-6 text-gray-700">
-                    <p className="text-sm">
-                        This is a mock description for <strong>{video.title}</strong>.
-                    </p>
+                <div className="mb-6 text-gray-700 text-sm sm:text-base">
+                    <p>This is a mock description for <strong>{video.title}</strong>.</p>
                 </div>
 
                 {/* Comments */}
                 <div className="mt-6">
-                    <h2 className="text-lg font-semibold mb-3">
-                        {comments.length} Comments
-                    </h2>
+                    <h2 className="text-lg sm:text-xl font-semibold mb-3">{comments.length} Comments</h2>
                     <div className="space-y-4">
                         {comments.map((comment) => (
                             <div key={comment.id} className="border-b pb-2">
                                 <p className="font-medium">{comment.author}</p>
-                                <p className="text-gray-600">{comment.text}</p>
+                                <p className="text-gray-600 text-sm sm:text-base">{comment.text}</p>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
-            {/* Sidebar (Video bar) */}
-            <div className="w-100">
+
+            {/* Sidebar */}
+            <div className="w-full lg:w-80 mt-6 lg:mt-0">
                 <h2 className="font-semibold mb-2">Up Next</h2>
+
+                {/* Горизонтальні кнопки категорій з drag-to-scroll */}
                 <div
-                    className="mb-6 flex overflow-x-auto overflow-y-hidden no-scrollbar cursor-grab active:cursor-grabbing select-none"
+                    className="mb-4 flex overflow-x-auto overflow-y-hidden no-scrollbar cursor-grab active:cursor-grabbing select-none"
                     onMouseDown={(e: React.MouseEvent<HTMLDivElement>) => {
                         const container = e.currentTarget;
                         const startX = e.pageX - container.offsetLeft;
@@ -218,30 +216,32 @@ export default function Watch() {
                             {category}
                         </Button>
                     ))}
-                    </div>
+                </div>
+
                 {loading ? (
                     <p>Loading...</p>
                 ) : (
                     <InfiniteScroll loadMore={loadMore} hasMore={hasMore}>
-                        {videos.map((vid) => (
-                            <Link
-                                key={vid.id}
-                                to={`/watch?v=${vid.id}&ab_channel=${encodeURIComponent(
-                                    vid.channel_name || ""
-                                )}`}
-                            >
-                                <VideoCard
-                                    id={vid.id}
-                                    title={vid.title}
-                                    thumbnail={vid.thumbnail}
-                                    channel_avatar={vid.channel_avatar || ""}
-                                    channel_name={vid.channel_name || ""}
-                                />
-                            </Link>
-                        ))}
+                        <div className="space-y-4">
+                            {videos.map((vid) => (
+                                <Link
+                                    key={vid.id}
+                                    to={`/watch?v=${vid.id}&ab_channel=${encodeURIComponent(
+                                        vid.channel_name || ""
+                                    )}`}
+                                >
+                                    <VideoCard
+                                        id={vid.id}
+                                        title={vid.title}
+                                        thumbnail={vid.thumbnail}
+                                        channel_avatar={vid.channel_avatar || ""}
+                                        channel_name={vid.channel_name || ""}
+                                    />
+                                </Link>
+                            ))}
+                        </div>
                     </InfiniteScroll>
                 )}
-
             </div>
         </div>
     );

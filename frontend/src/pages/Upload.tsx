@@ -9,18 +9,18 @@ export default function Upload() {
     const { theme } = useTheme();
 
     return (
-        <div className="flex items-center justify-center mt-30">
-            <Card className="w-full max-w-3xl text-center p-6 max-h-screen overflow-auto">
+        <div className="flex items-center justify-center mt-12 sm:mt-20 px-4">
+            <Card className="w-full max-w-3xl text-center p-4 sm:p-6 md:p-8 max-h-[90vh] sm:max-h-[80vh] overflow-auto">
                 <CardHeader className="mb-4">
-                    <CardTitle className="text-2xl mb-2">Upload Video</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-xl sm:text-2xl md:text-3xl mb-2">Upload Video</CardTitle>
+                    <CardDescription className="text-sm sm:text-base md:text-lg">
                         Drag files here or click the button below to select them from your computer.
                     </CardDescription>
                 </CardHeader>
 
                 <CardContent className="flex flex-col items-center justify-center space-y-6">
                     <ArrowBigUpDash
-                        className={`h-28 w-28 ${theme === "dark" ? "text-white" : "text-black"}`}
+                        className={`h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 ${theme === "dark" ? "text-white" : "text-black"}`}
                     />
                     <input
                         id="file-upload"
@@ -38,13 +38,13 @@ export default function Upload() {
                     </label>
 
                     {file && (
-                        <div className="mt-4 text-left w-full max-w-md overflow-auto">
-                            <p><strong>Fail:</strong> {file.name}</p>
+                        <div className="mt-4 text-left w-full sm:max-w-md overflow-auto">
+                            <p><strong>File:</strong> {file.name}</p>
                             <p><strong>Size:</strong> {(file.size / 1024 / 1024).toFixed(2)} MB</p>
                             <video
                                 src={URL.createObjectURL(file)}
                                 controls
-                                className="w-full mt-2 rounded max-h-80"
+                                className="w-full mt-2 rounded max-h-60 sm:max-h-80"
                             />
                             <Button
                                 type="button"
