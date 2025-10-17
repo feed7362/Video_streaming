@@ -149,7 +149,7 @@ async def get_comments(
     page: int = 1,
     size: int = 20,
     session: AsyncSession = Depends(get_async_session),
-):
+) -> CommentPage:
     filters = [Comment.video_id == video_id]
 
     comments, total = await paginate_query(
@@ -164,10 +164,10 @@ async def get_comments(
     return CommentPage(items=comments, page=page, size=size, total=total)
 
 
-@router_files.get("/videos", response_model=CommentPage)
+@router_files.get("/videos", response_model=VideoPage)
 async def get_videos(
     page: int = 1, size: int = 20, session: AsyncSession = Depends(get_async_session)
-):
+) -> VideoPage:
     videos, total = await paginate_query(
         session=session,
         model=Video,
