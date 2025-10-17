@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: promtail
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: promtail
+  template:
+    metadata:
+      labels:
+        app: promtail
+    spec:
+      containers:
+        - name: promtail
+          image: grafana/promtail:latest
+          args:
+            - -config.file=/etc/promtail/promtail-config.yaml
+          ports:
+            - containerPort: 9080
+          volumeMounts:
+            - name: docker-containers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+              readOnly: true
+            - name: promtail-config
+              mountPath: /etc/promtail/promtail-config.yaml
+              subPath: promtail-config.yaml
+      volumes:
+        - name: docker-containers
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+        - name: promtail-config
+          configMap:
+            name: promtail-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: promtail
+spec:
+  selector:
+    app: promtail
+  ports:
+    - name: http
+      port: 9080
+      targetPort: 9080
+  type: ClusterIP
