@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault
+  namespace: video-streaming
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault
+  template:
+    metadata:
+      labels:
+        app: vault
+    spec:
+      serviceAccountName: vault-auth
+      containers:
+        - name: vault
+          image: hashicorp/vault:latest
+          imagePullPolicy: IfNotPresent
+          command: ["vault", "server", "-config=/etc/vault/vault.hcl"]
+          env:
+            - name: VAULT_ADDR
+              value: http://vault:8200
+            - name: VAULT_API_ADDR
+              value: http://vault:8200
+            - name: VAULT_CLUSTER_ADDR
+              value: http://vault:8201
+          ports:
+            - containerPort: 8200
+              name: http
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK
+          volumeMounts:
+            - name: vault-config
+              mountPath: /etc/vault/vault.hcl
+              subPath: vault.hcl
+            - name: vault-data
+              mountPath: /opt/vault/data
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "vault status -address=http://127.0.0.1:8200"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "vault status -address=http://127.0.0.1:8200"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+      volumes:
+        - name: vault-config
+          configMap:
+            name: vault-config
+        - name: vault-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  namespace: video-streaming
+spec:
+  selector:
+    app: vault
+  ports:
+    - name: http
+      port: 8200
+      targetPort: http

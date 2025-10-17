@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: video-streaming
+data:
+  promtail-config.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+    
+    positions:
+      filename: /tmp/positions.yaml
+    
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+    
+    scrape_configs:
+      - job_name: docker-logs
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: docker-logs
+              __path__: /var/lib/docker/containers/*/*log
+    
+        pipeline_stages:
+          - json:
+              expressions:
+                stream: stream
+                attrs: attrs
+                tag: attrs.tag
+    
+          - regex:
+              expression: (?P<image_name>(?:[^|]*[^|])).(?P<container_name>(?:[^|]*[^|])).(?P<image_id>(?:[^|]*[^|])).(?P<container_id>(?:[^|]*[^|]))
+              source: "tag"
+    
+          - labels:
+              tag:
+              image_name:
+              container_name:
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-config
+  namespace: video-streaming
+data:
+  loki-config.yaml: |
+    auth_enabled: false
+    
+    server:
+      http_listen_port: 3100
+    
+    ingester:
+      lifecycler:
+        ring:
+          kvstore:
+            store: inmemory
+          replication_factor: 1
+      chunk_idle_period: 5m
+      chunk_retain_period: 30s
+      max_chunk_age: 1h
+    
+    schema_config:
+      configs:
+        - from: 2020-10-24
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+    
+    storage_config:
+      boltdb_shipper:
+        active_index_directory: /loki/index
+        cache_location: /loki/boltdb-cache
+      filesystem:
+        directory: /loki/chunks
+    
+    limits_config:
+      retention_period: 168h # 7 days
+      allow_structured_metadata: false
+    
+    table_manager:
+      retention_deletes_enabled: true
+      retention_period: 168h # 7 days
+    
+    query_scheduler:
+      max_outstanding_requests_per_tenant: 2048
+    
+    common:
+      path_prefix: /tmp/loki
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: video-streaming
+data:
+  prometheus.yaml: |
+    global:
+      scrape_interval: 15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+      evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+    
+    scrape_configs:
+      - job_name: "fastapi"
+        metrics_path: /api/metrics
+        static_configs:
+          - targets: ["bff:8000"]
+    
+      - job_name: "ffmpeg"
+        metrics_path: /api/metrics
+        static_configs:
+          - targets: ["ffmpeg:8002"]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: video-streaming
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090
+        isDefault: true
+        editable: true
+    
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki:3100
+        editable: true
