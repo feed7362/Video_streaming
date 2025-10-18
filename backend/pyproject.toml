@@ -55,7 +55,7 @@ include_trailing_comma = true
 skip = ["alembic", ".venv"]
 
 [tool.ruff]
-line-length = 88
+line-length = 110
 target-version = "py312"
 exclude = ["alembic", ".venv"]
 fix = true

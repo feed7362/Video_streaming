@@ -2,8 +2,10 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from src.api.files import router_files
 from src.api.health import router_health
@@ -31,14 +33,24 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
         title="Video Streaming BFF",
         description="Backend service powering the video streaming experience.",
         version="1.0.0",
-        docs_url="/api/docs",
+        docs_url="/docs",
         redoc_url=None,
-        openapi_url="/api/openapi.json",
+        openapi_url="/openapi.json",
         swagger_ui_parameters={
-            "defaultModelsExpandDepth": -1,
+            "deepLinking": True,
+            "defaultModelsExpandDepth": 2,  # show all models and schemas expanded
+            "defaultModelExpandDepth": 2,  # expand individual model fields
             "displayRequestDuration": True,
-            "docExpansion": "none",
-            "supportedSubmitMethods": [],
+            "displayOperationDuration": True,
+            "defaultModelRendering": "example",
+            "showMutatedRequest": True,
+            "docExpansion": "list",  # expand all tags (groups) by default
+            "supportedSubmitMethods": ["get", "post", "put", "delete", "patch"],
+            "filter": True,
+            "showExtensions": True,  # show any x-* vendor extensions
+            "showCommonExtensions": True,  # show standard extensions like x-codeSamples
+            "syntaxHighlight": True,  # enable syntax highlighting for request/response
+            "requestSnippetsEnabled": True,
         },
         lifespan=lifespan_ctx,
     )
@@ -61,6 +73,33 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "detail": exc.detail or str(exc),
+                "status_code": exc.status_code,
+                "type": exc.__class__.__name__,
+            },
+        )
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(request: Request, exc: Exception):
+        logging.exception(f"Unhandled error: {exc}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"},
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc):
+        return JSONResponse(
+            status_code=400,
+            content={"detail": str(exc)},
+        )
+
     return app
 
 

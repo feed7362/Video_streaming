@@ -2,7 +2,7 @@ import time
 from typing import Callable, List
 
 from fastapi import APIRouter, Request
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -13,7 +13,15 @@ from ..schemas.metric import (
     RESPONSES_TOTAL,
 )
 
-router_metrics = APIRouter(prefix="/api/metrics", tags=["monitoring"])
+router_metrics = APIRouter(
+    prefix="/api/metrics",
+    tags=["monitoring"],
+    default_response_class=JSONResponse,
+    responses={
+        404: {"description": "Not found"},
+        500: {"description": "Internal server error"},
+    },
+)
 
 
 @router_metrics.get("", include_in_schema=True)
@@ -28,8 +36,8 @@ EXCLUDE_PATH_PREFIXES: List[str] = [
     "/api/metrics",
     "/api/health",
     "/static",
-    "/api/docs",
-    "/api/openapi.json",
+    "/docs",
+    "/openapi.json",
 ]
 
 

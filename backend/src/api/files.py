@@ -7,8 +7,8 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, List
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
-from fastapi.responses import Response, StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.pagination import paginate_query
@@ -18,7 +18,7 @@ from ..infrastructure.rabbit_client import get_rabbit_broker
 from ..models import Video
 from ..models.comments import Comment
 from ..schemas.comments import CommentPage
-from ..schemas.endpoint import ErrorResponse, FileMeta, UploadResponse
+from ..schemas.endpoint import APIError, ErrorResponse, FileMeta, UploadResponse
 from ..schemas.enum import Privacy
 from ..schemas.video import VideoPage, VideoPlayback
 
@@ -27,7 +27,15 @@ if TYPE_CHECKING:  # pragma: no cover - used only for type checkers
 
     from ..infrastructure.s3_client import S3Client
 
-router_files = APIRouter(prefix="/api/video", tags=["files"])
+router_files = APIRouter(
+    prefix="/api/video",
+    tags=["files"],
+    default_response_class=JSONResponse,
+    responses={
+        404: {"description": "Not found"},
+        500: {"description": "Internal server error"},
+    },
+)
 
 
 # ----- Endpoints -----
@@ -174,9 +182,31 @@ async def get_comments(
     return CommentPage(items=comments, page=page, size=size, total=total)
 
 
-@router_files.get("/videos", response_model=VideoPage)
+@router_files.get(
+    "/videos",
+    response_model=VideoPage,
+    summary="List all videos",
+    description="Returns a paginated list of videos with metadata such as title, duration, and status.",
+    response_description="A paginated list of videos.",
+    responses={
+        200: {
+            "model": VideoPage,
+            "description": "List of videos successfully retrieved.",
+        },
+        400: {
+            "model": APIError,
+            "description": "Invalid query parameters (e.g., invalid page/size).",
+        },
+        500: {
+            "model": APIError,
+            "description": "Internal server error.",
+        },
+    },
+)
 async def get_videos(
-    page: int = 1, size: int = 20, session: AsyncSession = Depends(get_async_session)
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(20, ge=1, le=100, description="Page size"),
+    session: AsyncSession = Depends(get_async_session),
 ) -> VideoPage:
     videos, total = await paginate_query(
         session=session,

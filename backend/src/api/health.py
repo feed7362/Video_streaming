@@ -1,7 +1,15 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-router_health = APIRouter(prefix="/api/health", tags=["health_check"])
+router_health = APIRouter(
+    prefix="/api/health",
+    tags=["health_check"],
+    default_response_class=JSONResponse,
+    responses={
+        404: {"description": "Not found"},
+        500: {"description": "Internal server error"},
+    },
+)
 
 
 @router_health.get("/live")
