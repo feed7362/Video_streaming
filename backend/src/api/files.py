@@ -7,8 +7,8 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, UploadFile
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.pagination import paginate_query
@@ -18,7 +18,14 @@ from ..infrastructure.rabbit_client import get_rabbit_broker
 from ..models import Video
 from ..models.comments import Comment
 from ..schemas.comments import CommentPage
-from ..schemas.endpoint import APIError, ErrorResponse, FileMeta, UploadResponse
+from ..schemas.endpoint import (
+    APIError,
+    ErrorResponse,
+    FileMeta,
+    FileStreamResponse,
+    SignedUrlResponse,
+    UploadResponse,
+)
 from ..schemas.enum import Privacy
 from ..schemas.video import VideoPage, VideoPlayback
 
@@ -42,7 +49,23 @@ router_files = APIRouter(
 @router_files.post(
     "/upload",
     response_model=UploadResponse,
-    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    summary="Upload video files",
+    description="Uploads one or more video files to object storage and schedules encoding jobs.",
+    response_description="Metadata describing the uploaded files.",
+    responses={
+        200: {
+            "model": UploadResponse,
+            "description": "Files successfully uploaded and encoding queued.",
+        },
+        400: {
+            "model": ErrorResponse,
+            "description": "Request did not include any files or contained invalid data.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected error occurred while uploading or scheduling encoding.",
+        },
+    },
 )
 async def upload_files(
     uploaded_files: List[UploadFile],
@@ -55,7 +78,10 @@ async def upload_files(
     """
     if not uploaded_files:
         logging.error("No files provided")
-        raise HTTPException(status_code=400, detail="No files provided")
+        raise HTTPException(
+            status_code=400,
+            detail=ErrorResponse(message="No files provided").model_dump(),
+        )
 
     files_meta: List[FileMeta] = []
     semaphore = asyncio.Semaphore(5)
@@ -65,7 +91,10 @@ async def upload_files(
             filename = uploaded_file.filename
             if filename is None:
                 raise HTTPException(
-                    status_code=400, detail="Uploaded file has no filename"
+                    status_code=400,
+                    detail=ErrorResponse(
+                        message="Uploaded file is missing a filename."
+                    ).model_dump(),
                 )
             ext = os.path.splitext(filename)[-1]
             new_filename = f"{str(uuid.uuid4())}{ext}"
@@ -86,16 +115,44 @@ async def upload_files(
         await asyncio.gather(*tasks)
     except Exception as e:
         logging.error(f"Error uploading files: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=ErrorResponse(message=str(e)).model_dump(),
+        )
 
     return UploadResponse(
         status="accepted", files_count=len(uploaded_files), files=files_meta
     )
 
 
-@router_files.get("/download/{filename:path}")
+@router_files.get(
+    "/download/{filename:path}",
+    response_model=FileStreamResponse,
+    summary="Download a stored video file",
+    description="Streams a video file stored in object storage as a binary response.",
+    response_description="Binary stream of the requested file.",
+    responses={
+        200: {
+            "description": "File streaming response.",
+            "content": {
+                "application/octet-stream": {
+                    "schema": {"type": "string", "format": "binary"}
+                }
+            },
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "Requested file was not found.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected error occurred while retrieving the file.",
+        },
+    },
+)
 async def get_file(
-    filename: str, s3_client: S3Client = Depends(get_s3_client)
+    filename: str = Path(..., description="Full path of the file to download."),
+    s3_client: S3Client = Depends(get_s3_client),
 ) -> StreamingResponse:
     try:
         logging.info(f"Downloading file: {filename}")
@@ -108,16 +165,50 @@ async def get_file(
         )
     except FileNotFoundError:
         logging.error(f"File '{filename}' not found")
-        raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
+        raise HTTPException(
+            status_code=404,
+            detail=ErrorResponse(
+                message=f"File '{filename}' not found"
+            ).model_dump(),
+        )
     except Exception as e:
         logging.error(f"Error downloading file: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=ErrorResponse(message=str(e)).model_dump(),
+        )
 
 
-@router_files.get("/sign_url")
+@router_files.get(
+    "/sign_url",
+    response_model=SignedUrlResponse,
+    summary="Create a signed URL",
+    description=(
+        "Generates a pre-signed URL that allows temporary access to a video file "
+        "stored in object storage."
+    ),
+    response_description="Signed URL metadata for accessing the requested file.",
+    responses={
+        200: {
+            "model": SignedUrlResponse,
+            "description": "Pre-signed URL generated successfully.",
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "The requested file could not be found in storage.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected error occurred while generating the signed URL.",
+        },
+    },
+)
 async def sign_object(
-    path: str, s3_client: S3Client = Depends(get_s3_client)
-) -> Response:
+    path: str = Query(
+        ..., description="Path to the file within the videos bucket to sign."
+    ),
+    s3_client: S3Client = Depends(get_s3_client),
+) -> SignedUrlResponse:
     path = path.replace("/minio/videos/", "")
     try:
         raw_presigned_url = await s3_client.generate_presigned_url(
@@ -125,16 +216,46 @@ async def sign_object(
         )
         if raw_presigned_url is None:
             logging.error(f"File '{path}' not found or URL could not be generated")
-            raise HTTPException(status_code=404, detail=f"File '{path}' not found")
+            raise HTTPException(
+                status_code=404,
+                detail=ErrorResponse(
+                    message=f"File '{path}' not found"
+                ).model_dump(),
+            )
     except Exception as e:
         logging.error(f"Error streaming file: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=ErrorResponse(message=str(e)).model_dump(),
+        )
 
-    return Response(status_code=200, headers={"X-Signed-Url": raw_presigned_url})
+    return SignedUrlResponse(path=path, signed_url=raw_presigned_url, expires_in=3600)
 
 
-@router_files.get("/info/{video_id}", response_model=VideoPlayback)
-async def get_video_info(video_id: str) -> VideoPlayback:
+@router_files.get(
+    "/info/{video_id}",
+    response_model=VideoPlayback,
+    summary="Get video playback information",
+    description="Retrieves metadata and playback details for a specific video.",
+    response_description="Metadata describing the requested video.",
+    responses={
+        200: {
+            "model": VideoPlayback,
+            "description": "Video metadata retrieved successfully.",
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "Video metadata could not be found.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected error occurred while retrieving metadata.",
+        },
+    },
+)
+async def get_video_info(
+    video_id: str = Path(..., description="UUID of the video to retrieve playback info for."),
+) -> VideoPlayback:
     channel_name = "Channel Name"
     s3_video = f"{video_id}/master.m3u8"
     s3_thumbnail = f"{video_id}/thumbnail.jpg"
@@ -158,14 +279,46 @@ async def get_video_info(video_id: str) -> VideoPlayback:
         )
     except Exception as e:
         logging.error(f"Error streaming file: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=ErrorResponse(message=str(e)).model_dump(),
+        )
 
 
-@router_files.get("/comments/{video_id}", response_model=CommentPage)
+@router_files.get(
+    "/comments/{video_id}",
+    response_model=CommentPage,
+    summary="List comments for a video",
+    description="Returns a paginated list of comments belonging to the specified video.",
+    response_description="Paginated comment list.",
+    responses={
+        200: {
+            "model": CommentPage,
+            "description": "Comments retrieved successfully.",
+        },
+        400: {
+            "model": APIError,
+            "description": "Invalid pagination parameters provided.",
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "Video not found or has no comments.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected error occurred while retrieving comments.",
+        },
+    },
+)
 async def get_comments(
-    video_id: uuid.UUID,
-    page: int = 1,
-    size: int = 20,
+    video_id: uuid.UUID = Path(..., description="UUID of the video whose comments are requested."),
+    page: int = Query(1, ge=1, description="Page number for paginated results."),
+    size: int = Query(
+        20,
+        ge=1,
+        le=100,
+        description="Number of comments to include per page (1-100).",
+    ),
     session: AsyncSession = Depends(get_async_session),
 ) -> CommentPage:
     filters = [Comment.video_id == video_id]
