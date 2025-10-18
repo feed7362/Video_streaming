@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -22,6 +22,33 @@ class ErrorResponse(BaseModel):
 class StatusMessage(BaseModel):
     video_id: str
     status: str
+
+
+class HealthStatus(BaseModel):
+    status: str
+    details: Optional[Dict[str, str]] = None
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {"status": "ok"},
+                {
+                    "status": "ready",
+                    "details": {
+                        "database": "ok",
+                        "object_storage": "ok",
+                    },
+                },
+                {
+                    "status": "not ready",
+                    "details": {
+                        "database": "error: OperationalError",
+                        "object_storage": "ok",
+                    },
+                },
+            ]
+        }
+    }
 
 
 class APIError(BaseModel):
