@@ -36,6 +36,20 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
         docs_url="/docs",
         redoc_url=None,
         openapi_url="/openapi.json",
+        openapi_tags=[
+            {
+                "name": "files",
+                "description": "Endpoints for uploading, streaming, and downloading video files.",
+            },
+            {
+                "name": "health_check",
+                "description": "Health check endpoints that provide liveness and readiness status.",
+            },
+            {
+                "name": "monitoring",
+                "description": "Prometheus metrics endpoints for operational monitoring.",
+            },
+        ],
         swagger_ui_parameters={
             "deepLinking": True,
             "defaultModelsExpandDepth": 2,  # show all models and schemas expanded
