@@ -113,7 +113,7 @@ async def readiness_check() -> JSONResponse:
         status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     finally:
         if broker is not None and newly_connected:
-            close_result = broker.close()
+            close_result = broker.stop()
             if inspect.isawaitable(close_result):
                 await close_result
 
