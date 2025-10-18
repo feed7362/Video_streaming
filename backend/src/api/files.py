@@ -167,9 +167,7 @@ async def get_file(
         logging.error(f"File '{filename}' not found")
         raise HTTPException(
             status_code=404,
-            detail=ErrorResponse(
-                message=f"File '{filename}' not found"
-            ).model_dump(),
+            detail=ErrorResponse(message=f"File '{filename}' not found").model_dump(),
         )
     except Exception as e:
         logging.error(f"Error downloading file: {e}")
@@ -218,9 +216,7 @@ async def sign_object(
             logging.error(f"File '{path}' not found or URL could not be generated")
             raise HTTPException(
                 status_code=404,
-                detail=ErrorResponse(
-                    message=f"File '{path}' not found"
-                ).model_dump(),
+                detail=ErrorResponse(message=f"File '{path}' not found").model_dump(),
             )
     except Exception as e:
         logging.error(f"Error streaming file: {e}")
@@ -254,7 +250,9 @@ async def sign_object(
     },
 )
 async def get_video_info(
-    video_id: str = Path(..., description="UUID of the video to retrieve playback info for."),
+    video_id: str = Path(
+        ..., description="UUID of the video to retrieve playback info for."
+    ),
 ) -> VideoPlayback:
     channel_name = "Channel Name"
     s3_video = f"{video_id}/master.m3u8"
@@ -311,7 +309,9 @@ async def get_video_info(
     },
 )
 async def get_comments(
-    video_id: uuid.UUID = Path(..., description="UUID of the video whose comments are requested."),
+    video_id: uuid.UUID = Path(
+        ..., description="UUID of the video whose comments are requested."
+    ),
     page: int = Query(1, ge=1, description="Page number for paginated results."),
     size: int = Query(
         20,

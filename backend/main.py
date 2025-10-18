@@ -36,6 +36,13 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
         docs_url="/docs",
         redoc_url=None,
         openapi_url="/openapi.json",
+        contact={
+            "name": "John Doe",
+            "email": "john@example.com",
+        },
+        license_info={
+            "name": "MIT",
+        },
         openapi_tags=[
             {
                 "name": "files",

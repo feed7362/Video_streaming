@@ -40,7 +40,7 @@ router_metrics = APIRouter(
                 "text/plain; version=0.0.4": {
                     "schema": {
                         "type": "string",
-                        "example": "# HELP http_requests_total Total HTTP requests\n# TYPE http_requests_total counter",
+                        "example": "# HELP http_requests_total Total HTTP requests",
                     }
                 }
             },

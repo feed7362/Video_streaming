@@ -52,8 +52,8 @@ class HealthStatus(BaseModel):
                     },
                 },
             ]
+        }
     }
-}
 
 
 class SignedUrlResponse(BaseModel):
