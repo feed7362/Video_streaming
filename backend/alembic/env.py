@@ -1,18 +1,19 @@
-import asyncio
 from logging.config import fileConfig
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
 from src.config import get_database_settings
-from src.services.database import Base
+from src.infrastructure.database import Base
 
 settings = get_database_settings()
 DATABASE_URL = (
-    f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
+    f"postgresql://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
     f"@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"
 )
 
 config = context.config
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
+
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
@@ -31,7 +32,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = DATABASE_URL
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -42,22 +43,24 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-async def run_migrations_online_async():
-    connectable = create_async_engine(DATABASE_URL, poolclass=pool.NullPool)
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode.
 
-    async with connectable.connect() as connection:
-        await connection.run_sync(
-            lambda conn: context.configure(
-                connection=conn, target_metadata=target_metadata
-            )
-        )
-        await connection.run_sync(lambda conn: context.run_migrations())
+    In this scenario we need to create an Engine
+    and associate a connection with the context.
 
-    await connectable.dispose()
+    """
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
 
+    with connectable.connect() as connection:
+        context.configure(connection=connection, target_metadata=target_metadata)
 
-def run_migrations_online():
-    asyncio.run(run_migrations_online_async())
+        with context.begin_transaction():
+            context.run_migrations()
 
 
 if context.is_offline_mode():
