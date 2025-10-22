@@ -27,6 +27,19 @@ def cleanup_dirs(video_id: str) -> None:
         logging.error(f"Failed to cleanup local dirs for {video_id}, Error: {e}")
 
 
+def has_gpu():
+    try:
+        subprocess.run(
+            ["nvidia-smi"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True,
+        )
+        return True
+    except Exception:
+        return False
+
+
 async def stream_ffmpeg(
     input_async_iter: AsyncIterable[bytes],
     output_dir: Path,
@@ -38,31 +51,54 @@ async def stream_ffmpeg(
 
     gop_size = math.ceil(fps * segment_duration)
     print(f"Calculated GOP size for -g parameter: {gop_size}")
+    use_gpu = has_gpu()
+
+    # ---------- Common base command ----------
     cmd = [
-        # input
         "ffmpeg",
         "-y",
         "-fflags",
         "+genpts",
-        "-hwaccel",
-        "cuda",
-        "-hwaccel_output_format",
-        "cuda",
-        "-i",
-        "pipe:0",
-        # filter and scaling
-        "-filter_complex",
-        "[0:v]split=3[v1][v2][v3];"
-        "[v1]scale_npp=w=640:h=360:force_original_aspect_ratio=decrease[v360];"
-        "[v2]scale_npp=w=1280:h=720:force_original_aspect_ratio=decrease[v720];"
-        "[v3]scale_npp=w=1920:h=1080:force_original_aspect_ratio=decrease[v1080]",
+    ]
+
+    # ---------- Input & hardware acceleration ----------
+    if use_gpu:
+        cmd += [
+            "-hwaccel",
+            "cuda",
+            "-hwaccel_output_format",
+            "cuda",
+        ]
+    cmd += ["-i", "pipe:0"]
+
+    # ---------- Filter & scaling ----------
+    if use_gpu:
+        filter_complex = (
+            "[0:v]split=3[v1][v2][v3];"
+            "[v1]scale_npp=w=640:h=360:force_original_aspect_ratio=decrease[v360];"
+            "[v2]scale_npp=w=1280:h=720:force_original_aspect_ratio=decrease[v720];"
+            "[v3]scale_npp=w=1920:h=1080:force_original_aspect_ratio=decrease[v1080]"
+        )
+    else:
+        filter_complex = (
+            "[0:v]split=3[v1][v2][v3];"
+            "[v1]scale=w=640:h=360:force_original_aspect_ratio=decrease[v360];"
+            "[v2]scale=w=1280:h=720:force_original_aspect_ratio=decrease[v720];"
+            "[v3]scale=w=1920:h=1080:force_original_aspect_ratio=decrease[v1080]"
+        )
+    cmd += ["-filter_complex", filter_complex]
+
+    # ---------- Codec setup ----------
+    vcodec = "h264_nvenc" if use_gpu else "libx264"
+
+    cmd += [
         # 360p
         "-map",
         "[v360]",
         "-map",
         "a:0?",
         "-c:v:0",
-        "h264_nvenc",
+        vcodec,
         "-b:v:0",
         "800k",
         "-maxrate:v:0",
@@ -79,7 +115,7 @@ async def stream_ffmpeg(
         "-map",
         "a:0",
         "-c:v:1",
-        "h264_nvenc",
+        vcodec,
         "-b:v:1",
         "2000k",
         "-maxrate:v:1",
@@ -96,7 +132,7 @@ async def stream_ffmpeg(
         "-map",
         "a:0",
         "-c:v:2",
-        "h264_nvenc",
+        vcodec,
         "-b:v:2",
         "5000k",
         "-maxrate:v:2",
@@ -107,17 +143,16 @@ async def stream_ffmpeg(
         "aac",
         "-b:a:2",
         "192k",
-        # subtitles
-        # "-map", "0:s:0?",
-        # "-c:s", "webvtt",
-        # preset
-        "-rc",
-        "vbr",
-        "-preset",
-        "p1",
-        "-tune:v",
-        "ull",
-        # output
+    ]
+
+    # ---------- Preset / Rate control ----------
+    if use_gpu:
+        cmd += ["-rc", "vbr", "-preset", "p1", "-tune:v", "ull"]
+    else:
+        cmd += ["-preset", "veryfast", "-tune", "zerolatency"]
+
+    # ---------- Output ----------
+    cmd += [
         "-f",
         "hls",
         "-g",
