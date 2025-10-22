@@ -4,14 +4,15 @@ import inspect
 from typing import Dict
 
 from botocore.exceptions import BotoCoreError, ClientError
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
+from faststream.rabbit import RabbitBroker
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..infrastructure.database import get_async_session
 from ..infrastructure.rabbit_client import get_rabbit_broker
-from ..infrastructure.s3_client import get_s3_client
+from ..infrastructure.s3_client import S3Client, get_s3_client
 from ..schemas.endpoint import HealthStatus
 
 router_health = APIRouter(
@@ -62,48 +63,38 @@ async def perform_liveness_checks() -> HealthStatus:
         },
     },
 )
-async def readiness_check() -> JSONResponse:
+async def readiness_check(
+    session_context: AsyncSession = Depends(get_async_session),
+    s3_client: S3Client = Depends(get_s3_client),
+    broker: RabbitBroker = Depends(get_rabbit_broker),
+) -> JSONResponse:
     checks: Dict[str, str] = {}
     status_code = status.HTTP_200_OK
 
     # Database connectivity check
     try:
-        async with get_async_session() as session:
+        async with session_context as session:
             await session.execute(text("SELECT 1"))
         checks["database"] = "ok"
-    except (SQLAlchemyError, AssertionError) as exc:
-        checks["database"] = f"error: {exc.__class__.__name__}"
-        status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    except Exception as exc:  # pragma: no cover - defensive guard
+    except Exception as exc:
         checks["database"] = f"error: {exc.__class__.__name__}"
         status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
-    # Object storage availability check
+    # Object storage check
     try:
-        s3_client = get_s3_client()
         await s3_client.get_bucket_list()
         checks["object_storage"] = "ok"
-    except AssertionError as exc:
-        checks["object_storage"] = f"misconfigured: {exc}"
-        status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    except (ClientError, BotoCoreError) as exc:
-        checks["object_storage"] = f"error: {exc.__class__.__name__}"
-        status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    except Exception as exc:  # pragma: no cover - defensive guard
+    except (ClientError, BotoCoreError, AssertionError) as exc:
         checks["object_storage"] = f"error: {exc.__class__.__name__}"
         status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
-    # Message broker connectivity check
-    broker = None
-    newly_connected = False
+    # Message broker check
     try:
-        broker = get_rabbit_broker()
-        is_connected = getattr(broker, "is_connected", None)
+        is_connected = getattr(broker, "is_connected", False)
         if not is_connected:
             connect_result = broker.connect()
             if inspect.isawaitable(connect_result):
                 await connect_result
-            newly_connected = True
             is_connected = getattr(broker, "is_connected", True)
         if is_connected is False:
             raise RuntimeError("Message broker not connected")
@@ -112,10 +103,9 @@ async def readiness_check() -> JSONResponse:
         checks["message_broker"] = f"error: {exc.__class__.__name__}"
         status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     finally:
-        if broker is not None and newly_connected:
-            close_result = broker.stop()
-            if inspect.isawaitable(close_result):
-                await close_result
+        stop_result = broker.stop()
+        if inspect.isawaitable(stop_result):
+            await stop_result
 
     overall_status = "ready" if status_code == status.HTTP_200_OK else "not ready"
     payload = HealthStatus(status=overall_status, details=checks)
