@@ -209,7 +209,7 @@ services:
 
   vault:
     image: hashicorp/vault:latest
-    command: vault server -config=/etc/vault/vault.hcl
+    command: sh -c "chown -R vault:vault /opt/vault/data && vault server -config=/etc/vault/vault.hcl"
     container_name: vault
     restart: always
     expose:
