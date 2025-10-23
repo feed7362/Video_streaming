@@ -1,8 +1,10 @@
-import { useCallback, useMemo, useState } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useCallback, useState } from "react";
 import VideoCard from "@/components/VideoCard";
 import InfiniteScroll from "@/components/infinite-scroll";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import api from "@api/videoApi";
 
 interface Video {
     id: string;
@@ -43,28 +45,20 @@ export default function Home() {
     const [hasMore, setHasMore] = useState(true);
     const [active, setActive] = useState("All");
 
-    const allVideos: Video[] = useMemo(
-        () =>
-            Array.from({ length: 120 }).map((_, i) => ({
-                id: `video-${i + 1}`,
-                title: `Mock Video ${i + 1}`,
-                thumbnail: `https://via.placeholder.com/250x125?text=Video+${i + 1}`,
-                channel_avatar: "https://api.dicebear.com/7.x/identicon/svg?seed",
-                channel_name: `Channel ${i + 1}`,
-            })),
-        []
-    );
 
-    const loadMore = useCallback(() => {
-        const nextPage = page + 1;
-        const pageSize = 20;
-        const newVideos = allVideos.slice(0, nextPage * pageSize);
-
-        setVideos(newVideos);
-        setPage(nextPage);
-        setHasMore(newVideos.length < allVideos.length);
-        setLoading(false);
-    }, [page, allVideos]);
+    const loadMore = useCallback(async () => {
+        setLoading(true);
+        try {
+            const newVideos = await api.getVideos(page); // або getVideos(page) якщо бекенд підтримує пагінацію
+            setVideos((prev) => [...prev, ...newVideos]);
+            setHasMore(newVideos.length > 0);
+            setPage((prev) => prev + 1); // викор. колбек, щоб не залежати від page
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    }, [page]);
 
     if (loading && videos.length === 0) {
         loadMore();
