@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -35,4 +35,12 @@ class VideoReaction(Base):
 
     # ---- Relationships ----
     video: Mapped["Video"] = relationship(back_populates="reactions")
-    user: Mapped["User"] = relationship(back_populates="likes")
+    user: Mapped["User"] = relationship(back_populates="reactions")
+
+    __table_args__ = (Index("ix_reactions_video_user", "video_id", "user_id"),)
+
+    def __repr__(self):
+        return f"<Reaction {'Like' if self.is_like else 'Dislike'} by {self.user_id}>"
+
+    def __str__(self):
+        return f"{'👍' if self.is_like else '👎'} by user {self.user_id}"

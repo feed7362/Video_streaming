@@ -2,9 +2,9 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from ..infrastructure.database import Base
 
@@ -30,3 +30,19 @@ class HLSFile(Base):
 
     # ---- Relationships ----
     video: Mapped["Video"] = relationship(back_populates="hls_files")
+
+    __table_args__ = (
+        Index("ix_hls_files_video_id", "video_id"),
+        Index("ix_hls_files_resolution", "resolution"),
+    )
+
+    @validates("resolution")
+    def validate_resolution(self, _, value: str) -> str:
+        assert value.endswith("p"), "Resolution must end with 'p' (e.g., 720p)"
+        return value
+
+    def __repr__(self):
+        return f"<HLSFile {self.resolution} for video {self.video_id}>"
+
+    def __str__(self):
+        return f"{self.resolution} stream — {self.url}"

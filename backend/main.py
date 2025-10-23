@@ -12,6 +12,7 @@ from src.api.health import router_health
 from src.api.metrics import PrometheusMiddleware, router_metrics
 from src.api.videos import router_videos
 from src.i18n import LanguageMiddleware
+from src.infrastructure.database import engine
 from src.infrastructure.rabbit_client import rabbit_broker
 from src.infrastructure.s3_client import get_s3_client
 
@@ -24,8 +25,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     await s3_client.check_bucket_exists()
     logging.info("Startup complete. Metrics exposed.")
     yield
-    logging.info("Shutdown complete.")
     await rabbit_broker.close()
+    logging.info("Rabbit broker connection disposed gracefully.")
+    await engine.dispose()
+    logging.info("Database engine disposed gracefully.")
+    logging.info("Shutdown complete.")
 
 
 def create_app(use_lifespan: bool = True) -> FastAPI:
@@ -98,7 +102,7 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
     )
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc):
+    async def http_exception_handler(request: Request, exc) -> JSONResponse:
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -109,7 +113,9 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
         )
 
     @app.exception_handler(Exception)
-    async def unhandled_exception_handler(request: Request, exc: Exception):
+    async def unhandled_exception_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
         logging.exception(f"Unhandled error: {exc}")
         return JSONResponse(
             status_code=500,
@@ -117,7 +123,7 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
         )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc):
+    async def validation_exception_handler(request: Request, exc) -> JSONResponse:
         return JSONResponse(
             status_code=400,
             content={"detail": str(exc)},

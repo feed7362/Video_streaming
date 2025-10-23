@@ -2,9 +2,19 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, List
 
-from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, String, Text, func
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from ..infrastructure.database import Base
 from ..schemas.enum import Privacy, VideoStatus
@@ -53,3 +63,20 @@ class Video(Base):
         secondary="playlist_video",
         back_populates="videos",
     )
+
+    __table_args__ = (
+        Index("ix_videos_user_id", "user_id"),
+        Index("ix_videos_created_at", "created_at"),
+        Index("ix_videos_privacy", "privacy"),
+    )
+
+    @validates("name")
+    def validate_name(self, _, value: str) -> str:
+        assert value.strip(), "Video name cannot be empty"
+        return value.strip()
+
+    def __repr__(self):
+        return f"<Video {self.name} ({self.status}, {self.privacy})>"
+
+    def __str__(self):
+        return f"{self.name} — {self.status.value}, {self.privacy.value}"

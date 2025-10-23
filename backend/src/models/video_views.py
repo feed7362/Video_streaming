@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, func
+from sqlalchemy import DateTime, ForeignKey, Index, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -33,3 +33,14 @@ class VideoView(Base):
     # ---- Relationships ----
     video: Mapped["Video"] = relationship(back_populates="views")
     user: Mapped["User | None"] = relationship(back_populates="views")
+
+    __table_args__ = (
+        Index("ix_video_views_video_id", "video_id"),
+        Index("ix_video_views_user_id", "user_id"),
+    )
+
+    def __repr__(self):
+        return f"<View video={self.video_id} user={self.user_id}>"
+
+    def __str__(self):
+        return f"View of {self.video_id} by {self.user_id or 'guest'}"

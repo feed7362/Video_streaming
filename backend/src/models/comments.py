@@ -2,9 +2,9 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, Text, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from ..infrastructure.database import Base
 
@@ -34,3 +34,19 @@ class Comment(Base):
     # ---- Relationships ----
     video: Mapped["Video"] = relationship(back_populates="comments")
     user: Mapped["User"] = relationship(back_populates="comments")
+
+    __table_args__ = (
+        Index("ix_comments_video_id", "video_id"),
+        Index("ix_comments_user_id", "user_id"),
+    )
+
+    @validates("content")
+    def validate_content(self, _, value: str) -> str:
+        assert value.strip(), "Comment cannot be empty"
+        return value.strip()
+
+    def __repr__(self):
+        return f"<Comment {self.id} by {self.user_id}>"
+
+    def __str__(self):
+        return f"Comment by {self.user_id} on video {self.video_id}"
