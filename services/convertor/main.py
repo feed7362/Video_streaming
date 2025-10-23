@@ -27,7 +27,7 @@ def cleanup_dirs(video_id: str) -> None:
         logging.error(f"Failed to cleanup local dirs for {video_id}, Error: {e}")
 
 
-def has_gpu():
+def has_gpu() -> bool:
     try:
         subprocess.run(
             ["nvidia-smi"],
@@ -82,9 +82,12 @@ async def stream_ffmpeg(
     else:
         filter_complex = (
             "[0:v]split=3[v1][v2][v3];"
-            "[v1]scale=w=640:h=360:force_original_aspect_ratio=decrease[v360];"
-            "[v2]scale=w=1280:h=720:force_original_aspect_ratio=decrease[v720];"
-            "[v3]scale=w=1920:h=1080:force_original_aspect_ratio=decrease[v1080]"
+            "[v1]scale=w=640:h=360:force_original_aspect_ratio=decrease,"
+            "pad=ceil(iw/2)*2:ceil(ih/2)*2[v360];"
+            "[v2]scale=w=1280:h=720:force_original_aspect_ratio=decrease,"
+            "pad=ceil(iw/2)*2:ceil(ih/2)*2[v720];"
+            "[v3]scale=w=1920:h=1080:force_original_aspect_ratio=decrease,"
+            "pad=ceil(iw/2)*2:ceil(ih/2)*2[v1080]"
         )
     cmd += ["-filter_complex", filter_complex]
 
