@@ -1,9 +1,11 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel
-from video import VideoRead
+from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from .video import VideoRead
 
 
 class PlaylistBase(BaseModel):
@@ -12,14 +14,20 @@ class PlaylistBase(BaseModel):
 
 
 class PlaylistCreate(PlaylistBase):
+    """Schema for creating a new playlist."""
+
     pass
 
 
 class PlaylistRead(PlaylistBase):
+    """Schema for reading a playlist (response model)."""
+
     id: UUID
     user_id: UUID
     created_at: datetime
-    videos: List["VideoRead"] = []
+
+    # Field(default_factory=...) to avoid mutable default (important!)
+    videos: List["VideoRead"] = Field(default_factory=list)
 
     class Config:
         from_attributes = True

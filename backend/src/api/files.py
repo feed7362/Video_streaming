@@ -2,30 +2,63 @@ import asyncio
 import logging
 import os
 import uuid
-from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING, List
 
-from fastapi import APIRouter, HTTPException, UploadFile
-from fastapi.responses import Response, StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, UploadFile
+from fastapi.responses import JSONResponse, StreamingResponse
 
-from ..schemas.comments import Comment, CommentPage
-from ..schemas.endpoint import ErrorResponse, FileMeta, UploadResponse
-from ..schemas.enum import Privacy
-from ..schemas.video import VideoPlayback
-from ..services import get_s3_client
-from ..services.rabbit_client import rabbit_broker
+from ..infrastructure import get_s3_client
+from ..infrastructure.rabbit_client import get_rabbit_broker
+from ..schemas.endpoint import (
+    ErrorResponse,
+    FileMeta,
+    FileStreamResponse,
+    SignedUrlResponse,
+    UploadResponse,
+)
 
-router_files = APIRouter(prefix="/api/video", tags=["files"])
+if TYPE_CHECKING:  # pragma: no cover - used only for type checkers
+    from faststream.rabbit import RabbitBroker
+
+    from ..infrastructure.s3_client import S3Client
+
+router_files = APIRouter(
+    prefix="/api/files",
+    tags=["files"],
+    default_response_class=JSONResponse,
+    responses={
+        404: {"description": "Not found"},
+        500: {"description": "Internal server error"},
+    },
+)
 
 
 # ----- Endpoints -----
 @router_files.post(
     "/upload",
     response_model=UploadResponse,
-    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    summary="Upload video files",
+    description="Uploads one or more video files to object storage and schedules encoding jobs.",
+    response_description="Metadata describing the uploaded files.",
+    responses={
+        200: {
+            "model": UploadResponse,
+            "description": "Files successfully uploaded and encoding queued.",
+        },
+        400: {
+            "model": ErrorResponse,
+            "description": "Request did not include any files or contained invalid data.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected error occurred while uploading or scheduling encoding.",
+        },
+    },
 )
 async def upload_files(
     uploaded_files: List[UploadFile],
+    s3_client: "S3Client" = Depends(get_s3_client),
+    broker: "RabbitBroker" = Depends(get_rabbit_broker),
 ) -> UploadResponse:
     """
     Upload multiple files to S3 asynchronously and trigger encoding tasks in RabbitMQ.
@@ -33,10 +66,12 @@ async def upload_files(
     """
     if not uploaded_files:
         logging.error("No files provided")
-        raise HTTPException(status_code=400, detail="No files provided")
+        raise HTTPException(
+            status_code=400,
+            detail=ErrorResponse(message="No files provided").model_dump(),
+        )
 
     files_meta: List[FileMeta] = []
-    s3_client = get_s3_client()
     semaphore = asyncio.Semaphore(5)
 
     async def upload_single_file(uploaded_file: UploadFile) -> None:
@@ -44,7 +79,10 @@ async def upload_files(
             filename = uploaded_file.filename
             if filename is None:
                 raise HTTPException(
-                    status_code=400, detail="Uploaded file has no filename"
+                    status_code=400,
+                    detail=ErrorResponse(
+                        message="Uploaded file is missing a filename."
+                    ).model_dump(),
                 )
             ext = os.path.splitext(filename)[-1]
             new_filename = f"{str(uuid.uuid4())}{ext}"
@@ -58,23 +96,52 @@ async def upload_files(
             await s3_client.upload_file(
                 new_filename, uploaded_file.file, bucket_name="videos"
             )
-            await rabbit_broker.publish(new_filename, queue="video.encode")
+            await broker.publish(new_filename, queue="video.encode")
 
     try:
         tasks = [upload_single_file(f) for f in uploaded_files]
         await asyncio.gather(*tasks)
     except Exception as e:
         logging.error(f"Error uploading files: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=ErrorResponse(message=str(e)).model_dump(),
+        )
 
     return UploadResponse(
         status="accepted", files_count=len(uploaded_files), files=files_meta
     )
 
 
-@router_files.get("/download/{filename:path}")
-async def get_file(filename: str) -> StreamingResponse:
-    s3_client = get_s3_client()
+@router_files.get(
+    "/download/{filename:path}",
+    response_model=FileStreamResponse,
+    summary="Download a stored video file",
+    description="Streams a video file stored in object storage as a binary response.",
+    response_description="Binary stream of the requested file.",
+    responses={
+        200: {
+            "description": "File streaming response.",
+            "content": {
+                "application/octet-stream": {
+                    "schema": {"type": "string", "format": "binary"}
+                }
+            },
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "Requested file was not found.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected error occurred while retrieving the file.",
+        },
+    },
+)
+async def get_file(
+    filename: str = Path(..., description="Full path of the file to download."),
+    s3_client: "S3Client" = Depends(get_s3_client),
+) -> StreamingResponse:
     try:
         logging.info(f"Downloading file: {filename}")
         chunk_generator = s3_client.download_file(
@@ -86,15 +153,48 @@ async def get_file(filename: str) -> StreamingResponse:
         )
     except FileNotFoundError:
         logging.error(f"File '{filename}' not found")
-        raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
+        raise HTTPException(
+            status_code=404,
+            detail=ErrorResponse(message=f"File '{filename}' not found").model_dump(),
+        )
     except Exception as e:
         logging.error(f"Error downloading file: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=ErrorResponse(message=str(e)).model_dump(),
+        )
 
 
-@router_files.get("/sign_url")
-async def sign_object(path: str) -> Response:
-    s3_client = get_s3_client()
+@router_files.get(
+    "/sign_url",
+    response_model=SignedUrlResponse,
+    summary="Create a signed URL",
+    description=(
+        "Generates a pre-signed URL that allows temporary access to a video file "
+        "stored in object storage."
+    ),
+    response_description="Signed URL metadata for accessing the requested file.",
+    responses={
+        200: {
+            "model": SignedUrlResponse,
+            "description": "Pre-signed URL generated successfully.",
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "The requested file could not be found in storage.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected error occurred while generating the signed URL.",
+        },
+    },
+)
+async def sign_object(
+    path: str = Query(
+        ..., description="Path to the file within the videos bucket to sign."
+    ),
+    s3_client: "S3Client" = Depends(get_s3_client),
+) -> SignedUrlResponse:
     path = path.replace("/minio/videos/", "")
     try:
         raw_presigned_url = await s3_client.generate_presigned_url(
@@ -102,53 +202,15 @@ async def sign_object(path: str) -> Response:
         )
         if raw_presigned_url is None:
             logging.error(f"File '{path}' not found or URL could not be generated")
-            raise HTTPException(status_code=404, detail=f"File '{path}' not found")
+            raise HTTPException(
+                status_code=404,
+                detail=ErrorResponse(message=f"File '{path}' not found").model_dump(),
+            )
     except Exception as e:
         logging.error(f"Error streaming file: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-    return Response(status_code=200, headers={"X-Signed-Url": raw_presigned_url})
-
-
-@router_files.get("/info/{video_id}", response_model=VideoPlayback)
-async def get_video_info(video_id: str) -> VideoPlayback:
-    channel_name = "Channel Name"
-    s3_video = f"{video_id}/master.m3u8"
-    s3_thumbnail = f"{video_id}/thumbnail.jpg"
-    s3_channel_avatar = f"{channel_name}/avatar.jpg"
-    try:
-        logging.info(f"Streaming playlist master: {video_id}")
-        return VideoPlayback(
-            id=uuid.UUID(video_id),
-            name="test.mp4",
-            description="Test Description",
-            created_at=datetime.now(),
-            master_hls_url=f"/minio/videos/{s3_video}",
-            privacy=Privacy.PUBLIC,
-            resolutions=["360p", "720p"],
-            channel_name="Channel Name",
-            likes_count=123,
-            views_count=111,
-            dislikes_count=22,
-            thumbnail_url=f"/minio/thumbnail/{s3_thumbnail}",
-            avatar_url=f"/minio/avatar/{s3_channel_avatar}",
+        raise HTTPException(
+            status_code=500,
+            detail=ErrorResponse(message=str(e)).model_dump(),
         )
-    except Exception as e:
-        logging.error(f"Error streaming file: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
-
-@router_files.get("/comments/{video_id}", response_model=CommentPage)
-async def get_comments(video_id: str, page: int = 1, size: int = 20) -> CommentPage:
-    total = 53
-    comments = [
-        Comment(
-            id=uuid.UUID(),
-            video_id=uuid.UUID(video_id),
-            created_at=datetime.now(),
-            author=f"User {i}",
-            text=f"Comment {i}",
-        )
-        for i in range((page - 1) * size, min(page * size, total))
-    ]
-    return CommentPage(items=comments, page=page, size=size, total=total)
+    return SignedUrlResponse(path=path, signed_url=raw_presigned_url, expires_in=3600)

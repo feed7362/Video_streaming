@@ -13,6 +13,11 @@ services:
       - rabbitmq
     volumes:
       - ../backend/alembic/versions:/app/alembic/versions
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://127.0.0.1:8000/api/health/live" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
     logging:
       driver: "json-file"
       options:
@@ -105,7 +110,7 @@ services:
   nginx:
     image: nginx:alpine
     container_name: nginx_gateway
-    restart: unless-stopped
+    restart: always
     ports:
       - "80:80"
     volumes:
@@ -113,7 +118,7 @@ services:
     depends_on:
       bff:
         condition: service_healthy
-      frontend:
+      vault:
         condition: service_healthy
     logging:
       driver: "json-file"
@@ -122,7 +127,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.8-management-alpine
-    container_name: rabbit_service
+    container_name: rabbit_broker
     restart: always
     expose:
       - "5672"
@@ -164,7 +169,7 @@ services:
       - "9090"
     volumes:
       - ../monitoring/prometheus.yaml:/etc/prometheus/prometheus.yaml
-      - prometheusdata:/prometheus
+      - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yaml"
 
@@ -181,7 +186,55 @@ services:
       - GF_SERVER_ROOT_URL=http://localhost/grafana
     volumes:
       - ../monitoring/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
-      - grafanadata:/var/lib/grafana
+      - grafana_data:/var/lib/grafana
+
+  keycloak:
+    image: keycloak/keycloak:latest
+    command: start-dev
+    expose:
+      - "8080"
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    depends_on:
+      - postgres
+    logging:
+      driver: "json-file"
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  vault:
+    image: hashicorp/vault:latest
+    command: vault server -config=/etc/vault/vault.hcl
+    container_name: vault
+    restart: always
+    expose:
+      - "8200"
+    cap_add:
+      - IPC_LOCK
+    environment:
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_API_ADDR=http://vault:8200
+      - VAULT_CLUSTER_ADDR=http://vault:8201
+    volumes:
+      - vault_data:/opt/vault/data
+      - ../vault/config:/etc/vault
+      - ../vault/tls:/etc/vault/tls
+    depends_on:
+      - keycloak
+    healthcheck:
+      test: [ "CMD", "vault", "status", "-address=http://localhost:8200" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
 networks:
   default:
@@ -190,9 +243,10 @@ networks:
 
 volumes:
   minio_data:
-  grafanadata:
-  prometheusdata:
+  grafana_data:
+  prometheus_data:
   postgres_data:
+  vault_data:
 # docker compose -p video_streaming_stack -f ./Docker/docker-compose.yml build
 # docker compose -p video_streaming_stack -f ./Docker/docker-compose.yml up -d
 

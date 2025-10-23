@@ -1,12 +1,18 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Generic, List, Optional, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .enum import Privacy, VideoStatus
 
+# Generic type for reusable pagination
+T = TypeVar("T")
 
+
+# ------------------------------
+# Video Processing / Pipeline
+# ------------------------------
 class VideoProcessingJob(BaseModel):
     video_id: UUID
     size: float
@@ -22,15 +28,20 @@ class VideoProcessingResult(BaseModel):
     thumbnail_url: Optional[str] = None
 
 
+# ------------------------------
+# Video Playback / Listing
+# ------------------------------
 class VideoPlayback(BaseModel):
     id: UUID
     name: str
-    description: Optional[str]
+    description: Optional[str] = None
     privacy: Privacy
     created_at: datetime
-    resolutions: List[str] = []  # available variants
 
-    # UI/UX
+    # Available resolution variants
+    resolutions: List[str] = Field(default_factory=list)
+
+    # UI / metadata
     thumbnail_url: Optional[str] = None
     avatar_url: Optional[str] = None
     channel_name: str
@@ -38,4 +49,37 @@ class VideoPlayback(BaseModel):
     dislikes_count: int
     views_count: int
 
+    # Playback source
     master_hls_url: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class VideoRead(BaseModel):
+    id: UUID
+    title: str
+    description: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ------------------------------
+# Generic Pagination Schema
+# ------------------------------
+class Page(BaseModel, Generic[T]):
+    items: List[T]
+    page: int
+    size: int
+    total: int
+
+
+# ------------------------------
+# Video Pagination Schema
+# ------------------------------
+class VideoPage(Page[VideoPlayback]):
+    """Paginated list of videos."""
+
+    pass
