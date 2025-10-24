@@ -1,27 +1,10 @@
-import os
 from functools import lru_cache
 from typing import List, Optional
 
-import hvac
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
-class VaultClient:
-    def __init__(self):
-        self.client = hvac.Client(
-            url=os.getenv("VAULT_ADDR"),
-            token=os.getenv("VAULT_TOKEN"),
-        )
-        if not self.client.is_authenticated():
-            raise Exception("Vault authentication failed")
-
-    def read_secret(self, path: str, mount_point: str) -> dict:
-        secret = self.client.secrets.kv.v2.read_secret_version(
-            path=path, mount_point=mount_point
-        )
-        return secret["data"]["data"]
-
+from src.infrastructure.vault import VaultClient
 
 vault = VaultClient()
 
