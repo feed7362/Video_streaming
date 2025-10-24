@@ -45,7 +45,6 @@ def verify_relationship_pairs(base: type[DeclarativeBase]):
                     continue
                 target_name = prop.back_populates
 
-                # Check if target has reciprocal relationship
                 if not hasattr(target_cls, target_name):
                     errors.append(
                         f"[Error] {cls.__name__}.{prop.key} -> back_populates='{target_name}' "
@@ -55,7 +54,6 @@ def verify_relationship_pairs(base: type[DeclarativeBase]):
 
                 target_prop = getattr(target_cls, target_name)
 
-                # Verify the reverse points back correctly
                 if not hasattr(target_prop, "property") or not isinstance(
                     target_prop.property, RelationshipProperty
                 ):

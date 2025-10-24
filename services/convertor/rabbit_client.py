@@ -27,7 +27,10 @@ async def encode_video(video_id: str) -> None:
         )
 
         probe_stream = s3_client.download_file_by_range(
-            object_name=video_id, range_start=0, range_end=5 * 1024 * 1024  # 0 - 5MB
+            object_name=video_id,
+            range_start=0,
+            range_end=5 * 1024 * 1024,
+            bucket_name="videos",  # 0 - 5MB
         )
         properties = await get_video_properties(probe_stream)
         fps = properties.get("fps")
@@ -41,13 +44,15 @@ async def encode_video(video_id: str) -> None:
 
         filename = Path(video_id).stem
         base_dir = await prepare_dirs(filename)
-        async_gen = s3_client.download_file(video_id, 1024 * 1024 * 30)
+        async_gen = s3_client.download_file(
+            video_id, 1024 * 1024 * 30, bucket_name="videos"
+        )
         logging.debug("[ffmpeg] Starting encoding task for video %s", video_id)
 
         await stream_ffmpeg(async_gen, base_dir, int(round(fps)))
         logging.debug(f"Encoding task for video: {video_id} finished")
 
-        await s3_client.upload_dir(filename, base_dir)
+        await s3_client.upload_dir(filename, base_dir, bucket_name="videos")
         await broker.publish(
             {"video_id": video_id, "status": "done"}, queue="video.encode.status"
         )
@@ -60,5 +65,5 @@ async def encode_video(video_id: str) -> None:
         logging.error("[Error] Encoding video %s failed: %s", video_id, e)
     finally:
         cleanup_dirs(video_id)
-        await s3_client.delete_file(video_id)
+        await s3_client.delete_file(video_id, bucket_name="videos")
         logging.debug("[Cleanup] Local dirs for video %s removed", video_id)

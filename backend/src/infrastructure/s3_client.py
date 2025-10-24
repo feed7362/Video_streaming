@@ -17,8 +17,10 @@ class S3Client:
         secret_key: str,
         endpoint_url: str,
         region_name: str,
+        bucket_names: List[str],
         server_side_encryption: str | None = None,
     ):
+        self.bucket_names = bucket_names
         self.config: Dict[str, str] = {
             "aws_access_key_id": access_key,
             "aws_secret_access_key": secret_key,
@@ -28,14 +30,10 @@ class S3Client:
         self.server_side_encryption = server_side_encryption
         self.session = get_session()
 
-    async def check_bucket_exists(
-        self, bucket_names: Optional[List[str]] = None
-    ) -> None:
-        if bucket_names is None:
-            bucket_names = ["videos", "video-thumbnails", "channel-avatars"]
+    async def check_bucket_exists(self) -> None:
 
         async with self._get_client() as client:
-            for bucket_name in bucket_names:
+            for bucket_name in self.bucket_names:
                 try:
                     await client.head_bucket(Bucket=bucket_name)
                     logging.info(f"Bucket '{bucket_name}' already exists")
@@ -83,6 +81,8 @@ class S3Client:
         upload_id = None
         if not bucket_name:
             raise ValueError("bucket_name must be provided")
+        elif bucket_name not in self.bucket_names:
+            raise ValueError("bucket_name is not in bucket_names")
 
         try:
             async with self._get_client() as client:
@@ -128,6 +128,8 @@ class S3Client:
     ) -> None:
         if not bucket_name:
             raise ValueError("bucket_name must be provided")
+        elif bucket_name not in self.bucket_names:
+            raise ValueError("bucket_name is not in bucket_names")
 
         try:
             async with self._get_client() as client:
@@ -144,6 +146,8 @@ class S3Client:
         """
         if not bucket_name:
             raise ValueError("bucket_name must be provided")
+        elif bucket_name not in self.bucket_names:
+            raise ValueError("bucket_name is not in bucket_names")
 
         try:
             async with self._get_client() as client:
@@ -167,6 +171,8 @@ class S3Client:
     ) -> AsyncGenerator[bytes, None]:
         if not bucket_name:
             raise ValueError("bucket_name must be provided")
+        elif bucket_name not in self.bucket_names:
+            raise ValueError("bucket_name is not in bucket_names")
 
         try:
             async with self._get_client() as client:
@@ -201,6 +207,8 @@ class S3Client:
     ) -> str | None:
         if not bucket_name:
             raise ValueError("bucket_name must be provided")
+        elif bucket_name not in self.bucket_names:
+            raise ValueError("bucket_name is not in bucket_names")
 
         try:
             async with self._get_client() as client:
@@ -231,6 +239,7 @@ def get_s3_client() -> S3Client:
     assert settings.MINIO_ROOT_PASSWORD is not None, "MINIO_ROOT_PASSWORD is not set"
     assert settings.MINIO_ENDPOINT_URL is not None, "MINIO_ENDPOINT_URL is not set"
     assert settings.MINIO_REGION_NAME is not None, "MINIO_REGION_NAME is not set"
+    assert settings.BUCKET_NAMES is not None, "BUCKET_NAMES is not set"
 
     global _s3_client_instance
     if _s3_client_instance is None:
@@ -239,5 +248,6 @@ def get_s3_client() -> S3Client:
             secret_key=settings.MINIO_ROOT_PASSWORD,
             endpoint_url=settings.MINIO_ENDPOINT_URL,
             region_name=settings.MINIO_REGION_NAME,
+            bucket_names=settings.BUCKET_NAMES,
         )
     return _s3_client_instance
