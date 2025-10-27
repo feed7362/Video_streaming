@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, String, Table, Text, func
 from sqlalchemy.dialects.postgresql import UUID
@@ -17,8 +17,18 @@ if TYPE_CHECKING:
 playlist_video = Table(
     "playlist_video",
     Base.metadata,
-    Column("playlist_id", UUID(as_uuid=True), ForeignKey("playlists.id")),
-    Column("video_id", UUID(as_uuid=True), ForeignKey("videos.id")),
+    Column(
+        "playlist_id",
+        UUID(as_uuid=True),
+        ForeignKey("playlists.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "video_id",
+        UUID(as_uuid=True),
+        ForeignKey("videos.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
@@ -26,23 +36,24 @@ playlist_video = Table(
 class Playlist(Base):
     __tablename__ = "playlists"
 
-    # ---- Columns ----
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE")
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
-    # ---- Relationships ----
-    owner: Mapped["User"] = relationship(back_populates="playlists")
-    videos: Mapped[List["Video"]] = relationship(
-        "Video", secondary=playlist_video, back_populates="playlists"
+    user: Mapped["User"] = relationship(back_populates="playlists")
+    videos: Mapped[list["Video"]] = relationship(
+        "Video",
+        secondary=playlist_video,
+        back_populates="playlists",
+        cascade="all",
     )
 
     __table_args__ = (

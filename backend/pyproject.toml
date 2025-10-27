@@ -21,6 +21,7 @@ dependencies = [
     "sqlalchemy>=2.0.43",
     "uvicorn[standard]>=0.37.0",
     "uvloop; sys_platform == 'linux'",
+    "xxhash>=3.6.0",
 ]
 
 [dependency-groups]

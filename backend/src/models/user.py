@@ -1,80 +1,62 @@
 import uuid
 from datetime import datetime
-from enum import StrEnum
 from typing import TYPE_CHECKING, List
 
-from sqlalchemy import Boolean, DateTime, Enum, Index, String, func
+from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..infrastructure.database import Base
 
 if TYPE_CHECKING:
+    from .channel import Channel
+    from .comment_reactions import CommentReaction
     from .comments import Comment
+    from .notification import Notification
     from .playlist import Playlist
-    from .video import Video
+    from .status import Status
+    from .subscription import Subscription
+    from .user_roles import Role
     from .video_reactions import VideoReaction
     from .video_views import VideoView
-
-
-class UserRole(StrEnum):
-    ADMIN = "admin"
-    CREATOR = "creator"
-    VIEWER = "viewer"
+    from .watch_history import WatchHistory
+    from .watch_later import WatchLater
 
 
 class User(Base):
     __tablename__ = "users"
 
-    # ---- Columns ----
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    username: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole, name="user_role_enum"), default=UserRole.VIEWER
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    hash_password: Mapped[str] = mapped_column(String, nullable=False)
+    status_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("statuses.id", ondelete="SET NULL"),
+        nullable=True,
     )
-    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    registered_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    role_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("roles.id", ondelete="SET NULL"), nullable=True
     )
-
-    # ---- Relationships ----
-    videos: Mapped[List["Video"]] = relationship(
-        back_populates="owner", cascade="all, delete-orphan"
+    status: Mapped["Status"] = relationship(back_populates="users")
+    channels: Mapped[List["Channel"]] = relationship(
+        back_populates="user", cascade="all, delete"
     )
-    playlists: Mapped[List["Playlist"]] = relationship(
-        back_populates="owner", cascade="all, delete-orphan"
-    )
+    role: Mapped["Role"] = relationship(back_populates="users")
     comments: Mapped[List["Comment"]] = relationship(back_populates="user")
-    reactions: Mapped[List["VideoReaction"]] = relationship(back_populates="user")
-    views: Mapped[List["VideoView"]] = relationship(back_populates="user")
-
-    __table_args__ = (
-        Index("ix_users_email", "email"),
-        Index("ix_users_username", "username"),
+    video_reactions: Mapped[List["VideoReaction"]] = relationship(back_populates="user")
+    comment_reactions: Mapped[List["CommentReaction"]] = relationship(
+        back_populates="user"
     )
-
-    @validates("email")
-    def validate_email(self, _, value):
-        assert "@" in value, "Invalid email address"
-        return value
-
-    def __repr__(self) -> str:
-        return (
-            f"User(id={self.id!r}, name={self.username!r}, email={self.email!r}, role={self.role!r}"
-            f" is_active={self.is_active!r}, is_verified={self.is_verified!r}, "
-            f"registered_at={self.registered_at!r})"
-        )
-
-    def __str__(self) -> str:
-        return (
-            f"{self.username} ({self.email}) — "
-            f"{'Active' if self.is_active else 'Inactive'},"
-            f"{'Verified' if self.is_verified else 'Unverified'},"
-            f"Role: {self.role},"
-            f"Register at{self.registered_at}."
-        )
+    views: Mapped[List["VideoView"]] = relationship(back_populates="user")
+    playlists: Mapped[List["Playlist"]] = relationship(back_populates="user")
+    subscriptions: Mapped[List["Subscription"]] = relationship(
+        back_populates="subscriber"
+    )
+    notifications: Mapped[List["Notification"]] = relationship(back_populates="user")
+    watch_history: Mapped[List["WatchHistory"]] = relationship(back_populates="user")
+    watch_later: Mapped[list["WatchLater"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )

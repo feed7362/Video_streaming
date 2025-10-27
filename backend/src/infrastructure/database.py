@@ -3,7 +3,7 @@ import time
 from datetime import UTC, datetime
 from typing import AsyncGenerator
 
-from sqlalchemy import MetaData, event, text
+from sqlalchemy import MetaData, event
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -32,17 +32,6 @@ engine = create_async_engine(
 async_session_maker = async_sessionmaker(
     engine, expire_on_commit=False, class_=AsyncSession
 )
-
-
-@event.listens_for(engine.sync_engine, "engine_connect")
-def test_connection(connection, branch):
-    if branch:
-        return
-    try:
-        connection.scalar(text("SELECT 1"))
-    except Exception as exc:
-        logging.error(f"DB connection failed: {exc}")
-        raise
 
 
 @event.listens_for(Base, "before_insert", propagate=True)
