@@ -45,14 +45,22 @@ export default function Home() {
     const [hasMore, setHasMore] = useState(true);
     const [active, setActive] = useState("All");
 
-
     const loadMore = useCallback(async () => {
         setLoading(true);
         try {
-            const newVideos = await api.getVideos(page); // або getVideos(page) якщо бекенд підтримує пагінацію
-            setVideos((prev) => [...prev, ...newVideos]);
+            const newVideosPreview = await api.getVideos(page);
+
+            const newVideos: Video[] = newVideosPreview.map(v => ({
+                id: v.id,
+                title: v.title,
+                thumbnail: v.previewUrl || "",
+                channel_avatar: v.channel_avatar || "",
+                channel_name: v.channel,
+            }));
+
+            setVideos(prev => [...prev, ...newVideos]);
             setHasMore(newVideos.length > 0);
-            setPage((prev) => prev + 1); // викор. колбек, щоб не залежати від page
+            setPage(prev => prev + 1);
         } catch (error) {
             console.error(error);
         } finally {

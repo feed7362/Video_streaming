@@ -1,5 +1,7 @@
 import logging
 import uuid
+from datetime import datetime
+from ..schemas.enum import Privacy
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,35 +56,28 @@ router_videos = APIRouter(
     },
 )
 async def get_video_info(
-    video_id: uuid.UUID = Path(
+    video_id: str = Path(
         ..., description="UUID of the video to retrieve playback info for."
     ),
-    session: AsyncSession = Depends(get_async_session),
 ) -> VideoPlayback:
     channel_name = "Channel Name"
     s3_video = f"{video_id}/master.m3u8"
     s3_thumbnail = f"{video_id}/thumbnail.jpg"
     s3_channel_avatar = f"{channel_name}/avatar.jpg"
     try:
-        video, resolutions = await get_video_by_id(video_id, session)
-        if not video:
-            raise HTTPException(status_code=404, detail="Video not found")
-        likes, dislikes = await get_video_reaction(video_id, session)
-        views = await get_video_views(video_id, session)
-
         logging.info(f"Streaming playlist master: {video_id}")
         return VideoPlayback(
-            id=video.id,
-            name=video.name,
-            description=video.description,
-            created_at=video.created_at,
+            id=uuid.UUID(video_id),
+            name="test.mp4",
+            description="Test Description",
+            created_at=datetime.now(),
             master_hls_url=f"/minio/videos/{s3_video}",
-            privacy=video.privacy,
-            resolutions=resolutions,
-            channel_name=video.owner.username,
-            likes_count=likes,
-            dislikes_count=dislikes,
-            views_count=views,
+            privacy=Privacy.PUBLIC,
+            resolutions=["360p", "720p"],
+            channel_name="Channel Name",
+            likes_count=123,
+            views_count=111,
+            dislikes_count=22,
             thumbnail_url=f"/minio/thumbnail/{s3_thumbnail}",
             avatar_url=f"/minio/avatar/{s3_channel_avatar}",
         )
