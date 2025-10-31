@@ -1,8 +1,8 @@
-"""inital commit
+"""initial
 
-Revision ID: d40d3fb3b08b
+Revision ID: 07193623e42f
 Revises:
-Create Date: 2025-10-27 17:37:00.394322
+Create Date: 2025-10-31 10:32:44.366873
 
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "d40d3fb3b08b"
+revision: str = "07193623e42f"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -40,6 +40,7 @@ def upgrade() -> None:
         "reaction_types",
         sa.Column("id", sa.UUID(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
+        sa.Column("path", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
     )
@@ -52,7 +53,14 @@ def upgrade() -> None:
         sa.UniqueConstraint("name"),
     )
     op.create_table(
-        "statuses",
+        "user_statuses",
+        sa.Column("id", sa.UUID(), nullable=False),
+        sa.Column("value", sa.String(), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("value"),
+    )
+    op.create_table(
+        "video_statuses",
         sa.Column("id", sa.UUID(), nullable=False),
         sa.Column("value", sa.String(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
@@ -61,14 +69,18 @@ def upgrade() -> None:
     op.create_table(
         "users",
         sa.Column("id", sa.UUID(), nullable=False),
+        sa.Column("username", sa.String(), nullable=False),
         sa.Column("email", sa.String(), nullable=False),
         sa.Column("hash_password", sa.String(), nullable=False),
         sa.Column("status_id", sa.UUID(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("role_id", sa.UUID(), nullable=True),
         sa.ForeignKeyConstraint(["role_id"], ["roles.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["status_id"], ["statuses.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(
+            ["status_id"], ["user_statuses.id"], ondelete="SET NULL"
+        ),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("username"),
     )
     op.create_index(op.f("ix_users_email"), "users", ["email"], unique=True)
     op.create_table(
@@ -77,6 +89,16 @@ def upgrade() -> None:
         sa.Column("channel_name", sa.String(), nullable=False),
         sa.Column("user_id", sa.UUID(), nullable=False),
         sa.Column("subscribers_count", sa.Integer(), nullable=False),
+        sa.Column("description", sa.Text(), nullable=True),
+        sa.Column("views_count", sa.Integer(), server_default="0", nullable=False),
+        sa.Column("avatar_path", sa.String(), nullable=True),
+        sa.Column("background_path", sa.String(), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -88,7 +110,7 @@ def upgrade() -> None:
         sa.Column("id", sa.UUID(), nullable=False),
         sa.Column("user_id", sa.UUID(), nullable=False),
         sa.Column("content", sa.Text(), nullable=False),
-        sa.Column("lnk", sa.Text(), nullable=False),
+        sa.Column("link", sa.Text(), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -138,22 +160,17 @@ def upgrade() -> None:
         sa.Column("id", sa.UUID(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("user_id", sa.UUID(), nullable=False),
-        sa.Column("size", sa.Float(), nullable=False),
+        sa.Column("size", sa.Integer(), nullable=False),
         sa.Column("hash", sa.String(), nullable=False),
+        sa.Column("video_path", sa.String(), nullable=True),
         sa.Column("thumbnail_path", sa.String(), nullable=True),
-        sa.Column("background_path", sa.String(), nullable=True),
         sa.Column("channel_id", sa.UUID(), nullable=False),
         sa.Column("views_count", sa.Integer(), server_default="0", nullable=False),
         sa.Column("likes_count", sa.Integer(), server_default="0", nullable=False),
         sa.Column("dislikes_count", sa.Integer(), server_default="0", nullable=False),
         sa.Column("privacy_id", sa.UUID(), nullable=False),
         sa.Column("category_id", sa.UUID(), nullable=False),
-        sa.Column(
-            "status",
-            sa.Enum("QUEUED", "PROCESSING", "READY", "FAILED", name="videostatus"),
-            nullable=False,
-        ),
+        sa.Column("status_id", sa.UUID(), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -176,15 +193,15 @@ def upgrade() -> None:
             ["privacy_statuses.id"],
         ),
         sa.ForeignKeyConstraint(
-            ["user_id"],
-            ["users.id"],
+            ["status_id"],
+            ["video_statuses.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("hash"),
     )
     op.create_index("ix_videos_created_at", "videos", ["created_at"], unique=False)
     op.create_index("ix_videos_privacy", "videos", ["privacy_id"], unique=False)
-    op.create_index("ix_videos_user_id", "videos", ["user_id"], unique=False)
+    op.create_index("ix_videos_user_id", "videos", ["channel_id"], unique=False)
     op.create_table(
         "comments",
         sa.Column("id", sa.UUID(), nullable=False),
@@ -199,6 +216,11 @@ def upgrade() -> None:
         ),
         sa.Column("likes_count", sa.Integer(), server_default="0", nullable=False),
         sa.Column("dislikes_count", sa.Integer(), server_default="0", nullable=False),
+        sa.Column("parent_id", sa.UUID(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["parent_id"],
+            ["comments.id"],
+        ),
         sa.ForeignKeyConstraint(
             ["user_id"],
             ["users.id"],
@@ -244,6 +266,7 @@ def upgrade() -> None:
         sa.Column("id", sa.UUID(), nullable=False),
         sa.Column("video_id", sa.UUID(), nullable=False),
         sa.Column("height", sa.Integer(), nullable=False),
+        sa.Column("width", sa.Integer(), nullable=False),
         sa.Column("bitrate", sa.Integer(), nullable=False),
         sa.Column("playlist_path", sa.String(), nullable=False),
         sa.ForeignKeyConstraint(["video_id"], ["videos.id"], ondelete="CASCADE"),
@@ -356,7 +379,8 @@ def downgrade() -> None:
     op.drop_table("channels")
     op.drop_index(op.f("ix_users_email"), table_name="users")
     op.drop_table("users")
-    op.drop_table("statuses")
+    op.drop_table("video_statuses")
+    op.drop_table("user_statuses")
     op.drop_table("roles")
     op.drop_table("reaction_types")
     op.drop_table("privacy_statuses")
