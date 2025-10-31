@@ -1,24 +1,24 @@
 import logging
-import uuid
+from uuid import NAMESPACE_DNS, UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from starlette.responses import JSONResponse
 
 from ..core.auth import get_current_user_id
 from ..core.pagination import paginate_query
 from ..core.video import (
     get_video_by_id,
-    get_video_reaction,
-    get_video_views,
+    record_video_view,
     toggle_reaction,
 )
 from ..infrastructure.database import get_async_session
 from ..models import Video, VideoReaction
 from ..models.comments import Comment
-from ..schemas.comments import CommentPage
+from ..schemas.comments import CommentPage, to_comment_read
 from ..schemas.endpoint import APIError, ErrorResponse
-from ..schemas.video import VideoPage, VideoPlayback
+from ..schemas.video import VideoPage, VideoPlayback, VideoPreviewPage, to_video_preview
 from ..schemas.video_reaction import ReactionRequest, ReactionResponse
 
 router_videos = APIRouter(
@@ -54,37 +54,33 @@ router_videos = APIRouter(
     },
 )
 async def get_video_info(
-    video_id: uuid.UUID = Path(
+    video_id: UUID = Path(
         ..., description="UUID of the video to retrieve playback info for."
     ),
     session: AsyncSession = Depends(get_async_session),
+    user_id: UUID = Depends(get_current_user_id),
 ) -> VideoPlayback:
-    channel_name = "Channel Name"
-    s3_video = f"{video_id}/master.m3u8"
-    s3_thumbnail = f"{video_id}/thumbnail.jpg"
-    s3_channel_avatar = f"{channel_name}/avatar.jpg"
     try:
         video, resolutions = await get_video_by_id(video_id, session)
         if not video:
             raise HTTPException(status_code=404, detail="Video not found")
-        likes, dislikes = await get_video_reaction(video_id, session)
-        views = await get_video_views(video_id, session)
 
+        await record_video_view(session, video_id=video.id, user_id=user_id)
         logging.info(f"Streaming playlist master: {video_id}")
         return VideoPlayback(
             id=video.id,
             name=video.name,
             description=video.description,
             created_at=video.created_at,
-            master_hls_url=f"/minio/videos/{s3_video}",
-            privacy=video.privacy,
+            master_hls_url=video.video_path,
+            privacy=video.privacy.name,
             resolutions=resolutions,
-            channel_name=video.owner.username,
-            likes_count=likes,
-            dislikes_count=dislikes,
-            views_count=views,
-            thumbnail_url=f"/minio/thumbnail/{s3_thumbnail}",
-            avatar_url=f"/minio/avatar/{s3_channel_avatar}",
+            channel_name=video.channel.channel_name,
+            likes_count=video.likes_count,
+            dislikes_count=video.dislikes_count,
+            views_count=video.views_count + 1,
+            thumbnail_url=video.thumbnail_path,
+            avatar_url=video.channel.avatar_path,
         )
     except Exception as e:
         logging.error(f"Error streaming file: {e}")
@@ -120,7 +116,7 @@ async def get_video_info(
     },
 )
 async def get_comments(
-    video_id: uuid.UUID = Path(
+    video_id: UUID = Path(
         ..., description="UUID of the video whose comments are requested."
     ),
     page: int = Query(1, ge=1, description="Page number for paginated results."),
@@ -141,6 +137,7 @@ async def get_comments(
         size=size,
         filters=filters,
         order_by=Comment.created_at.desc(),
+        mapper=to_comment_read,
     )
 
     return CommentPage(items=comments, page=page, size=size, total=total)
@@ -148,13 +145,13 @@ async def get_comments(
 
 @router_videos.get(
     "/get_videos",
-    response_model=VideoPage,
+    response_model=VideoPreviewPage,
     summary="List all videos",
     description="Returns a paginated list of videos with metadata such as title, duration, and status.",
     response_description="A paginated list of videos.",
     responses={
         200: {
-            "model": VideoPage,
+            "model": VideoPreviewPage,
             "description": "List of videos successfully retrieved.",
         },
         400: {
@@ -171,15 +168,27 @@ async def get_videos(
     page: int = Query(1, ge=1, description="Page number"),
     size: int = Query(20, ge=1, le=100, description="Page size"),
     session: AsyncSession = Depends(get_async_session),
-) -> VideoPage:
+) -> VideoPreviewPage:
+    filters = [
+        Video.privacy_id == uuid5(NAMESPACE_DNS, "privacy_status:public"),
+        Video.status_id == uuid5(NAMESPACE_DNS, "video_status:ready"),
+    ]
+    preload = [
+        selectinload(Video.channel),
+        selectinload(Video.privacy),
+        selectinload(Video.resolutions),
+    ]
     videos, total = await paginate_query(
         session=session,
         model=Video,
         page=page,
         size=size,
+        filters=filters,
+        preload=preload,
         order_by=Video.created_at.desc(),
+        mapper=to_video_preview,
     )
-    return VideoPage(items=videos, page=page, size=size, total=total)
+    return VideoPreviewPage(items=videos, page=page, size=size, total=total)
 
 
 @router_videos.post(
@@ -205,11 +214,11 @@ async def get_videos(
 )
 async def react_to_video(
     like_data: ReactionRequest,
-    video_id: uuid.UUID = Path(
+    video_id: UUID = Path(
         ..., description="UUID of the video whose video to like/dislike."
     ),
     session: AsyncSession = Depends(get_async_session),
-    user_id: uuid.UUID = Depends(get_current_user_id),
+    user_id: UUID = Depends(get_current_user_id),
 ):
     """
     Like or dislike a video.
@@ -225,3 +234,59 @@ async def react_to_video(
     )
 
     return ReactionResponse(video_id=video_id, likes=likes, dislikes=dislikes)
+
+
+#
+# @router_videos.patch(
+#     "/privacy/{video_id}",
+#     summary="Update video privacy",
+#     response_model=PrivacyResponse,
+#     description="Update the privacy visibility of the specified video.",
+#     response_description="Updated PrivacyLevel setting.",
+#     responses={
+#         200: {
+#             "model": PrivacyResponse,
+#             "description": "PrivacyLevel successfully updated.",
+#         },
+#         403: {"model": APIError, "description": "Not allowed to update this resource."},
+#         404: {"model": APIError, "description": "Video not found."},
+#         500: {"model": APIError, "description": "Internal server error."},
+#     },
+# )
+# async def update_privacy(
+#     video_id: uuid.UUID,
+#     updated_privacy: PrivacyLevel = Query(
+#         default="public",
+#         description="PrivacyLevel setting: `public` (visible to all) or `private` (owner only)",
+#         examples=["public", "private"],
+#     ),
+#     session: AsyncSession = Depends(get_async_session),
+#     user_id: uuid.UUID = Depends(get_current_user_id),
+# ) -> PrivacyResponse:
+#     async with session.begin():
+#         result = await session.execute(
+#             update(Video)
+#             .where(Video.id == video_id)
+#             .where(Video.user_id == user_id)
+#             .values(privacy=updated_privacy)
+#             .returning(Video.id, Video.privacy)
+#         )
+#         row = result.fetchone()
+#         if not row:
+#             raise HTTPException(404, "Video not found")
+#
+#         current_privacy, owner_id = row
+#
+#         if owner_id != user_id:
+#             raise HTTPException(403, "You do not own this video")
+#
+#     async with session.begin():
+#         await session.execute(
+#             update(Video).where(Video.id == video_id).values(privacy=updated_privacy)
+#         )
+#
+#     return PrivacyResponse(
+#         video_id=video_id,
+#         old_privacy=current_privacy,
+#         updated_privacy=updated_privacy,
+#     )

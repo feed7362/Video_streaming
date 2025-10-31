@@ -1,4 +1,4 @@
-from typing import Optional, Type, TypeVar
+from typing import Callable, Optional, Type, TypeVar
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,8 @@ async def paginate_query(
     size: int = 20,
     filters: Optional[list] = None,
     order_by=None,
+    preload: Optional[list] = None,
+    mapper: Optional[Callable] = None,
 ) -> tuple[list[T], int]:
     """
     Generic pagination for SQLAlchemy async queries.
@@ -20,18 +22,21 @@ async def paginate_query(
     Returns: (items, total)
     """
     filters = filters or []
+    preload = preload or []
 
-    # Total count
     total = await session.scalar(
         select(func.count()).select_from(model).where(*filters)
     )
 
-    # Page data
-    stmt = select(model).where(*filters).offset((page - 1) * size).limit(size)
+    stmt = select(model).where(*filters)
+    for opt in preload:
+        stmt = stmt.options(opt)
     if order_by is not None:
         stmt = stmt.order_by(order_by)
 
+    stmt = stmt.offset((page - 1) * size).limit(size)
     result = await session.execute(stmt)
-    items = list(result.scalars().all())
+    raw_items = list(result.scalars().all())
+    items = [mapper(v) for v in raw_items] if mapper else raw_items
 
     return items, total

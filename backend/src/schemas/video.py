@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from ..models import Video
+
 # Generic type for reusable pagination
 T = TypeVar("T")
 
@@ -84,7 +86,36 @@ class Page(BaseModel, Generic[T]):
 # ------------------------------
 # Video Pagination Schema
 # ------------------------------
-class VideoPage(Page[VideoPlayback]):
+class VideoPreview(BaseModel):
+    """Lightweight preview used for video listings or home page."""
+
+    id: UUID
+    title: str
+    thumbnail: str
+    channel_avatar: str
+    channel_name: str
+
+    class Config:
+        from_attributes = True
+
+
+def to_video_preview(video: Video) -> VideoPreview:
+    return VideoPreview(
+        id=video.id,
+        title=video.name,  # maps from Video.name
+        thumbnail=video.thumbnail_path or "",
+        channel_avatar=getattr(video.channel, "avatar_url", ""),
+        channel_name=getattr(video.channel, "name", "Unknown Channel"),
+    )
+
+
+class VideoPreviewPage(Page[VideoPreview]):
+    """Paginated list of lightweight video previews."""
+
+    pass
+
+
+class VideoPage(BaseModel):
     """Paginated list of videos."""
 
     pass
