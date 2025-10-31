@@ -6,13 +6,14 @@ from .notification import Notification
 from .playlist import Playlist
 from .privacy_status import PrivacyStatus
 from .reaction_type import ReactionType
-from .status import Status
 from .subscription import Subscription
 from .user import User
 from .user_roles import Role
+from .user_status import UserStatus
 from .video import Video
 from .video_reactions import VideoReaction
 from .video_resolutions import VideoResolution
+from .video_status import VideoStatus
 from .video_views import VideoView
 from .watch_history import WatchHistory
 from .watch_later import WatchLater
@@ -20,7 +21,7 @@ from .watch_later import WatchLater
 __all__ = [
     "User",
     "Role",
-    "Status",
+    "UserStatus",
     "Channel",
     "Video",
     "Category",
@@ -36,4 +37,5 @@ __all__ = [
     "WatchLater",
     "VideoResolution",
     "ReactionType",
+    "VideoStatus",
 ]

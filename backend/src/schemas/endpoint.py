@@ -1,16 +1,19 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
+from uuid import UUID
 
 from pydantic import BaseModel
 
+from ..schemas.video import ResolutionMeta
+
 
 class FileMeta(BaseModel):
+    file_id: UUID
     filename: str
-    size: int
+    size: float
 
 
-class UploadResponse(BaseModel):
-    status: str
-    files_count: int
+class FileResponse(BaseModel):
+    status: Literal["accepted", "duplicate", "deleted"]
     files: List[FileMeta]
 
 
@@ -25,8 +28,10 @@ class ErrorResponse(BaseModel):
 
 
 class StatusMessage(BaseModel):
-    video_id: str
+    video_id: UUID
     status: str
+    resolutions: Optional[List[ResolutionMeta]] = None
+    video_path: Optional[str] = None
 
 
 class HealthStatus(BaseModel):

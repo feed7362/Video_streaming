@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..infrastructure.database import Base
 
 if TYPE_CHECKING:
+    from .subscription import Subscription
     from .user import User
     from .video import Video
 
@@ -37,3 +38,7 @@ class Channel(Base):
     user: Mapped["User"] = relationship(back_populates="channels")
 
     videos: Mapped[List["Video"]] = relationship(back_populates="channel")
+    subscribers: Mapped[List["Subscription"]] = relationship(
+        back_populates="channel",
+        cascade="all, delete-orphan",
+    )

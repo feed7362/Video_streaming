@@ -260,9 +260,11 @@ async def get_video_properties(
     fps_fraction = data.get("r_frame_rate", "0/1")
     numerator, denominator = map(int, fps_fraction.split("/"))
     fps = numerator / denominator if denominator != 0 else 0
+    bit_rate = data.get("bit_rate", 0)
 
     return {
         "fps": fps,
         "width": data.get("width", 0),
         "height": data.get("height", 0),
+        "bitrate": bit_rate // 1000 if bit_rate else 0,
     }

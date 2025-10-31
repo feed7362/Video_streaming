@@ -41,7 +41,7 @@ class S3Client:
                     await client.create_bucket(Bucket=bucket_name)
                     await client.put_bucket_versioning(
                         Bucket=bucket_name,
-                        VersioningConfiguration={"Status": "Enabled"},
+                        VersioningConfiguration={"UserStatus": "Enabled"},
                     )
                     await client.put_bucket_cors(
                         Bucket=bucket_name,
@@ -138,6 +138,69 @@ class S3Client:
         except ClientError as e:
             logging.error(f"Error deleting file: {e}")
 
+    async def delete_prefix(
+        self, prefix: str, bucket_name: Optional[str] = None
+    ) -> None:
+        """
+        Deletes all objects under a given prefix (folder) in an S3 bucket.
+
+        Example:
+            await s3_client.delete_prefix("1234abcd/", bucket_name="videos")
+
+        :param prefix: The folder or prefix path (e.g., 'folder/subfolder/').
+        :param bucket_name: The name of the bucket to delete from.
+        """
+        if not bucket_name:
+            raise ValueError("bucket_name must be provided")
+        elif bucket_name not in self.bucket_names:
+            raise ValueError("bucket_name is not in bucket_names")
+        if not prefix or prefix.strip() == "":
+            raise ValueError(
+                "Prefix cannot be empty — refusing to delete entire bucket"
+            )
+
+        try:
+            async with self._get_client() as client:
+                paginator = client.get_paginator("list_objects_v2")
+
+                async for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
+                    objects = page.get("Contents", [])
+                    if not objects:
+                        logging.info(
+                            f"No objects found under prefix '{prefix}' in '{bucket_name}'."
+                        )
+                        continue
+
+                    delete_batch = {
+                        "Objects": [{"Key": obj["Key"]} for obj in objects],
+                        "Quiet": True,
+                    }
+
+                    if len(objects) > 1000:
+                        for i in range(0, len(objects), 1000):
+                            batch = objects[i : i + 1000]
+                            await client.delete_objects(
+                                Bucket=bucket_name,
+                                Delete={
+                                    "Objects": [{"Key": o["Key"]} for o in batch],
+                                    "Quiet": True,
+                                },
+                            )
+                    else:
+                        await client.delete_objects(
+                            Bucket=bucket_name, Delete=delete_batch
+                        )
+
+                    logging.info(
+                        f"Deleted {len(objects)} objects under prefix '{prefix}' from '{bucket_name}'"
+                    )
+
+        except ClientError as e:
+            logging.error(
+                f"Error deleting prefix '{prefix}' from bucket '{bucket_name}': {e}"
+            )
+            raise
+
     async def list_objects(self, bucket_name: str) -> list[str]:
         """
         Lists objects in a bucket.
@@ -188,7 +251,7 @@ class S3Client:
                     )
                     async with resp["Body"] as stream:
                         while True:
-                            chunk = await stream.read(chunk_size)
+                            chunk = await stream.content.read(chunk_size)
                             if not chunk:
                                 break
                             yield chunk

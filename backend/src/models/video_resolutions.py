@@ -23,6 +23,7 @@ class VideoResolution(Base):
     )
 
     height: Mapped[int] = mapped_column(Integer, nullable=False)
+    width: Mapped[int] = mapped_column(Integer, nullable=False)
     bitrate: Mapped[int] = mapped_column(Integer, nullable=False)  # kbps
     playlist_path: Mapped[str] = mapped_column(String, nullable=False)
 

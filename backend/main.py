@@ -11,18 +11,21 @@ from src.api.files import router_files
 from src.api.health import router_health
 from src.api.metrics import PrometheusMiddleware, router_metrics
 from src.api.videos import router_videos
+from src.core.rabbit_subsciptions import rabbit_router
 from src.i18n import LanguageMiddleware
 from src.infrastructure.database import engine
 from src.infrastructure.rabbit_client import rabbit_broker
 from src.infrastructure.s3_client import get_s3_client
+from utils.db_seeder import seed_initial_data
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
-    await rabbit_broker.connect()
-
+    await rabbit_broker.start()
+    logging.info("Rabbit broker connected successfully.")
     s3_client = get_s3_client()
     await s3_client.check_bucket_exists()
+    await seed_initial_data()
     logging.info("Startup complete. Metrics exposed.")
     yield
     await rabbit_broker.close()
@@ -85,6 +88,7 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
     app.include_router(router_files)
     app.include_router(router_metrics)
     app.include_router(router_videos)
+    app.include_router(rabbit_router)
     app.add_middleware(LanguageMiddleware)
     app.add_middleware(PrometheusMiddleware)
 

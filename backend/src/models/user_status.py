@@ -11,8 +11,8 @@ if TYPE_CHECKING:
     from .user import User
 
 
-class Status(Base):
-    __tablename__ = "statuses"
+class UserStatus(Base):
+    __tablename__ = "user_statuses"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4

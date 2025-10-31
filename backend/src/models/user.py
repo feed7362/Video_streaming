@@ -14,9 +14,9 @@ if TYPE_CHECKING:
     from .comments import Comment
     from .notification import Notification
     from .playlist import Playlist
-    from .status import Status
     from .subscription import Subscription
     from .user_roles import Role
+    from .user_status import UserStatus
     from .video_reactions import VideoReaction
     from .video_views import VideoView
     from .watch_history import WatchHistory
@@ -29,18 +29,19 @@ class User(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
+    username: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
     hash_password: Mapped[str] = mapped_column(String, nullable=False)
     status_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("statuses.id", ondelete="SET NULL"),
+        ForeignKey("user_statuses.id", ondelete="SET NULL"),
         nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     role_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("roles.id", ondelete="SET NULL"), nullable=True
     )
-    status: Mapped["Status"] = relationship(back_populates="users")
+    status: Mapped["UserStatus"] = relationship(back_populates="users")
     channels: Mapped[List["Channel"]] = relationship(
         back_populates="user", cascade="all, delete"
     )

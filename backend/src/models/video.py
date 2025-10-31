@@ -1,11 +1,10 @@
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, List
+from uuid import NAMESPACE_DNS, uuid5
 
 from sqlalchemy import (
     DateTime,
-    Enum,
-    Float,
     ForeignKey,
     Index,
     Integer,
@@ -17,7 +16,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from ..infrastructure.database import Base
-from ..schemas.video import VideoStatus
 
 if TYPE_CHECKING:
     from .category import Category
@@ -27,6 +25,7 @@ if TYPE_CHECKING:
     from .privacy_status import PrivacyStatus
     from .video_reactions import VideoReaction
     from .video_resolutions import VideoResolution
+    from .video_status import VideoStatus
     from .video_views import VideoView
     from .watch_history import WatchHistory
     from .watch_later import WatchLater
@@ -41,8 +40,9 @@ class Video(Base):
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
-    size: Mapped[int] = mapped_column(Float, nullable=False)
+    size: Mapped[int] = mapped_column(Integer, nullable=False)
     hash: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    video_path: Mapped[str] = mapped_column(String, nullable=True)
     thumbnail_path: Mapped[str] = mapped_column(String, nullable=True)
 
     channel_id: Mapped[uuid.UUID] = mapped_column(
@@ -63,8 +63,11 @@ class Video(Base):
     category_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False
     )
-    status: Mapped[VideoStatus] = mapped_column(
-        Enum(VideoStatus), default=VideoStatus.PROCESSING
+    status_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("video_statuses.id"),
+        default=uuid5(NAMESPACE_DNS, "video_status:processing"),
+        nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -75,6 +78,7 @@ class Video(Base):
 
     # ---- Relationships ----
     channel: Mapped["Channel"] = relationship(back_populates="videos")
+    status: Mapped["VideoStatus"] = relationship(back_populates="videos")
     category: Mapped["Category"] = relationship(back_populates="videos")
     comments: Mapped[List["Comment"]] = relationship(
         back_populates="video", cascade="all, delete-orphan"
@@ -114,7 +118,7 @@ class Video(Base):
         return value.strip()
 
     def __repr__(self):
-        return f"<Video {self.name} ({self.status}, {self.privacy})>"
+        return f"<Video name='{self.name}' status={self.status.value}>"
 
     def __str__(self):
         return f"{self.name} — {self.status.value}, {self.privacy}"

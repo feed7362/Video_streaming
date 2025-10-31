@@ -1,0 +1,50 @@
+{
+  "roles": [
+    { "id": "NONE", "name": "admin", "description": "Administrator role" },
+    { "id": "NONE", "name": "user", "description": "View, comment, react, create videos" }
+  ],
+  "reaction_types": [
+    { "id": "NONE", "name": "like", "path": "/icons/like.png" },
+    { "id": "NONE", "name": "dislike", "path": "/icons/dislike.png" }
+  ],
+  "categories": [
+    { "id": "NONE", "name": "Education" },
+    { "id": "NONE", "name": "Entertainment" },
+    { "id": "NONE", "name": "Music" },
+    { "id": "NONE", "name": "Gaming" },
+    { "id": "NONE", "name": "Technology" },
+    { "id": "NONE", "name": "Science" },
+    { "id": "NONE", "name": "Movies" },
+    { "id": "NONE", "name": "Sports" },
+    { "id": "NONE", "name": "News" },
+    { "id": "NONE", "name": "Travel" },
+    { "id": "NONE", "name": "Lifestyle" },
+    { "id": "NONE", "name": "Fashion" },
+    { "id": "NONE", "name": "Health & Fitness" },
+    { "id": "NONE", "name": "Food & Cooking" },
+    { "id": "NONE", "name": "Comedy" },
+    { "id": "NONE", "name": "Documentary" },
+    { "id": "NONE", "name": "Art & Design" },
+    { "id": "NONE", "name": "Business & Finance" },
+    { "id": "NONE", "name": "Animals & Nature" },
+    { "id": "NONE", "name": "Automotive" },
+    { "id": "NONE", "name": "History" },
+    { "id": "NONE", "name": "Podcasts" },
+    { "id": "NONE", "name": "Shorts" }
+  ],
+  "privacy_statuses": [
+    { "id": "NONE", "name": "public" },
+    { "id": "NONE", "name": "private" }
+  ],
+  "user_statuses": [
+    { "id": "NONE", "value": "active" },
+    { "id": "NONE", "value": "banned" },
+    { "id": "NONE", "value": "deleted" }
+  ],
+  "video_statuses": [
+    { "id": "NONE", "value": "queued" },
+    { "id": "NONE", "value": "processing" },
+    { "id": "NONE", "value": "ready" },
+    { "id": "NONE", "value": "failed" }
+  ]
+}
