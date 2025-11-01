@@ -1,12 +1,13 @@
 import uuid
-from typing import Type, TypeVar, Union
+from typing import Type, TypeVar
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import InstrumentedAttribute, selectinload
+from sqlalchemy.orm import selectinload
 
+from ..models import CommentReaction, ReactionType
 from ..models.video import Video
 from ..models.video_reactions import VideoReaction
 from ..models.video_resolutions import VideoResolution
@@ -49,23 +50,25 @@ async def get_video_by_id(
     return video, resolutions
 
 
-async def get_video_reaction(
-    video_id: uuid.UUID, session: AsyncSession
-) -> tuple[int, int]:
-    """Return (likes_count, dislikes_count)."""
-    likes_count = await session.scalar(
-        select(func.count()).where(
-            VideoReaction.video_id == video_id,
-            VideoReaction.is_like.is_(True),
-        )
-    )
-    dislikes_count = await session.scalar(
-        select(func.count()).where(
-            VideoReaction.video_id == video_id,
-            VideoReaction.is_like.is_(False),
-        )
-    )
-    return likes_count, dislikes_count
+#
+#
+# async def get_video_reaction(
+#     video_id: uuid.UUID, session: AsyncSession
+# ) -> tuple[int, int]:
+#     """Return (likes_count, dislikes_count)."""
+#     likes_count = await session.scalar(
+#         select(func.count()).where(
+#             VideoReaction.video_id == video_id,
+#             VideoReaction.is_like.is_(True),
+#         )
+#     )
+#     dislikes_count = await session.scalar(
+#         select(func.count()).where(
+#             VideoReaction.video_id == video_id,
+#             VideoReaction.is_like.is_(False),
+#         )
+#     )
+#     return likes_count, dislikes_count
 
 
 async def get_video_views(video_id: uuid.UUID, session: AsyncSession) -> int:
@@ -78,52 +81,65 @@ async def get_video_views(video_id: uuid.UUID, session: AsyncSession) -> int:
 
 async def toggle_reaction(
     session: AsyncSession,
-    like_model: Type[T],
-    target_id_field: Union[InstrumentedAttribute, ColumnElement],
-    target_id: uuid.UUID,
     user_id: uuid.UUID,
-    is_like: bool,
+    target_model: Type[VideoReaction] | Type[CommentReaction],
+    target_field,  # target_model.video_id or target_model.comment_id
+    target_id: uuid.UUID,
+    reaction_name: str,  # e.g. "like" or "love"
 ):
-    """
-    Generic helper to toggle like/dislike for any model.
+    """Toggle reaction for a user on a video or comment."""
 
-    Returns: (likes_count, dislikes_count)
-    """
-
-    # Check if the user already liked/disliked this target
-    existing = await session.scalar(
-        select(like_model).where(
-            target_id_field == target_id,
-            like_model.user_id == user_id,
-        )
+    reaction_type_id = await session.scalar(
+        select(ReactionType.id).where(ReactionType.name == reaction_name)
     )
+    if not reaction_type_id:
+        raise ValueError(f"Unknown reaction type '{reaction_name}'")
 
-    # Update or insert new like/dislike
-    if existing:
-        existing.is_like = is_like
+    # Check if the user already reacted
+    stmt = select(target_model).where(
+        target_model.user_id == user_id,
+        target_field == target_id,
+    )
+    existing = await session.scalar(stmt)
+
+    # Remove existing reaction if same type (toggle off)
+    if existing and existing.reaction_type_id == reaction_type_id:
+        await session.execute(
+            delete(target_model).where(target_model.id == existing.id)
+        )
+
+    # Update to new reaction type if different
+    elif existing:
+        await session.execute(
+            update(target_model)
+            .where(target_model.id == existing.id)
+            .values(reaction_type_id=reaction_type_id)
+        )
+    # Create new reaction if none
     else:
-        new_like = like_model(
-            user_id=user_id,
-            **{target_id_field.key: target_id},
-            is_like=is_like,
+        session.add(
+            target_model(
+                user_id=user_id,
+                reaction_type_id=reaction_type_id,
+                **{target_field.key: target_id},
+            )
         )
-        session.add(new_like)
 
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError:
+        await session.rollback()
+        raise
 
-    # Count total likes and dislikes
-    likes_count = await session.scalar(
-        select(func.count()).where(
-            target_id_field == target_id, like_model.is_like.is_(True)
-        )
+    # Count all reactions for this target
+    result = await session.execute(
+        select(ReactionType.name, func.count())
+        .join(target_model, target_model.reaction_type_id == ReactionType.id)
+        .where(target_field == target_id)
+        .group_by(ReactionType.name)
     )
-    dislikes_count = await session.scalar(
-        select(func.count()).where(
-            target_id_field == target_id, like_model.is_like.is_(False)
-        )
-    )
-
-    return likes_count, dislikes_count
+    counts = {name: count for name, count in result.all()}
+    return counts
 
 
 async def record_video_view(
