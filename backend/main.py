@@ -99,7 +99,7 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
         "http://127.0.0.1:5173",
         "http://localhost:80",
     ]
-  
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,

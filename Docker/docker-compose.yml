@@ -63,6 +63,17 @@ services:
       context: ../services/convertor
       dockerfile: Dockerfile
     container_name: ffmpeg_service
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    environment:
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - NVIDIA_VISIBLE_DEVICES=all
     expose:
       - "8002"
     depends_on:
@@ -116,6 +127,8 @@ services:
       - ../gateway/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       bff:
+        condition: service_healthy
+      vault:
         condition: service_healthy
     logging:
       driver: "json-file"
