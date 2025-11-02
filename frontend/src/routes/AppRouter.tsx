@@ -5,6 +5,7 @@ import AppLayout from "@/layouts/AppLayout";
 import ForgotPass from "@/pages/ForgotPass";
 
 const Home = lazy(() => import("@/pages/Home"));
+const Channel = lazy(() => import("@/pages/Channel"));
 const Upload = lazy(() => import("@/pages/Upload"));
 const Profile = lazy(() => import("@/pages/Profile"));
 const Watch = lazy(() => import("@/pages/Watch"));
@@ -41,6 +42,7 @@ export default function AppRouter() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/loading" element={<Loading />} />
+                <Route path="/channel" element={<Channel />} />
 
                 <Route path="/404" element={<NotFound />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />

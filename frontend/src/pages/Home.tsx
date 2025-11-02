@@ -1,10 +1,13 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useCallback, useState } from "react";
-import VideoCard from "@/components/VideoCard";
-import InfiniteScroll from "@/components/infinite-scroll";
+import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import api from "@api/videoApi";
+import VideoCard from "@/components/VideoCard";
+import InfiniteScroll from "@/components/infinite-scroll";
+import categoriesApi from "@api/categoriesApi";
+import type { Category } from "@api/types";
+import videoApi from "@api/videoApi";
+import type { VideoPreview } from "@api/types";
 
 interface Video {
     id: string;
@@ -14,43 +17,30 @@ interface Video {
     channel_name: string;
 }
 
-const categories = [
-    "All",
-    "Blogs",
-    "Comedy",
-    "Education",
-    "Fashion",
-    "Films",
-    "Fitness",
-    "Food",
-    "Gaming",
-    "Literature",
-    "Movies",
-    "Music",
-    "Nature",
-    "New for you",
-    "News",
-    "Online strim",
-    "Podcasts",
-    "Science",
-    "Sports",
-    "Technology",
-    "Watched",
-];
-
 export default function Home() {
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [activeCategory, setActiveCategory] = useState<string>("All");
+
     const [videos, setVideos] = useState<Video[]>([]);
     const [page, setPage] = useState(0);
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
-    const [active, setActive] = useState("All");
+
+    useEffect(() => {
+        categoriesApi.getCategories()
+            .then((data) => {
+                setCategories([{ id: "all", name: "All" }, ...data]);
+            })
+            .catch(console.error);
+    }, []);
 
     const loadMore = useCallback(async () => {
+        if (!hasMore) return;
         setLoading(true);
-        try {
-            const newVideosPreview = await api.getVideos(page);
 
-            const newVideos: Video[] = newVideosPreview.map(v => ({
+        try {
+            const newVideosPreview = await videoApi.getVideos(page, activeCategory !== "All" ? activeCategory : undefined);
+            const newVideos: Video[] = newVideosPreview.map((v: VideoPreview) => ({
                 id: v.id,
                 title: v.title,
                 thumbnail: v.previewUrl || "",
@@ -61,16 +51,19 @@ export default function Home() {
             setVideos(prev => [...prev, ...newVideos]);
             setHasMore(newVideos.length > 0);
             setPage(prev => prev + 1);
-        } catch (error) {
-            console.error(error);
+        } catch (err) {
+            console.error("Failed to load videos:", err);
         } finally {
             setLoading(false);
         }
-    }, [page]);
+    }, [page, activeCategory, hasMore]);
 
-    if (loading && videos.length === 0) {
+    useEffect(() => {
+        setVideos([]);
+        setPage(0);
+        setHasMore(true);
         loadMore();
-    }
+    }, [activeCategory]);
 
     return (
         <div className="my-4 mx-auto max-w-[1400px] px-6">
@@ -86,7 +79,6 @@ export default function Home() {
                         const walk = (x - startX) * 1.2;
                         container.scrollLeft = scrollLeft - walk;
                     };
-
                     const mouseUpHandler = () => {
                         document.removeEventListener("mousemove", mouseMoveHandler);
                         document.removeEventListener("mouseup", mouseUpHandler);
@@ -96,45 +88,37 @@ export default function Home() {
                     document.addEventListener("mouseup", mouseUpHandler);
                 }}
             >
-                {categories.map((category) => (
+                {categories.map((cat) => (
                     <Button
-                        key={category}
-                        onClick={() => setActive(category)}
-                        variant={active === category ? "default" : "outline"}
-                        className={`mx-2 whitespace-nowrap transition-all ${active === category ? "bg-black text-white" : ""
-                            }`}
+                        key={cat.id}
+                        onClick={() => setActiveCategory(cat.name)}
+                        variant={activeCategory === cat.name ? "default" : "outline"}
+                        className={`mx-2 whitespace-nowrap transition-all ${activeCategory === cat.name ? "bg-black text-white" : ""}`}
                     >
-                        {category}
+                        {cat.name}
                     </Button>
                 ))}
             </div>
-            <div>
-                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-                    style={{ gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))" }}
-                >
-                    {loading
-                        ? Array.from({ length: 12 }).map((_, i) => <VideoCard key={i} loading />)
-                        : (
-                            <InfiniteScroll loadMore={loadMore} hasMore={hasMore}>
-                                {videos.map((video) => (
-                                    <Link
-                                        key={video.id}
-                                        to={`/watch?v=${video.id}`}
-                                        className="w-full"
-                                    >
-                                        <VideoCard
-                                            key={video.id}
-                                            id={video.id}
-                                            title={video.title}
-                                            thumbnail={video.thumbnail}
-                                            channel_avatar={video.channel_avatar}
-                                            channel_name={video.channel_name}
-                                        />
-                                    </Link>
-                                ))}
-                            </InfiniteScroll>
-                        )}
-                </div>
+
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                style={{ gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))" }}>
+                {loading && videos.length === 0
+                    ? Array.from({ length: 12 }).map((_, i) => <VideoCard key={i} loading />)
+                    : (
+                        <InfiniteScroll loadMore={loadMore} hasMore={hasMore}>
+                            {videos.map(video => (
+                                <Link key={video.id} to={`/watch?v=${video.id}`} className="w-full">
+                                    <VideoCard
+                                        id={video.id}
+                                        title={video.title}
+                                        thumbnail={video.thumbnail}
+                                        channel_avatar={video.channel_avatar}
+                                        channel_name={video.channel_name}
+                                    />
+                                </Link>
+                            ))}
+                        </InfiniteScroll>
+                    )}
             </div>
         </div>
     );

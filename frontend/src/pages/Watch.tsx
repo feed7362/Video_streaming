@@ -4,7 +4,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import VideoCard from "@/components/VideoCard";
 import { Button } from "@/components/ui/button";
 import InfiniteScroll from "@/components/infinite-scroll";
-import type { VideoPreview, VideoComment } from "@api/videoApi";
+import type { VideoPreview, VideoComment } from "@api/types";
 import { getVideos, getVideo } from "@api/videoApi";
 
 const categories = [
@@ -54,6 +54,7 @@ export default function Watch() {
                     createdAt: data.createdAt,
                     channel: data.channelName,
                     views: data.viewsCount,
+                    privacy: data.isPublic ? "Public" : "Private",
                     channel_avatar: data.channelAvatar || "",
                 });
                 setComments(data.comments || []);
@@ -99,8 +100,8 @@ export default function Watch() {
                     <div className="space-y-4">
                         {comments.map(comment => (
                             <div key={comment.id} className="border-b pb-2">
-                                <p className="font-medium">{comment.author}</p>
-                                <p className="text-gray-600 text-sm sm:text-base">{comment.text}</p>
+                                <p className="font-medium">{comment.userId}</p>
+                                <p className="text-gray-600 text-sm sm:text-base">{comment.content}</p>
                             </div>
                         ))}
                     </div>

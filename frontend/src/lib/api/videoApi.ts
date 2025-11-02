@@ -1,109 +1,98 @@
-import axios from "axios";
 import { timeAgo } from "@/utils/timeAgo";
+import type { Video, VideoPreview } from "./types";
+import clientApi from "./clientApi";
 
-const api = axios.create({
-    baseURL: "http://localhost/api",
+const mapToPreview = (video: Video): VideoPreview => ({
+    id: video.id,
+    title: video.title,
+    previewUrl: video.thumbnailUrl || video.previewUrl || "",
+    createdAt: timeAgo(video.createdAt),
+    channel: video.channelName,
+    views: video.viewsCount,
+    likesCount: video.likesCount,
+    dislikesCount: video.dislikesCount,
+    privacy: video.isPublic ? "Public" : "Private",
 });
 
-export interface VideoComment {
-    id: string;
-    author: string;
-    text: string;
-}
-
-export interface Video {
-    id: string;
-    title: string;
-    thumbnailUrl?: string;
-    previewUrl?: string;
-    createdAt: string;
-    channelName: string;
-    channelAvatar?: string;
-    viewsCount: number;
-    isPublic: boolean;
-    comments?: VideoComment[];
-}
-
-export interface VideoPreview {
-    id: string;
-    title: string;
-    previewUrl?: string;
-    createdAt: string;
-    channel: string;
-    views: number;
-    channel_avatar?: string;
-}
-
-export const getVideos = async (page: number = 0): Promise<VideoPreview[]> => {
-    try {
-        const response = await api.get<Video[]>(`/videos?page=${page}`);
-        return response.data
-            .filter(video => video.isPublic)
-            .map(video => ({
-                id: video.id,
-                title: video.title,
-                previewUrl: video.thumbnailUrl || video.previewUrl || "",
-                createdAt: timeAgo(video.createdAt),
-                channel: video.channelName,
-                views: video.viewsCount,
-                channel_avatar: video.channelAvatar || "",
-            }));
-    } catch (error) {
-        console.error("Error fetching videos:", error);
-        throw error;
-    }
-};
-//предпоказ назва дата створення (рахується типу 5 хв назад) канал к-сть переглядів тільки публічні відео
-
-export const getVideo = async (id: string): Promise<Video> => {
-    try {
-        const response = await api.get<Video>(`/videos/${id}`);
-        return response.data;
-    } catch (error) {
-        console.error(error);
-        throw error;
-    }
-};
-//не повертає предпоказ
-
-export const addVideo = async (data: Video): Promise<Video> => {
-    try {
-        const response = await api.post<Video>("/videos", data);
-        return response.data;
-    } catch (error) {
-        console.error(error);
-        throw error;
-    }
+export const getVideos = (
+    page = 0,
+    category?: string
+): Promise<VideoPreview[]> => {
+    return clientApi
+        .get<Video[]>("/videos", { params: { page, category } })
+        .then(res => res.data.filter(v => v.isPublic).map(mapToPreview));
 };
 
-export const uploadVideo = async (
+export const getVideo = (id: string): Promise<Video> =>
+    clientApi.get<Video>(`/videos/${id}`).then(res => ({
+        ...res.data,
+        createdAt: timeAgo(res.data.createdAt),
+        thumbnailUrl: res.data.thumbnailUrl || "",
+        channelAvatar: res.data.channelAvatar || "",
+        previewUrl: res.data.previewUrl || res.data.thumbnailUrl || "",
+        comments: res.data.comments || [],
+    }));
+
+export const uploadVideo = (
     file: File,
-    options?: {
-        title?: string;
-        description?: string;
-        thumbnail?: File;
-        isPrivate?: boolean;
-    }
+    options?: { title?: string; description?: string; thumbnail?: File; isPublic?: boolean; }
 ): Promise<string> => {
-    try {
-        const formData = new FormData();
-        formData.append("uploaded_files", file);
-        if (options?.thumbnail) formData.append("thumbnail", options.thumbnail);
-        if (options?.title) formData.append("title", options.title);
-        if (options?.description) formData.append("description", options.description);
-        if (options?.isPrivate !== undefined) formData.append("isPrivate", String(options.isPrivate));
+    const formData = new FormData();
+    formData.append("uploaded_files", file);
 
-        const response = await api.post("/files/upload", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
+    if (options?.thumbnail) formData.append("thumbnail", options.thumbnail);
+    if (options?.title) formData.append("title", options.title);
+    if (options?.description) formData.append("description", options.description);
+    if (options?.isPublic !== undefined) formData.append("isPublic", String(options.isPublic));
+
+    return clientApi
+        .post("/files/upload", formData, { headers: { "Content-Type": "multipart/form-data" } })
+        .then(res => {
+            const file = res.data?.files?.[0]?.filename;
+            const base = (clientApi.defaults.baseURL || "").replace(/\/api\/?$/, "");
+            return `${base}/uploads/${file}`;
         });
-
-        const uploadedFile = response.data.files[0];
-        return `http://localhost/uploads/${uploadedFile.filename}`;
-    } catch (error) {
-        console.error("Error while uploading a video", error);
-        throw error;
-    }
 };
 
-export default { getVideos, getVideo, addVideo, uploadVideo };
-//імя опис доступ 
+export const addVideo = (data: {
+    title: string;
+    description?: string;
+    videoUrl: string;
+    thumbnailUrl?: string;
+    isPublic: boolean;
+}): Promise<Video> => clientApi.post("/videos", data).then(res => res.data);
+
+export const deleteVideo = (id: string): Promise<void> =>
+    clientApi.delete(`/videos/${id}`).then(() => { });
+
+export const updateVideo = (id: string, data: {
+    title?: string;
+    description?: string;
+    thumbnailUrl?: string;
+    isPublic?: boolean;
+}): Promise<Video> =>
+    clientApi.put(`/videos/${id}`, data).then(res => res.data);
+
+export const generateThumbnail = (videoId: string): Promise<string> =>
+    clientApi.post(`/videos/${videoId}/generate-thumbnail`)
+        .then(res => res.data.thumbnailUrl);
+
+export const getThumbnail = (videoId: string): Promise<string> =>
+    clientApi.get(`/videos/${videoId}/thumbnail`)
+        .then(res => res.data.thumbnailUrl);
+
+export const checkVideoStatus = (videoId: string): Promise<string> =>
+    clientApi.get(`/videos/${videoId}/status`)
+        .then(res => res.data.status);
+
+export default {
+    getVideos,
+    getVideo,
+    addVideo,
+    uploadVideo,
+    updateVideo,
+    deleteVideo,
+    generateThumbnail,
+    getThumbnail,
+    checkVideoStatus,
+};

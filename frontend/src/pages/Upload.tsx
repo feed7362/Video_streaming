@@ -22,14 +22,14 @@ export default function Upload() {
 
     const handleUpload = async () => {
         if (!videoFile) return alert("Please, choose a video");
-
         setLoading(true);
         try {
+            const isPublic = !isPrivate;
             const url = await api.uploadVideo(videoFile, {
                 title,
                 description,
                 thumbnail: thumbnailFile,
-                isPrivate,
+                isPublic,
             });
             alert(`Video uploaded successfully!\nURL: ${url}`);
             setVideoFile(undefined);
@@ -46,7 +46,7 @@ export default function Upload() {
     };
 
     return (
-        <div className="overflow-y-auto h-screen flex items-center justify-center mt-12 sm:mt-20 px-4">
+        <div className="flex items-center justify-center mt-12 sm:mt-20 px-4 min-h-screen">
             <Card className="w-full max-w-3xl text-center p-4 sm:p-6 md:p-8">
                 <CardHeader className="mb-4">
                     <CardTitle className="text-xl sm:text-2xl md:text-3xl mb-2">

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -8,9 +9,34 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Link } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import { sendPasswordReset } from "@api/authApi";
 
 export default function ForgotPass() {
+    const [email, setEmail] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!email) {
+            toast.error("Please enter your email");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await sendPasswordReset(email);
+            toast.success("Password reset email sent!");
+            setEmail("");
+        } catch (err: unknown) {
+            console.error(err);
+            toast.error("Failed to send reset email");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-900 via-gray-800 to-black p-4 sm:p-6 md:p-10">
             <Card className="w-full max-w-sm sm:max-w-md md:max-w-lg bg-gray-950/80 border-gray-800 shadow-lg backdrop-blur-md">
@@ -23,7 +49,7 @@ export default function ForgotPass() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form className="flex flex-col gap-5">
+                    <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="email" className="text-gray-300">
                                 Email
@@ -32,19 +58,20 @@ export default function ForgotPass() {
                                 id="email"
                                 type="email"
                                 placeholder="m@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 required
                                 className="bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
 
-                        <Link to="/" className="w-full">
-                            <Button
-                                type="submit"
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base"
-                            >
-                                Recover password
-                            </Button>
-                        </Link>
+                        <Button
+                            type="submit"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base"
+                            disabled={loading}
+                        >
+                            {loading ? "Sending..." : "Recover password"}
+                        </Button>
                     </form>
                 </CardContent>
             </Card>
