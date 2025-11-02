@@ -1,11 +1,12 @@
 from functools import lru_cache
-from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-BASE_DIR = Path(__file__).resolve().parent
+from src.infrastructure.vault import VaultClient
+
+vault = VaultClient()
 
 
 class BaseAppSettings(BaseSettings):
@@ -19,23 +20,22 @@ class DatabaseSettings(BaseAppSettings):
     POSTGRES_USER: Optional[str] = Field(default=None)
     POSTGRES_PASSWORD: Optional[str] = Field(default=None)
 
-    model_config = SettingsConfigDict(env_file=str(BASE_DIR / "database.env"))
-
 
 class S3Settings(BaseAppSettings):
     MINIO_ROOT_USER: Optional[str] = Field(default=None)
     MINIO_ROOT_PASSWORD: Optional[str] = Field(default=None)
     MINIO_ENDPOINT_URL: Optional[str] = Field(default=None)
     MINIO_REGION_NAME: Optional[str] = Field(default=None)
-
-    model_config = SettingsConfigDict(env_file=str(BASE_DIR / "s3.env"))
+    BUCKET_NAMES: Optional[List[str]] = Field(default=None)
 
 
 @lru_cache()
 def get_database_settings() -> DatabaseSettings:
-    return DatabaseSettings()
+    return DatabaseSettings(**vault.read_secret("database", mount_point="secret"))
 
 
 @lru_cache()
 def get_s3_settings() -> S3Settings:
-    return S3Settings()
+    data = vault.read_secret("s3", mount_point="secret")
+    data["BUCKET_NAMES"] = [b.strip() for b in data["BUCKET_NAMES"].split(",")]
+    return S3Settings(**data)

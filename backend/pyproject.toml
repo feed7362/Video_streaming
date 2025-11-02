@@ -12,6 +12,7 @@ dependencies = [
     "fastapi>=0.116.2",
     "faststream[rabbit]>=0.5.48",
     "httpx>=0.28.1",
+    "hvac>=2.3.0",
     "prometheus-client>=0.23.1",
     "psycopg2>=2.9.11",
     "pydantic>=2.11.10",
@@ -20,6 +21,7 @@ dependencies = [
     "sqlalchemy>=2.0.43",
     "uvicorn[standard]>=0.37.0",
     "uvloop; sys_platform == 'linux'",
+    "xxhash>=3.6.0",
 ]
 
 [dependency-groups]
@@ -35,7 +37,7 @@ dev = [
 
 [tool.black]
 line-length = 88
-target-version = ["py312"]  # Измените под свою версию Python
+target-version = ["py312"]
 include = '\.pyi?$'
 exclude = '''
 /(

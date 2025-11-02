@@ -11,21 +11,28 @@ from src.api.files import router_files
 from src.api.health import router_health
 from src.api.metrics import PrometheusMiddleware, router_metrics
 from src.api.videos import router_videos
+from src.core.rabbit_subsciptions import rabbit_router
 from src.i18n import LanguageMiddleware
+from src.infrastructure.database import engine
 from src.infrastructure.rabbit_client import rabbit_broker
 from src.infrastructure.s3_client import get_s3_client
+from utils.db_seeder import seed_initial_data
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
-    await rabbit_broker.connect()
-
+    await rabbit_broker.start()
+    logging.info("Rabbit broker connected successfully.")
     s3_client = get_s3_client()
     await s3_client.check_bucket_exists()
+    await seed_initial_data()
     logging.info("Startup complete. Metrics exposed.")
     yield
-    logging.info("Shutdown complete.")
     await rabbit_broker.close()
+    logging.info("Rabbit broker connection disposed gracefully.")
+    await engine.dispose()
+    logging.info("Database engine disposed gracefully.")
+    logging.info("Shutdown complete.")
 
 
 def create_app(use_lifespan: bool = True) -> FastAPI:
@@ -81,6 +88,7 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
     app.include_router(router_files)
     app.include_router(router_metrics)
     app.include_router(router_videos)
+    app.include_router(rabbit_router)
     app.add_middleware(LanguageMiddleware)
     app.add_middleware(PrometheusMiddleware)
 
@@ -89,7 +97,7 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
         "http://127.0.0.1",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "http://localhost:8000",
+        "http://localhost:80",
     ]
   
     app.add_middleware(
@@ -101,7 +109,7 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
     )
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc):
+    async def http_exception_handler(request: Request, exc) -> JSONResponse:
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -112,7 +120,9 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
         )
 
     @app.exception_handler(Exception)
-    async def unhandled_exception_handler(request: Request, exc: Exception):
+    async def unhandled_exception_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
         logging.exception(f"Unhandled error: {exc}")
         return JSONResponse(
             status_code=500,
@@ -120,7 +130,7 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
         )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc):
+    async def validation_exception_handler(request: Request, exc) -> JSONResponse:
         return JSONResponse(
             status_code=400,
             content={"detail": str(exc)},

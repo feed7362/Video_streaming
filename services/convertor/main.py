@@ -27,7 +27,7 @@ def cleanup_dirs(video_id: str) -> None:
         logging.error(f"Failed to cleanup local dirs for {video_id}, Error: {e}")
 
 
-def has_gpu():
+def has_gpu() -> bool:
     try:
         subprocess.run(
             ["nvidia-smi"],
@@ -81,7 +81,7 @@ async def stream_ffmpeg(
         )
     else:
         filter_complex = (
-           "[0:v]split=3[v1][v2][v3];"
+            "[0:v]split=3[v1][v2][v3];"
             "[v1]scale=w=640:h=360:force_original_aspect_ratio=decrease,"
             "pad=ceil(iw/2)*2:ceil(ih/2)*2[v360];"
             "[v2]scale=w=1280:h=720:force_original_aspect_ratio=decrease,"
@@ -260,9 +260,11 @@ async def get_video_properties(
     fps_fraction = data.get("r_frame_rate", "0/1")
     numerator, denominator = map(int, fps_fraction.split("/"))
     fps = numerator / denominator if denominator != 0 else 0
+    bit_rate = data.get("bit_rate", 0)
 
     return {
         "fps": fps,
         "width": data.get("width", 0),
         "height": data.get("height", 0),
+        "bitrate": bit_rate // 1000 if bit_rate else 0,
     }

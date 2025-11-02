@@ -4,10 +4,17 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from .enum import Privacy, VideoStatus
+from ..models import Video
 
 # Generic type for reusable pagination
 T = TypeVar("T")
+
+
+class ResolutionMeta(BaseModel):
+    height: int
+    width: int
+    bitrate: int
+    playlist_path: str
 
 
 # ------------------------------
@@ -16,7 +23,7 @@ T = TypeVar("T")
 class VideoProcessingJob(BaseModel):
     video_id: UUID
     size: float
-    status: VideoStatus  # e.g., "queued", "processing", "done", "failed"
+    status: str
     started_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None
 
@@ -35,7 +42,7 @@ class VideoPlayback(BaseModel):
     id: UUID
     name: str
     description: Optional[str] = None
-    privacy: Privacy
+    privacy: str
     created_at: datetime
 
     # Available resolution variants
@@ -53,7 +60,7 @@ class VideoPlayback(BaseModel):
     master_hls_url: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class VideoRead(BaseModel):
@@ -79,7 +86,36 @@ class Page(BaseModel, Generic[T]):
 # ------------------------------
 # Video Pagination Schema
 # ------------------------------
-class VideoPage(Page[VideoPlayback]):
+class VideoPreview(BaseModel):
+    """Lightweight preview used for video listings or home page."""
+
+    id: UUID
+    title: str
+    thumbnail: str
+    channel_avatar: str
+    channel_name: str
+
+    class Config:
+        from_attributes = True
+
+
+def to_video_preview(video: Video) -> VideoPreview:
+    return VideoPreview(
+        id=video.id,
+        title=video.name,  # maps from Video.name
+        thumbnail=video.thumbnail_path or "",
+        channel_avatar=getattr(video.channel, "avatar_url", ""),
+        channel_name=getattr(video.channel, "name", "Unknown Channel"),
+    )
+
+
+class VideoPreviewPage(Page[VideoPreview]):
+    """Paginated list of lightweight video previews."""
+
+    pass
+
+
+class VideoPage(BaseModel):
     """Paginated list of videos."""
 
     pass

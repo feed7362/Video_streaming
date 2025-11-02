@@ -1,20 +1,24 @@
-import asyncio
 import logging
-import os
-import uuid
-from typing import TYPE_CHECKING, List
+from pathlib import Path as FilePath
+from typing import TYPE_CHECKING, Annotated, Literal, Optional
+from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, UploadFile
+import xxhash
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
+from sqlalchemy import delete, select, update
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..infrastructure import get_s3_client
-from ..infrastructure.rabbit_client import get_rabbit_broker
+from ..core.auth import get_current_user_id
+from ..infrastructure import get_async_session, get_rabbit_broker, get_s3_client
+from ..models import Channel, Video, VideoResolution
 from ..schemas.endpoint import (
     ErrorResponse,
     FileMeta,
+    FileResponse,
     FileStreamResponse,
     SignedUrlResponse,
-    UploadResponse,
 )
 
 if TYPE_CHECKING:  # pragma: no cover - used only for type checkers
@@ -35,14 +39,14 @@ router_files = APIRouter(
 
 # ----- Endpoints -----
 @router_files.post(
-    "/upload",
-    response_model=UploadResponse,
+    "/upload_video",
+    response_model=FileResponse,
     summary="Upload video files",
     description="Uploads one or more video files to object storage and schedules encoding jobs.",
     response_description="Metadata describing the uploaded files.",
     responses={
         200: {
-            "model": UploadResponse,
+            "model": FileResponse,
             "description": "Files successfully uploaded and encoding queued.",
         },
         400: {
@@ -56,65 +60,171 @@ router_files = APIRouter(
     },
 )
 async def upload_files(
-    uploaded_files: List[UploadFile],
+    video: Annotated[UploadFile, File(description="A video file to upload")],
+    thumbnail: Annotated[
+        Optional[UploadFile], File(description="Preview image for the video")
+    ],
+    name: str = Query(..., description="Name of the uploaded files."),
+    description: str = Query(..., description="Description of the uploaded files."),
+    privacy: Literal["public", "private"] = Query(
+        default="public",
+        description="Privacy level: `public` (visible to all) or `private` (owner only)",
+    ),
+    category: Literal[
+        "education",
+        "entertainment",
+        "music",
+        "gaming",
+        "technology",
+        "science",
+        "movies",
+        "sports",
+        "news",
+        "travel",
+        "lifestyle",
+        "fashion",
+        "health & fitness",
+        "food & cooking",
+        "comedy",
+        "documentary",
+        "art & design",
+        "business & finance",
+        "animals & nature",
+        "automotive",
+        "history",
+        "podcasts",
+        "shorts",
+    ] = Query(default="entertainment", description="Category of the uploaded files."),
+    user_id: UUID = Depends(get_current_user_id),
     s3_client: "S3Client" = Depends(get_s3_client),
+    session: AsyncSession = Depends(get_async_session),
     broker: "RabbitBroker" = Depends(get_rabbit_broker),
-) -> UploadResponse:
+) -> FileResponse:
     """
     Upload multiple files to S3 asynchronously and trigger encoding tasks in RabbitMQ.
     Returns metadata about uploaded files.
     """
-    if not uploaded_files:
-        logging.error("No files provided")
-        raise HTTPException(
-            status_code=400,
-            detail=ErrorResponse(message="No files provided").model_dump(),
-        )
+    if video is None or not (video.content_type or "").startswith("video/"):
+        raise HTTPException(400, "Invalid video format")
 
-    files_meta: List[FileMeta] = []
-    semaphore = asyncio.Semaphore(5)
+    if thumbnail and not (thumbnail.content_type or "").startswith("image/"):
+        raise HTTPException(400, "Invalid image format")
 
-    async def upload_single_file(uploaded_file: UploadFile) -> None:
-        async with semaphore:
-            filename = uploaded_file.filename
-            if filename is None:
-                raise HTTPException(
-                    status_code=400,
-                    detail=ErrorResponse(
-                        message="Uploaded file is missing a filename."
-                    ).model_dump(),
-                )
-            ext = os.path.splitext(filename)[-1]
-            new_filename = f"{str(uuid.uuid4())}{ext}"
-            uploaded_file.file.seek(0, 2)
-            size = uploaded_file.file.tell()
-            uploaded_file.file.seek(0)
-            logging.info(f"Uploaded file: {new_filename} with size: {size}")
-            files_meta.append(FileMeta(filename=new_filename, size=size))
+    async def compute_hash_and_size(uploaded_file: UploadFile) -> tuple[str, int]:
+        hasher = xxhash.xxh3_128()
+        block_size = 1024 * 1024
 
-            logging.info(f"Starting encoding task for file: {new_filename}")
-            await s3_client.upload_file(
-                new_filename, uploaded_file.file, bucket_name="videos"
-            )
-            await broker.publish(new_filename, queue="video.encode")
+        await uploaded_file.seek(0)
+        size = 0
+
+        # hash + size in one pass
+        while chunk := await uploaded_file.read(block_size):
+            hasher.update(chunk)
+            size += len(chunk)
+        await uploaded_file.seek(0)
+        return hasher.hexdigest(), size
 
     try:
-        tasks = [upload_single_file(f) for f in uploaded_files]
-        await asyncio.gather(*tasks)
+        # ---- Video ----
+        video_hash, video_size = await compute_hash_and_size(video)
+        video_id = uuid4()
+
+        channel = await session.execute(
+            select(Channel.id).where(Channel.user_id == user_id)
+        )
+        channel_id = channel.scalar_one_or_none()
+
+        if channel_id is None:
+            raise HTTPException(400, "User does not have a channel")
+
+        result = await session.execute(
+            insert(Video)
+            .values(
+                id=video_id,
+                name=name,
+                description=description,
+                channel_id=channel_id,
+                size=video_size,
+                hash=video_hash,
+                video_path=None,
+                thumbnail_path=None,
+                privacy_id=uuid5(NAMESPACE_DNS, f"privacy_status:{privacy}"),
+                category_id=uuid5(NAMESPACE_DNS, f"video_category:{category}"),
+                status_id=uuid5(NAMESPACE_DNS, "video_status:queued"),
+            )
+            .on_conflict_do_nothing(index_elements=["hash"])
+            .returning(Video.id)
+        )
+        inserted_id = result.scalar_one_or_none()
+        await session.commit()
+
+        if inserted_id is None:
+            logging.info(f"Hash duplicate: {video_hash}")
+            existing = await session.execute(
+                select(Video).where(Video.hash == video_hash)
+            )
+            existing_video = existing.scalar_one_or_none()
+            await session.commit()
+
+            return FileResponse(
+                status="duplicate",
+                files=[
+                    FileMeta(
+                        file_id=existing_video.id,
+                        filename=existing_video.name,
+                        size=existing_video.size,
+                    )
+                ],
+            )
+
+        # ---- Thumbnail ----
+        if thumbnail:
+            thumbnail_id = str(uuid4())
+            thumb_name = f"{thumbnail_id}{FilePath(thumbnail.filename).suffix}"
+            await s3_client.upload_file(
+                thumb_name, thumbnail.file, bucket_name="video-thumbnails"
+            )
+            await session.execute(
+                update(Video)
+                .where(Video.id == video_id)
+                .values(thumbnail_path=f"/minio/thumbnails/{thumb_name}")
+            )
+            await session.commit()
+
+        # ----- Upload video to S3 -----
+        try:
+            new_filename = f"{video_id}{FilePath(video.filename).suffix}"
+            await s3_client.upload_file(new_filename, video.file, bucket_name="videos")
+        except Exception as e:
+            logging.error(f"S3 upload failed. Removing Video row {video_id}: {e}")
+            await session.execute(delete(Video).where(Video.id == video_id))
+            await session.commit()
+            raise HTTPException(500, "Failed to upload video to storage")
+
+        # ----- Publish job -----
+        await broker.publish(new_filename, queue="video.encode")
+
+        return FileResponse(
+            status="accepted",
+            files=[
+                FileMeta(
+                    file_id=video_id,
+                    filename=name,
+                    size=video_size,
+                )
+            ],
+        )
     except Exception as e:
         logging.error(f"Error uploading files: {e}")
+        await session.rollback()
         raise HTTPException(
             status_code=500,
             detail=ErrorResponse(message=str(e)).model_dump(),
         )
 
-    return UploadResponse(
-        status="accepted", files_count=len(uploaded_files), files=files_meta
-    )
-
 
 @router_files.get(
-    "/download/{filename:path}",
+    "/download_video",
     response_model=FileStreamResponse,
     summary="Download a stored video file",
     description="Streams a video file stored in object storage as a binary response.",
@@ -139,17 +249,59 @@ async def upload_files(
     },
 )
 async def get_file(
-    filename: str = Path(..., description="Full path of the file to download."),
+    video_id: UUID = Query(..., description="UUID of the video to delete."),
+    resolution: Optional[str] = Query(
+        None,
+        description="Specific resolution to download (e.g., '360p', '720p', '1080p')."
+        " If omitted, original file is returned.",
+    ),
+    user_id: UUID = Depends(get_current_user_id),
     s3_client: "S3Client" = Depends(get_s3_client),
+    session: AsyncSession = Depends(get_async_session),
 ) -> StreamingResponse:
     try:
-        logging.info(f"Downloading file: {filename}")
+        result = await session.execute(
+            select(Video)
+            .join(Channel, Channel.id == Video.channel_id)
+            .where(Video.id == video_id, Channel.user_id == user_id)
+        )
+        video = result.scalar_one_or_none()
+
+        if video is None:
+            raise HTTPException(
+                404, f"Video with ID {video_id} not found or not owned by the user."
+            )
+
+        if resolution:
+            target_height = int(resolution.rstrip("p"))
+            # Attempt to find a matching encoded resolution (e.g., 720p)
+            result = await session.execute(
+                select(VideoResolution).where(
+                    (VideoResolution.video_id == video_id)
+                    & (VideoResolution.height == target_height)
+                )
+            )
+            res_obj = result.scalar_one_or_none()
+
+            if res_obj:
+                object_key = res_obj.playlist_path.lstrip("/")
+                filename = f"{video.name}_{res_obj.height}p.m3u8"
+                media_type = "application/vnd.apple.mpegurl"
+            else:
+                raise HTTPException(
+                    status_code=404,
+                    detail=ErrorResponse(
+                        message=f"Resolution '{resolution}' not found for this video."
+                    ).model_dump(),
+                )
+
+        logging.info(f"Downloading file with video id: {video_id}")
         chunk_generator = s3_client.download_file(
-            filename, 1024 * 1024 * 3, bucket_name="videos"
+            object_key, 1024 * 1024 * 3, bucket_name="videos"
         )
         headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
         return StreamingResponse(
-            chunk_generator, media_type="application/octet-stream", headers=headers
+            chunk_generator, media_type=media_type, headers=headers
         )
     except FileNotFoundError:
         logging.error(f"File '{filename}' not found")
@@ -159,6 +311,100 @@ async def get_file(
         )
     except Exception as e:
         logging.error(f"Error downloading file: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=ErrorResponse(message=str(e)).model_dump(),
+        )
+
+
+@router_files.delete(
+    "/delete_video",
+    response_model=FileResponse,
+    summary="Delete a video and its assets",
+    description=(
+        "Deletes a video entry from the database and removes all its related files "
+        "(HLS streams, thumbnails) from object storage."
+    ),
+    responses={
+        200: {"model": FileResponse, "description": "Video successfully deleted."},
+        400: {
+            "model": ErrorResponse,
+            "description": "Invalid request or unauthorized.",
+        },
+        404: {"model": ErrorResponse, "description": "Video not found."},
+        500: {"model": ErrorResponse, "description": "Unexpected server error."},
+    },
+)
+async def delete_files(
+    video_id: UUID = Query(..., description="UUID of the video to delete."),
+    user_id: UUID = Depends(get_current_user_id),
+    s3_client: "S3Client" = Depends(get_s3_client),
+    session: AsyncSession = Depends(get_async_session),
+) -> FileResponse:
+    """
+    Delete a video, its database record, and all associated storage files.
+    """
+    try:
+        result = await session.execute(
+            select(Video)
+            .join(Channel, Channel.id == Video.channel_id)
+            .where(
+                Video.id == video_id,
+                Channel.user_id == user_id,
+                Video.status_id == uuid5(NAMESPACE_DNS, "video_status:ready"),
+            )
+        )
+        video = result.scalar_one_or_none()
+
+        if video is None:
+            raise HTTPException(
+                404, f"Video with ID {video_id} not found or not owned by the user."
+            )
+
+        # ---- Derive filenames to remove from S3 ----
+        video_object_name = f"{video.id}"  # or f"{video.id}.mp4" depending on naming
+        hls_prefix = f"{video.id}/"  # where your encoded HLS segments live
+        thumbnail_path = (
+            video.thumbnail_path.lstrip("/") if video.thumbnail_path else None
+        )
+
+        # ---- Delete video and thumbnails from object storage ----
+        try:
+            await s3_client.delete_prefix(hls_prefix, bucket_name="videos")
+            # Delete original uploaded file
+            await s3_client.delete_file(video_object_name, bucket_name="videos")
+
+            # Delete thumbnail if exists
+            if thumbnail_path:
+                await s3_client.delete_file(
+                    thumbnail_path.split("/")[-1], bucket_name="video-thumbnails"
+                )
+
+        except Exception as s3_err:
+            logging.warning(f"Failed to remove S3 files for video {video_id}: {s3_err}")
+
+        # ---- Delete record from database ----
+        await session.execute(delete(Video).where(Video.id == video_id))
+        await session.commit()
+
+        logging.info(f"Video {video_id} deleted successfully by user {user_id}")
+
+        return FileResponse(
+            status="deleted",
+            files=[
+                FileMeta(
+                    file_id=video_id,
+                    filename=video.name,
+                    size=video.size,
+                )
+            ],
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        await session.rollback()
+        logging.error(f"Error deleting video {video_id}: {e}")
         raise HTTPException(
             status_code=500,
             detail=ErrorResponse(message=str(e)).model_dump(),
@@ -190,12 +436,12 @@ async def get_file(
     },
 )
 async def sign_object(
-    path: str = Query(
+    file_path: str = Query(
         ..., description="Path to the file within the videos bucket to sign."
     ),
     s3_client: "S3Client" = Depends(get_s3_client),
 ) -> SignedUrlResponse:
-    path = path.replace("/minio/videos/", "")
+    path = file_path.replace("/minio/videos/", "")
     try:
         raw_presigned_url = await s3_client.generate_presigned_url(
             path, "get_object", expires_in=3600, bucket_name="videos"

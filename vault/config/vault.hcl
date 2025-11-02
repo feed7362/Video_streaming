@@ -2,6 +2,7 @@ listener "tcp" {
   address                 = "0.0.0.0:8200"
   # tls_cert_file = "/etc/vault/tls/vault.crt"
   # tls_key_file  = "/etc/vault/tls/vault.key"
+  # tls_min_version = "tls13"
   tls_disable             = 1
   proxy_protocol_behavior = "use_always"
 }
