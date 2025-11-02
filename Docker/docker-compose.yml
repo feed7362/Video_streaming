@@ -238,6 +238,7 @@ services:
       - VAULT_ADDR=http://vault:8200
       - VAULT_API_ADDR=http://vault:8200
       - VAULT_CLUSTER_ADDR=http://vault:8201
+      - VAULT_TOKEN=${VAULT_TOKEN}
     volumes:
       - vault_data:/opt/vault/data
       - ../vault/config:/etc/vault
