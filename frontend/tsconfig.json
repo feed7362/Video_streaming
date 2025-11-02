@@ -1,20 +1,16 @@
 {
-  "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.app.json"
-    },
-    {
-      "path": "./tsconfig.node.json"
-    }
-  ],
-  /* Shadcn ui */
   "compilerOptions": {
-    "types": ["vitest/globals", "@testing-library/jest-dom"],
-    "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
-    }
-  }
+      "@/*": [ "src/*" ],
+      "@api/*": [ "src/lib/api/*" ]
+    },
+    "types": [ "vitest/globals", "@testing-library/jest-dom" ],
+    "jsx": "react-jsx"
+  },
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
 }
