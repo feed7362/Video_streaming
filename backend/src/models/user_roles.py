@@ -22,5 +22,5 @@ class Role(Base):
 
     users: Mapped[List["User"]] = relationship(back_populates="role")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Role {self.name}>"

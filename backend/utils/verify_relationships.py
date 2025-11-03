@@ -11,7 +11,7 @@ import sys
 from sqlalchemy.orm import DeclarativeBase, RelationshipProperty, configure_mappers
 
 
-def import_all_models(package_name: str):
+def import_all_models(package_name: str) -> None:
     """
     Imports all models from the given package to ensure they are registered or loaded properly.
 
@@ -28,7 +28,7 @@ def import_all_models(package_name: str):
             importlib.import_module(modname)
 
 
-def verify_relationship_pairs(base: type[DeclarativeBase]):
+def verify_relationship_pairs(base: type[DeclarativeBase]) -> None:
     """Check that every relationship(back_populates=X) is mirrored correctly on the other side."""
     print("🔍 Verifying SQLAlchemy relationships...")
 

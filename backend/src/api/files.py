@@ -166,6 +166,11 @@ async def upload_files(
             existing_video = existing.scalar_one_or_none()
             await session.commit()
 
+            if existing_video is None:
+                raise HTTPException(
+                    500, "Duplicate video hash found but no record exists"
+                )
+
             return FileResponse(
                 status="duplicate",
                 files=[
@@ -179,8 +184,9 @@ async def upload_files(
 
         # ---- Thumbnail ----
         if thumbnail:
+            thumb_suffix = FilePath(thumbnail.filename or "").suffix
             thumbnail_id = str(uuid4())
-            thumb_name = f"{thumbnail_id}{FilePath(thumbnail.filename).suffix}"
+            thumb_name = f"{thumbnail_id}{thumb_suffix}"
             await s3_client.upload_file(
                 thumb_name, thumbnail.file, bucket_name="video-thumbnails"
             )
@@ -193,7 +199,8 @@ async def upload_files(
 
         # ----- Upload video to S3 -----
         try:
-            new_filename = f"{video_id}{FilePath(video.filename).suffix}"
+            video_suffix = FilePath(video.filename or "").suffix
+            new_filename = f"{video_id}{video_suffix}"
             await s3_client.upload_file(new_filename, video.file, bucket_name="videos")
         except Exception as e:
             logging.error(f"S3 upload failed. Removing Video row {video_id}: {e}")

@@ -109,7 +109,9 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
     )
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc) -> JSONResponse:
+    async def http_exception_handler(
+        request: Request, exc: HTTPException
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -130,7 +132,9 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
         )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc) -> JSONResponse:
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=400,
             content={"detail": str(exc)},

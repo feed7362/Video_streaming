@@ -7,13 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..infrastructure.database import get_async_session
 from ..models import Channel, User
 
-# from ..core.security import get_current_user
-
 
 async def get_current_user_id(
     # current_user = Depends(get_current_user)
     session: AsyncSession = Depends(get_async_session),
-):
+) -> UUID:
     user_id = UUID("04a41021-ad20-4e8b-b11e-7781ec042903")
     user = await session.get(User, user_id)
 

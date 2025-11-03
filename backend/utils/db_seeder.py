@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-from uuid import NAMESPACE_DNS, uuid5
+from uuid import NAMESPACE_DNS, UUID, uuid5
 
 from sqlalchemy.dialects.postgresql import insert
 
@@ -18,12 +18,12 @@ from src.models import (
 SEED_FILE = Path(__file__).parent / "initial_data.json"
 
 
-def deterministic_uuid(scope: str, name: str):
+def deterministic_uuid(scope: str, name: str) -> UUID:
     """Generate deterministic UUID5 using a scope prefix."""
     return uuid5(NAMESPACE_DNS, f"{scope}:{name.lower()}")
 
 
-async def seed_initial_data():
+async def seed_initial_data() -> None:
     """Seed initial system data into the database safely (idempotent)."""
     with open(SEED_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)

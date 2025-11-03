@@ -219,7 +219,7 @@ async def react_to_video(
     payload: ReactionRequest,  # {"reaction_name": "like"}
     session: AsyncSession = Depends(get_async_session),
     user_id: UUID = Depends(get_current_user_id),
-):
+) -> ReactionResponse:
     counts = await toggle_reaction(
         session=session,
         user_id=user_id,
@@ -261,7 +261,7 @@ async def react_to_comment(
     payload: ReactionRequest,
     session: AsyncSession = Depends(get_async_session),
     user_id: UUID = Depends(get_current_user_id),
-):
+) -> ReactionResponse:
     counts = await toggle_reaction(
         session=session,
         user_id=user_id,

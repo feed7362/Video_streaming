@@ -17,6 +17,8 @@ class CommentRead(BaseModel):
     likes_count: int
     dislikes_count: int
     parent_id: Optional[UUID] = None
+    user_name: str
+    user_avatar: Optional[str]
 
     class Config:
         from_attributes = True
