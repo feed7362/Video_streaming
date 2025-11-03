@@ -48,6 +48,7 @@ async def stream_ffmpeg(
     output_dir: Path,
     fps: int,
     segment_duration: int = 3,
+    has_audio: bool = True,
 ) -> int:
     out_template = str(output_dir / "stream_%v" / "seg_%03d.ts")
     out_playlist = str(output_dir / "stream_%v" / "playlist.m3u8")
@@ -98,7 +99,10 @@ async def stream_ffmpeg(
             "pad=ceil(iw/2)*2:ceil(ih/2)*2[v1080]"
         )
     cmd += ["-filter_complex", filter_complex]
-
+    if has_audio:
+        var_stream_map = "v:0,a:0,name:360p v:1,a:1,name:720p v:2,a:2,name:1080p"
+    else:
+        var_stream_map = "v:0,name:360p v:1,name:720p v:2,name:1080p"
     # ---------- Codec setup ----------
     vcodec = "h264_nvenc" if use_gpu else "libx264"
 
@@ -183,7 +187,7 @@ async def stream_ffmpeg(
         "-master_pl_name",
         "master.m3u8",
         "-var_stream_map",
-        "v:0,a:0,name:360p v:1,a:1,name:720p v:2,a:2,name:1080p",
+        var_stream_map,
         out_playlist,
     ]
     process = await asyncio.create_subprocess_exec(
@@ -224,15 +228,13 @@ async def stream_ffmpeg(
 
 async def get_video_properties(
     input_async_iter: AsyncIterable[bytes],
-) -> dict[str, float | int]:
+) -> dict[str, float | int | bool]:
+    # Feed ffprobe only a small portion of data
     cmd = [
         "ffprobe",
         "-v",
         "error",
-        "-select_streams",
-        "v:0",
-        "-show_entries",
-        "stream=r_frame_rate,width,height",
+        "-show_streams",
         "-of",
         "json",
         "pipe:0",
@@ -246,14 +248,14 @@ async def get_video_properties(
         if process.stdin is not None:
             async for chunk in input_async_iter:
                 if process.stdin.is_closing():
-                    break  # ffprobe closed its stdin — stop feeding
+                    break
                 process.stdin.write(chunk)
                 await process.stdin.drain()
             process.stdin.write_eof()
     except BrokenPipeError:
         logging.warning("ffprobe closed stdin early (likely got enough data).")
     except Exception as e:
-        logging.error(f"Error reading initial chunks for ffprobe: {e}")
+        logging.error(f"Error reading chunks for ffprobe: {e}")
         process.kill()
         raise
     finally:
@@ -261,20 +263,35 @@ async def get_video_properties(
             process.stdin.close()
 
     stdout, stderr = await process.communicate()
-
     if process.returncode != 0:
         logging.error(f"ffprobe stderr: {stderr.decode(errors='ignore')}")
         raise RuntimeError(f"ffprobe failed: {stderr.decode()}")
 
-    data = json.loads(stdout)["streams"][0]
-    fps_fraction = data.get("r_frame_rate", "0/1")
-    numerator, denominator = map(int, fps_fraction.split("/"))
-    fps = numerator / denominator if denominator != 0 else 0
-    bit_rate = data.get("bit_rate", 0)
+    info = json.loads(stdout)
+    streams = info.get("streams", [])
+
+    # Extract video and check audio presence
+    video_stream = next((s for s in streams if s.get("codec_type") == "video"), None)
+    has_audio = any(s.get("codec_type") == "audio" for s in streams)
+
+    if not video_stream:
+        raise RuntimeError("No video stream found")
+
+    fps_fraction = video_stream.get("r_frame_rate", "0/1")
+    num, den = map(int, fps_fraction.split("/"))
+    fps = num / den if den else 0
+
+    # Cast bit_rate safely
+    bit_rate = video_stream.get("bit_rate", 0)
+    try:
+        bit_rate = int(bit_rate)
+    except (ValueError, TypeError):
+        bit_rate = 0
 
     return {
         "fps": fps,
-        "width": data.get("width", 0),
-        "height": data.get("height", 0),
+        "width": video_stream.get("width", 0),
+        "height": video_stream.get("height", 0),
         "bitrate": bit_rate // 1000 if bit_rate else 0,
+        "has_audio": has_audio,
     }
