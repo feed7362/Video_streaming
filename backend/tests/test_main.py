@@ -1,11 +1,12 @@
 import sys
 import types
+from typing import Any
 
 from fastapi.testclient import TestClient
 
 
 class FakeVaultClient:
-    def __init__(self, *a, **kw) -> None:
+    def __init__(self, *a: Any, **kw: Any) -> None:
         pass
 
     def read_secret(self, path: str, mount_point: str = "secret") -> dict:
