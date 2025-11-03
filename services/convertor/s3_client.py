@@ -128,6 +128,7 @@ class S3Client:
             async with self._get_client() as client:
                 head = await client.head_object(Bucket=bucket_name, Key=object_name)
                 size = head["ContentLength"]
+                chunk_size = max(min(chunk_size, size), 1 * 1024 * 1024)
 
                 for start in range(0, size, chunk_size):
                     end = min(start + chunk_size - 1, size - 1)

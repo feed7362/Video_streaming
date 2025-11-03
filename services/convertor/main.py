@@ -20,6 +20,9 @@ async def prepare_dirs(video_id: str) -> Path:
 
 def cleanup_dirs(video_id: str) -> None:
     base = LOCAL_BASE / video_id
+    if not base.exists():
+        logging.warning(f"Cleanup skipped — {base} does not exist")
+        return
     try:
         shutil.rmtree(base)
         logging.debug(f"Removed local dirs for {video_id}")
@@ -56,6 +59,11 @@ async def stream_ffmpeg(
     # ---------- Common base command ----------
     cmd = [
         "ffmpeg",
+        "-hide_banner",
+        "-analyzeduration",
+        "100M",
+        "-probesize",
+        "100M",
         "-y",
         "-fflags",
         "+genpts",
@@ -116,7 +124,7 @@ async def stream_ffmpeg(
         "-map",
         "[v720]",
         "-map",
-        "a:0",
+        "a:0?",
         "-c:v:1",
         vcodec,
         "-b:v:1",
@@ -133,7 +141,7 @@ async def stream_ffmpeg(
         "-map",
         "[v1080]",
         "-map",
-        "a:0",
+        "a:0?",
         "-c:v:2",
         vcodec,
         "-b:v:2",
@@ -190,6 +198,7 @@ async def stream_ffmpeg(
             async for chunk in input_async_iter:
                 process.stdin.write(chunk)
                 await process.stdin.drain()
+            process.stdin.write_eof()
         except Exception as e:
             logging.error(f"Error feeding ffmpeg stdin: {e}")
         finally:
@@ -240,6 +249,7 @@ async def get_video_properties(
                     break  # ffprobe closed its stdin — stop feeding
                 process.stdin.write(chunk)
                 await process.stdin.drain()
+            process.stdin.write_eof()
     except BrokenPipeError:
         logging.warning("ffprobe closed stdin early (likely got enough data).")
     except Exception as e:
