@@ -33,10 +33,18 @@ jobs:
           pr_label: auto-pr
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Auto merge the PR
+      - name: Enable Auto-Merge
         if: steps.create_pr.outputs.pull_request_number != ''
         uses: peter-evans/enable-pull-request-automerge@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ steps.create_pr.outputs.pull_request_number }}
           merge-method: merge
+
+      - name: Merge the Pull Request
+        if: steps.create_pr.outputs.pull_request_number != ''
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          merge-method: squash
+          pull-request-number: 1
