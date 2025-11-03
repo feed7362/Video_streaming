@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Generic, List, Optional, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from ..models import Comment
 
@@ -20,8 +20,7 @@ class CommentRead(BaseModel):
     user_name: str
     user_avatar: Optional[str]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 def to_comment_read(c: Comment) -> CommentRead:

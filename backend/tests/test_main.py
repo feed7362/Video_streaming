@@ -1,6 +1,28 @@
+import sys
+import types
+
 from fastapi.testclient import TestClient
 
-from ..main import create_app
+
+class FakeVaultClient:
+    def __init__(self, *a, **kw) -> None:
+        pass
+
+    def read_secret(self, path: str, mount_point: str = "secret") -> dict:
+        return {
+            "POSTGRES_USER": "test_user",
+            "POSTGRES_PASSWORD": "test_password",
+            "POSTGRES_HOST": "localhost",
+            "POSTGRES_PORT": "5432",
+            "POSTGRES_DB": "test_db",
+        }
+
+
+fake_vault_module = types.ModuleType("src.infrastructure.vault")
+fake_vault_module.VaultClient = FakeVaultClient  # type: ignore[attr-defined]
+sys.modules["src.infrastructure.vault"] = fake_vault_module
+
+from ..main import create_app  # noqa: E402
 
 
 def test_read_root() -> None:
