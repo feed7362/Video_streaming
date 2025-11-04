@@ -1,5 +1,5 @@
 import logging
-from typing import Literal
+from typing import List, Literal
 from uuid import NAMESPACE_DNS, UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -16,7 +16,14 @@ from ..core.video import (
     toggle_reaction,
 )
 from ..infrastructure.database import get_async_session
-from ..models import Channel, CommentReaction, PrivacyStatus, Video, VideoReaction
+from ..models import (
+    Category,
+    Channel,
+    CommentReaction,
+    PrivacyStatus,
+    Video,
+    VideoReaction,
+)
 from ..models.comments import Comment
 from ..schemas.comments import CommentPage, to_comment_read
 from ..schemas.endpoint import APIError, ErrorResponse
@@ -266,6 +273,37 @@ async def get_videos_category(
         mapper=to_video_preview,
     )
     return VideoPreviewPage(items=videos, page=page, size=size, total=total)
+
+
+@router_videos.get(
+    "/get_categories",
+    response_model=List[str],
+    summary="List all videos of categories",
+    description="Returns a list of distinct video category Name.",
+    response_description="List of unique category Name.",
+    responses={
+        200: {
+            "model": List[str],
+            "description": "List of categories successfully retrieved.",
+        },
+        500: {
+            "model": APIError,
+            "description": "Internal server error.",
+        },
+    },
+)
+async def get_categories(
+    session: AsyncSession = Depends(get_async_session),
+) -> list[str]:
+    result = await session.execute(
+        select(Category.name)
+        .join(Video, Category.id == Video.category_id)
+        .distinct()
+        .order_by(Category.name)
+    )
+    categories = result.scalars().all()
+
+    return [str(c) for c in categories]
 
 
 @router_videos.post(
