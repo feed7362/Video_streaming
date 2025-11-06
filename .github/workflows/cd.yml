@@ -70,17 +70,18 @@ jobs:
       - name: 🧱 Build Docker image
         if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
         run: |
-          IMAGE=${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.PROJECT_NAME }}-${{ matrix.service }}:${{ github.sha }}
-          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
-          docker build -t $IMAGE ${{ matrix.path }}
-          echo "✅ Built $IMAGE"
+          IMAGE_BASE=${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.PROJECT_NAME }}-${{ matrix.service }}
+          docker build -t $IMAGE_BASE:${{ github.sha }} -t $IMAGE_BASE:latest ${{ matrix.path }}
+          echo "IMAGE_BASE=$IMAGE_BASE" >> $GITHUB_ENV
+          echo "✅ Built $IMAGE_BASE"
 
       - name: 🔐 Login to GHCR
         if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
-      - name: 📦 Push Docker image
+      - name: 📦 Push Docker images
         if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
         run: |
-          docker push $IMAGE
-          echo "✅ Pushed $IMAGE"
+          docker push $IMAGE_BASE:${{ github.sha }}
+          docker push $IMAGE_BASE:latest
+          echo "✅ Pushed $IMAGE_BASE"
