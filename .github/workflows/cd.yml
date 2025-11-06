@@ -18,9 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
-      auth: ${{ steps.filter.outputs.auth }}
+#      auth: ${{ steps.filter.outputs.auth }}
       convertor: ${{ steps.filter.outputs.convertor }}
-      moderation: ${{ steps.filter.outputs.moderation }}
+#      moderation: ${{ steps.filter.outputs.moderation }}
       frontend: ${{ steps.filter.outputs.frontend }}
 
     steps:

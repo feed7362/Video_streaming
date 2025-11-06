@@ -41,6 +41,7 @@ async def encode_video(filename: str) -> None:
         )
         properties = await get_video_properties(probe_stream)
         fps = properties.get("fps")
+        has_audio = bool(properties.get("has_audio"))
         if not fps:
             await broker.publish(
                 {"video_id": video_id, "status": "failed"},
@@ -54,9 +55,7 @@ async def encode_video(filename: str) -> None:
         )
         logging.debug("[ffmpeg] Starting encoding task for video %s", video_id)
 
-        await stream_ffmpeg(
-            async_gen, base_dir, int(round(fps)), 3, properties["has_audio"]
-        )
+        await stream_ffmpeg(async_gen, base_dir, int(round(fps)), 3, has_audio)
         logging.debug(f"Encoding task for video: {video_id} finished")
 
         await s3_client.upload_dir(video_id, base_dir, bucket_name="videos")
