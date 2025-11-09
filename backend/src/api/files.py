@@ -1,4 +1,5 @@
 import logging
+import re
 from pathlib import Path as FilePath
 from typing import TYPE_CHECKING, Annotated, Literal, Optional
 from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
@@ -193,7 +194,7 @@ async def upload_files(
             await session.execute(
                 update(Video)
                 .where(Video.id == video_id)
-                .values(thumbnail_path=f"/minio/thumbnails/{thumb_name}")
+                .values(thumbnail_path=f"/minio/video-thumbnails/{thumb_name}")
             )
             await session.commit()
 
@@ -447,17 +448,25 @@ async def sign_object(
         ..., description="Path to the file within the videos bucket to sign."
     ),
     s3_client: "S3Client" = Depends(get_s3_client),
-) -> SignedUrlResponse:
-    path = file_path.replace("/minio/videos/", "")
+) -> JSONResponse:
+    match = re.match(r"^/minio/([^/]+)/(.*)$", file_path)
+    if not match:
+        raise HTTPException(status_code=400, detail="Invalid file path format")
+    bucket_name, object_key = match.groups()
+    logging.info(f"Generating signed URL for file {object_key} in bucket {bucket_name}")
     try:
         raw_presigned_url = await s3_client.generate_presigned_url(
-            path, "get_object", expires_in=3600, bucket_name="videos"
+            object_key, "get_object", expires_in=3600, bucket_name=bucket_name
         )
         if raw_presigned_url is None:
-            logging.error(f"File '{path}' not found or URL could not be generated")
+            logging.error(
+                f"File '{object_key}' on bucket {bucket_name} not found or URL could not be generated"
+            )
             raise HTTPException(
                 status_code=404,
-                detail=ErrorResponse(message=f"File '{path}' not found").model_dump(),
+                detail=ErrorResponse(
+                    message=f"File '{object_key}' on bucket {bucket_name} not found"
+                ).model_dump(),
             )
     except Exception as e:
         logging.error(f"Error streaming file: {e}")
@@ -466,4 +475,10 @@ async def sign_object(
             detail=ErrorResponse(message=str(e)).model_dump(),
         )
 
-    return SignedUrlResponse(path=path, signed_url=raw_presigned_url, expires_in=3600)
+    payload = SignedUrlResponse(
+        path=object_key,
+        signed_url=raw_presigned_url,
+        expires_in=3600,
+    )
+    headers = {"X-Signed-Url": raw_presigned_url}
+    return JSONResponse(content=payload.model_dump(), headers=headers)
