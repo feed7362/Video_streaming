@@ -113,12 +113,12 @@ class Video(Base):
     )
 
     @validates("name")
-    def validate_name(self, _, value: str) -> str:
+    def validate_name(self, _: str, value: str) -> str:
         assert value.strip(), "Video name cannot be empty"
         return value.strip()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Video name='{self.name}' status={self.status.value}>"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} — {self.status.value}, {self.privacy}"

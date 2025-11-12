@@ -33,7 +33,7 @@ const data = {
                 },
                 {
                     title: "History",
-                    url: "/history",  
+                    url: "/history",
                 },
                 {
                     title: "Liked",

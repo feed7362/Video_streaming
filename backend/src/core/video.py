@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import InstrumentedAttribute, selectinload
 
 from ..models import CommentReaction, ReactionType
 from ..models.video import Video
@@ -76,17 +76,19 @@ async def get_video_views(video_id: uuid.UUID, session: AsyncSession) -> int:
     views_count = await session.scalar(
         select(func.count()).where(VideoView.video_id == video_id)
     )
-    return views_count
+    return views_count or 0
 
 
 async def toggle_reaction(
     session: AsyncSession,
     user_id: uuid.UUID,
     target_model: Type[VideoReaction] | Type[CommentReaction],
-    target_field,  # target_model.video_id or target_model.comment_id
+    target_field: InstrumentedAttribute[
+        uuid.UUID
+    ],  # target_model.video_id or target_model.comment_id
     target_id: uuid.UUID,
     reaction_name: str,  # e.g. "like" or "love"
-):
+) -> dict[str, int]:
     """Toggle reaction for a user on a video or comment."""
 
     reaction_type_id = await session.scalar(
@@ -103,18 +105,19 @@ async def toggle_reaction(
     existing = await session.scalar(stmt)
 
     # Remove existing reaction if same type (toggle off)
-    if existing and existing.reaction_type_id == reaction_type_id:
-        await session.execute(
-            delete(target_model).where(target_model.id == existing.id)
-        )
+    if isinstance(existing, (VideoReaction, CommentReaction)):
+        if existing and existing.reaction_type_id == reaction_type_id:
+            await session.execute(
+                delete(target_model).where(target_model.id == existing.id)
+            )
 
-    # Update to new reaction type if different
-    elif existing:
-        await session.execute(
-            update(target_model)
-            .where(target_model.id == existing.id)
-            .values(reaction_type_id=reaction_type_id)
-        )
+        # Update to new reaction type if different
+        elif existing:
+            await session.execute(
+                update(target_model)
+                .where(target_model.id == existing.id)
+                .values(reaction_type_id=reaction_type_id)
+            )
     # Create new reaction if none
     else:
         session.add(

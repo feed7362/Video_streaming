@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import List, Literal
 from uuid import NAMESPACE_DNS, UUID, uuid5
 
@@ -25,7 +26,7 @@ from ..models import (
     VideoReaction,
 )
 from ..models.comments import Comment
-from ..schemas.comments import CommentPage, to_comment_read
+from ..schemas.comments import CommentCreate, CommentPage, CommentRead, to_comment_read
 from ..schemas.endpoint import APIError, ErrorResponse
 from ..schemas.privacy import PrivacyLevel, PrivacyResponse
 from ..schemas.reaction import ReactionRequest, ReactionResponse
@@ -139,6 +140,7 @@ async def get_comments(
     session: AsyncSession = Depends(get_async_session),
 ) -> CommentPage:
     filters = [Comment.video_id == video_id]
+    preload = [selectinload(Comment.user)]
 
     comments, total = await paginate_query(
         session=session,
@@ -147,6 +149,7 @@ async def get_comments(
         size=size,
         filters=filters,
         order_by=Comment.created_at.desc(),
+        preload=preload,
         mapper=to_comment_read,
     )
 
@@ -388,6 +391,121 @@ async def react_to_comment(
         target_type="comment",
         reactions=counts,
     )
+
+
+@router_videos.post(
+    "/comment/{video_id}",
+    response_model=CommentRead,
+    summary="Add a comment to a video",
+    description="Adds a new comment to the specified video.",
+    responses={
+        201: {"model": CommentRead, "description": "Comment created successfully."},
+        404: {"model": APIError, "description": "Video not found."},
+        400: {"model": APIError, "description": "Invalid data."},
+        500: {"model": APIError, "description": "Internal server error."},
+    },
+    status_code=201,
+)
+async def add_comment(
+    video_id: UUID,
+    payload: CommentCreate,
+    parent_id: UUID | None = Query(
+        None, description="Optional ID of the parent comment to reply to."
+    ),
+    session: AsyncSession = Depends(get_async_session),
+    user_id: UUID = Depends(get_current_user_id),
+) -> CommentRead:
+    """Add a new comment to a video."""
+
+    # 1. Validate the video exists
+    video = await session.scalar(select(Video).where(Video.id == video_id))
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    if parent_id:
+        parent_comment = await session.scalar(
+            select(Comment).where(Comment.id == parent_id)
+        )
+        if not parent_comment:
+            raise HTTPException(status_code=404, detail="Parent comment not found")
+        if parent_comment.video_id != video_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Parent comment belongs to a different video",
+            )
+
+    # 2. Create a comment instance
+    comment = Comment(
+        video_id=video_id,
+        user_id=user_id,
+        content=payload.content,
+        parent_id=parent_id,
+        created_at=datetime.now(),
+    )
+
+    # 3. Save to DB
+    session.add(comment)
+    await session.commit()
+    await session.refresh(comment)
+
+    result = await session.execute(
+        select(Comment)
+        .options(selectinload(Comment.user))
+        .where(Comment.id == comment.id)
+    )
+    comment_with_user = result.scalar_one()
+
+    # 5. Return as schema
+    return to_comment_read(comment_with_user)
+
+
+@router_videos.delete(
+    "/comment/{comment_id}",
+    summary="Delete a comment",
+    description="Deletes a comment if the current user is its author or the owner of the video.",
+    responses={
+        204: {"description": "Comment deleted successfully."},
+        403: {
+            "model": APIError,
+            "description": "Not authorized to delete this comment.",
+        },
+        404: {"model": APIError, "description": "Comment not found."},
+        500: {"model": APIError, "description": "Internal server error."},
+    },
+    status_code=204,
+)
+async def delete_comment(
+    comment_id: UUID,
+    session: AsyncSession = Depends(get_async_session),
+    user_id: UUID = Depends(get_current_user_id),
+):
+    """Delete a comment (only allowed by the comment author or video owner)."""
+
+    # 1. Fetch the comment with related video + channel (for ownership check)
+    result = await session.execute(
+        select(Comment)
+        .options(selectinload(Comment.video).selectinload(Video.channel))
+        .where(Comment.id == comment_id)
+    )
+    comment = result.scalar_one_or_none()
+
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    # 2. Authorization: only author or video owner can delete
+    is_author = comment.user_id == user_id
+    is_video_owner = comment.video.channel.user_id == user_id
+
+    if not (is_author or is_video_owner):
+        raise HTTPException(
+            status_code=403, detail="Not allowed to delete this comment"
+        )
+
+    # 3. Delete and commit
+    await session.delete(comment)
+    await session.commit()
+
+    return JSONResponse(status_code=204, content=None)
 
 
 @router_videos.patch(

@@ -8,16 +8,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig({
-    plugins: [react(), tailwindcss()],
-    test: {
-        globals: true,
-        environment: "jsdom",
-        setupFiles: "./src/setupTests.ts",
+  plugins: [react(), tailwindcss()],
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: "./src/setupTests.ts",
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      "@api": path.resolve(__dirname, "./src/lib/api"),
     },
-    resolve: {
-        alias: {
-            "@": path.resolve(__dirname, "./src"),
-            "@api": path.resolve(__dirname, "./src/lib/api"),
-        },
-    },
+  },
 });

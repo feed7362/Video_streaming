@@ -48,7 +48,7 @@ async def stream_ffmpeg(
     output_dir: Path,
     fps: int,
     segment_duration: int = 3,
-    has_audio: bool = True
+    has_audio: bool = True,
 ) -> int:
     out_template = str(output_dir / "stream_%v" / "seg_%03d.ts")
     out_playlist = str(output_dir / "stream_%v" / "playlist.m3u8")
@@ -232,9 +232,11 @@ async def get_video_properties(
     # Feed ffprobe only a small portion of data
     cmd = [
         "ffprobe",
-        "-v", "error",
+        "-v",
+        "error",
         "-show_streams",
-        "-of", "json",
+        "-of",
+        "json",
         "pipe:0",
     ]
 

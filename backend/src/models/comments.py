@@ -62,12 +62,12 @@ class Comment(Base):
     )
 
     @validates("content")
-    def validate_content(self, _, value: str) -> str:
+    def validate_content(self, _: str, value: str) -> str:
         assert value.strip(), "Comment cannot be empty"
         return value.strip()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Comment {self.id} by {self.user_id}>"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Comment by {self.user_id} on video {self.video_id}"

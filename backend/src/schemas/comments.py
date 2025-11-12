@@ -2,11 +2,15 @@ from datetime import datetime
 from typing import Generic, List, Optional, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from ..models import Comment
 
 T = TypeVar("T")
+
+
+class CommentCreate(BaseModel):
+    content: str
 
 
 class CommentRead(BaseModel):
@@ -17,9 +21,10 @@ class CommentRead(BaseModel):
     likes_count: int
     dislikes_count: int
     parent_id: Optional[UUID] = None
+    user_name: str
+    user_avatar: Optional[str]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 def to_comment_read(c: Comment) -> CommentRead:
