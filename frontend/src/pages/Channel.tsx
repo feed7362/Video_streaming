@@ -9,7 +9,7 @@ import channelApi from "@api/channelApi";
 import videoApi from "@api/videoApi";
 
 export default function Channel() {
-    const { channelName } = useParams<{ channelName: string }>();
+    const { channel_name } = useParams<{ channel_name: string }>();
     const [channel, setChannel] = useState<ChannelInfo | null>(null);
     const [videos, setVideos] = useState<VideoPreview[]>([]);
     const [page, setPage] = useState(1);
@@ -17,16 +17,16 @@ export default function Channel() {
     const [loading, setLoading] = useState(false);
 
     const loadChannelInfo = async () => {
-        if (!channelName) return;
-        const data = await channelApi.getChannelInfo(channelName);
+        if (!channel_name) return;
+        const data = await channelApi.getChannelInfo(channel_name);
         setChannel(data);
     };
 
     const loadMore = useCallback(async () => {
-        if (loading || !channelName) return;
+        if (loading || !channel_name) return;
         setLoading(true);
 
-        const data = await videoApi.getVideos({ page, channelName });
+        const data = await videoApi.getVideos({ page, channel_name });
 
         if (!data || data.length === 0) {
             setHasMore(false);
@@ -37,7 +37,7 @@ export default function Channel() {
         setVideos(prev => [...prev, ...data]);
         setPage(prev => prev + 1);
         setLoading(false);
-    }, [page, loading, channelName]);
+    }, [page, loading, channel_name]);
 
     useEffect(() => {
         setVideos([]);
@@ -46,7 +46,7 @@ export default function Channel() {
 
         loadChannelInfo();
         loadMore();
-    }, [channelName]);
+    }, [channel_name]);
 
     if (!channel) return <div className="text-center py-20">Loading...</div>;
 
@@ -55,15 +55,15 @@ export default function Channel() {
             <SiteHeader />
 
             <div className="w-full h-48 sm:h-60 md:h-72 bg-gray-800">
-                {channel.banner && <img src={channel.banner} alt="Channel Banner" className="w-full h-full object-cover" />}
+                {channel.channelBanner && <img src={channel.channelBanner} alt="Channel Banner" className="w-full h-full object-cover" />}
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-6 border-b border-gray-700">
                 <div className="flex items-center gap-4">
-                    <img src={channel.avatar} alt="Avatar" className="w-20 h-20 rounded-full border" />
+                    <img src={channel.channel_avatar} alt="Avatar" className="w-20 h-20 rounded-full border" />
                     <div>
                         <h1 className="text-2xl font-bold">{channel.name}</h1>
-                        <p className="text-gray-400">{channel.subscribers} subscribers</p>
+                        <p className="text-gray-400">{channel.subscribersCount} subscribers</p>
                     </div>
                 </div>
 
@@ -84,7 +84,7 @@ export default function Channel() {
                                     title={v.title}
                                     thumbnail={v.previewUrl}
                                     channel_name={channel.name}
-                                    channel_avatar={channel.avatar}
+                                    channel_avatar={channel.channel_avatar}
                                 />
                             </Link>
                         ))}

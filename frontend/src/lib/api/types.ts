@@ -1,25 +1,28 @@
 export interface ChannelInfo {
-    channelName: string;
-    channelAvatar: string;
+    channel_name: string;
+    channel_avatar: string;
     channelBanner?: string;
     subscribersCount: number;
     videosCount: number;
     bio?: string;
     createdAt: string;
+    name: string;
     isOwner?: boolean;
 }
 
 export interface VideoPreview {
+    thumbnail_url?: string;
+    channel_name?: string;
     id: string;
     title: string;
-    previewUrl?: string;
+    previewUrl: string;
+    channel_avatar: string;
     createdAt: string;
     channel: string;
     views: number;
-    channel_avatar?: string;
-    privacy: "Public" | "Private";
     likesCount: number;
     dislikesCount: number;
+    privacy: string;
 }
 
 export interface Video {
@@ -27,21 +30,25 @@ export interface Video {
     title: string;
     size: number;
     hash: string;
-    thumbnailUrl: string;
-    createdAt: string;
+    name: string;
+    avatar_url?: string;
+    master_hls_url: string;
+    thumbnail_url: string;
+    created_at: string;
     channelId: string;
-    viewsCount: number;
-    likesCount: number;
-    dislikesCount: number;
-    isPublic: boolean;
+    views_count: number;
+    likes_count: number;
+    dislikes_count: number;
+    privacy: string;
     category?: string;
-    channelAvatar?: string;
-    channelName: string;
+    channel_avatar?: string;
+    channel_name: string;
     status: "Processing" | "Ready" | "Failed";
     comments?: VideoComment[];
     commentCount?: number;
-    previewUrl?: string;
+    preview_url?: string;
     description?: string;
+    timeAgo?: string;
 }
 
 export interface VideoComment {
@@ -76,11 +83,12 @@ export interface UserInfo {
 }
 
 export interface ChannelPreview {
-channelName: string;
-channelAvatar: string;
+channel_name: string;
+channel_avatar: string;
 subscribersCount: number;
 videosCount: number;
 }
+
 export interface CommentPage {
     items: Comment[];
     page: number;
@@ -128,3 +136,51 @@ export interface Category {
     id: string;
     name: string;
 }
+
+export interface UploadedFile {
+    file_id: string;
+    filename: string;
+    size: number;
+}
+
+export interface UploadResponse {
+    status: string;
+    files?: UploadedFile[];
+    message?: string;
+}
+
+export interface DownloadVideo {
+    file_id: string;
+    filename: string;
+    size: number;
+}
+
+export interface DownloadResponse {
+    status: string;
+    files: DownloadVideo[];
+    message?: string;
+}
+
+export interface ReactionResponse {
+    likesCount: number;
+    dislikesCount: number;
+    target_id: string;
+    target_type: string;
+    reactions: {
+        like: number;
+        dislike: number;
+        [key: string]: number;
+    };
+}
+
+export type VideoDetail = VideoPreview & {
+    timeAgo?: string;
+    description: string;
+    likesCount: number;
+    dislikeCount: number;
+    userReaction: 'like' | 'dislike' | null;
+};
+
+export type VideoPreviewWithTime = VideoPreview & {
+    timeAgo: string;
+};

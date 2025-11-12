@@ -1,162 +1,130 @@
-﻿import { useRef, useState } from "react";
+﻿import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ArrowBigUpDash } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import api from "@api/videoApi";
+import categoriesApi from "@api/categoriesApi";
+import { useToast } from "@/components/ui/toast/use-toast";
+import type { Category } from "@api/types";
+import { getErrorMessage } from "@/utils/error";
 
 export default function Upload() {
-    const [videoFile, setVideoFile] = useState<File | undefined>(undefined);
-    const [thumbnailFile, setThumbnailFile] = useState<File | undefined>(undefined);
+    const [videoFile, setVideoFile] = useState<File | undefined>();
+    const [thumbnailFile, setThumbnailFile] = useState<File | undefined>();
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [isPrivate, setIsPrivate] = useState(false);
+    const [category, setCategory] = useState<string>("");
+    const [categories, setCategories] = useState<Category[]>([]);
+
     const [loading, setLoading] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState<string | null>(null);
     const { theme } = useTheme();
+    const { toast } = useToast();
 
-    const videoInputRef = useRef<HTMLInputElement>(null);
-    const thumbInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement | null>(null);
+    const thumbInputRef = useRef<HTMLInputElement | null>(null);
 
-    const handleVideoSelect = () => videoInputRef.current?.click();
-    const handleThumbSelect = () => thumbInputRef.current?.click();
+    useEffect(() => {
+        categoriesApi
+            .getCategories()
+            .then((data: Category[]) => setCategories(data))
+            .catch((err) => {
+                console.error("Failed to load categories", err);
+                toast({ title: "Failed to load categories", variant: "destructive" });
+            });
+    }, [toast]);
+
+    useEffect(() => {
+        if (!uploadStatus) return;
+        toast({ title: uploadStatus });
+    }, [uploadStatus, toast]);
 
     const handleUpload = async () => {
-        if (!videoFile) return alert("Please, choose a video");
+        if (!videoFile) {
+            toast({ title: "Select video", variant: "destructive" });
+            return;
+        }
+        if (!category) {
+            toast({ title: "Select category", variant: "destructive" });
+            return;
+        }
+
         setLoading(true);
         try {
             const isPublic = !isPrivate;
-            const url = await api.uploadVideo(videoFile, {
+            const res = await api.uploadVideo(videoFile, {
                 title,
                 description,
                 thumbnail: thumbnailFile,
                 isPublic,
+                category,
             });
-            alert(`Video uploaded successfully!\nURL: ${url}`);
+
+            const successMessage = res?.status ?? "Uploaded successfully";
+            setUploadStatus(successMessage);
+            toast({ title: "Upload complete", description: successMessage, variant: "default" });
+
             setVideoFile(undefined);
             setThumbnailFile(undefined);
             setTitle("");
             setDescription("");
             setIsPrivate(false);
-        } catch (err) {
-            console.error(err);
-            alert("Error uploading video");
+            setCategory("");
+        } catch (err: unknown) {
+            const msg = getErrorMessage(err);
+            setUploadStatus(msg);
+            toast({ title: "Upload error", description: msg, variant: "destructive" });
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="flex items-center justify-center mt-12 sm:mt-20 px-4 min-h-screen">
-            <Card className="w-full max-w-3xl text-center p-4 sm:p-6 md:p-8">
-                <CardHeader className="mb-4">
-                    <CardTitle className="text-xl sm:text-2xl md:text-3xl mb-2">
-                        Upload Video
-                    </CardTitle>
+        <div className="flex items-center justify-center mt-12 px-4 min-h-screen">
+            <Card className="w-full max-w-3xl text-center p-6">
+                <CardHeader>
+                    <CardTitle className="text-2xl mb-2">Upload Video</CardTitle>
                 </CardHeader>
-
-                <CardContent className="flex flex-col items-center justify-center space-y-6">
-                    <ArrowBigUpDash
-                        className={`h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 ${theme === "dark" ? "text-white" : "text-black"}`}
-                    />
-
-                    <div className="w-full sm:max-w-md text-left space-y-4">
-                        <div>
-                            <label className="block mb-1 font-medium">Video name:</label>
-                            <input
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="Enter video title"
-                                required
-                                className="w-full bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block mb-1 font-medium">Video description:</label>
-                            <textarea
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Enter short description"
-                                required
-                                className="w-full bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block mb-1 font-medium">Choose thumbnail:</label>
-                            <input
-                                ref={thumbInputRef}
-                                type="file"
-                                accept="image/*"
-                                style={{ display: "none" }}
-                                onChange={(e) => {
-                                    if (e.target.files && e.target.files[0]) {
-                                        setThumbnailFile(e.target.files[0]);
-                                    }
-                                }}
-                            />
-                            <Button type="button" onClick={handleThumbSelect}>
-                                {thumbnailFile ? "Change thumbnail" : "Select thumbnail"}
-                            </Button>
-                            {thumbnailFile && (
-                                <img
-                                    src={URL.createObjectURL(thumbnailFile)}
-                                    alt="Thumbnail preview"
-                                    className="mt-2 rounded max-h-40"
-                                />
-                            )}
-                        </div>
-
-                        <div className="flex items-center gap-2 mt-4">
-                            <input
-                                type="checkbox"
-                                id="private"
-                                checked={isPrivate}
-                                onChange={(e) => setIsPrivate(e.target.checked)}
-                                className="w-4 h-4 accent-blue-500"
-                            />
-                            <label htmlFor="private" className="text-sm sm:text-base">
-                                Make video private (default is public)
-                            </label>
-                        </div>
-
-                        <div className="mt-4">
-                            <input
-                                ref={videoInputRef}
-                                type="file"
-                                accept="video/*"
-                                style={{ display: "none" }}
-                                onChange={(e) => {
-                                    if (e.target.files && e.target.files[0]) {
-                                        setVideoFile(e.target.files[0]);
-                                    }
-                                }}
-                            />
-                            <Button type="button" size="lg" onClick={handleVideoSelect}>
-                                {videoFile ? "Change video" : "Select video"}
-                            </Button>
-                        </div>
-
-                        {videoFile && (
-                            <div className="mt-4">
-                                <p><strong>File:</strong> {videoFile.name}</p>
-                                <p><strong>Size:</strong> {(videoFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                                <video
-                                    src={URL.createObjectURL(videoFile)}
-                                    controls
-                                    className="w-full mt-2 rounded max-h-60 sm:max-h-80"
-                                />
-                                <div className="flex gap-2 mt-2">
-                                    <Button type="button" variant="destructive" onClick={() => setVideoFile(undefined)}>
-                                        Remove file
-                                    </Button>
-                                    <Button type="button" onClick={handleUpload} disabled={loading}>
-                                        {loading ? "Uploading..." : "Upload video"}
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
+                <CardContent className="flex flex-col gap-6">
+                    <div className="flex justify-center w-full">
+                        <ArrowBigUpDash
+                            className={`h-24 w-24 ${theme === "dark" ? "text-white" : "text-black"}`}
+                        />
                     </div>
+
+                    <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full p-2 rounded border border-input bg-background text-foreground" />
+                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" className="w-full p-2 rounded border border-input bg-background text-foreground" />
+
+                    <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-2 rounded border border-input bg-background text-foreground">
+                        <option value="">Select category</option>
+                        {categories.map((c) => (
+                            <option key={c.id} value={c.name}>
+                                {c.name}
+                            </option>
+                        ))}
+                    </select>
+
+                    <label className="flex gap-2 items-center">
+                        <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} /> Private
+                    </label>
+
+                    <input ref={thumbInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files && setThumbnailFile(e.target.files[0])} />
+                    <Button onClick={() => thumbInputRef.current?.click()}>{thumbnailFile ? "Change thumbnail" : "Select thumbnail"}</Button>
+                    {thumbnailFile && <img src={URL.createObjectURL(thumbnailFile)} className="max-h-40 rounded mt-2" alt="thumbnail preview" />}
+
+                    <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={(e) => e.target.files && setVideoFile(e.target.files[0])} />
+                    <Button onClick={() => videoInputRef.current?.click()}>{videoFile ? "Change video" : "Select video"}</Button>
+
+                    {videoFile && (
+                        <div>
+                            <video src={URL.createObjectURL(videoFile)} controls className="w-full rounded max-h-80 mt-2" />
+                            <Button className="mt-2" disabled={loading} onClick={handleUpload}>
+                                {loading ? "Uploading..." : "Upload"}
+                            </Button>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

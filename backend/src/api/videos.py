@@ -1,4 +1,5 @@
 import logging
+from typing import List, Literal
 from uuid import NAMESPACE_DNS, UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -15,7 +16,14 @@ from ..core.video import (
     toggle_reaction,
 )
 from ..infrastructure.database import get_async_session
-from ..models import Channel, CommentReaction, PrivacyStatus, Video, VideoReaction
+from ..models import (
+    Category,
+    Channel,
+    CommentReaction,
+    PrivacyStatus,
+    Video,
+    VideoReaction,
+)
 from ..models.comments import Comment
 from ..schemas.comments import CommentPage, to_comment_read
 from ..schemas.endpoint import APIError, ErrorResponse
@@ -193,6 +201,111 @@ async def get_videos(
     return VideoPreviewPage(items=videos, page=page, size=size, total=total)
 
 
+@router_videos.get(
+    "/get_videos/{category}",
+    response_model=VideoPreviewPage,
+    summary="List all videos by category",
+    description="Returns a paginated list of videos by category.",
+    response_description="A paginated list of videos by category.",
+    responses={
+        200: {
+            "model": VideoPreviewPage,
+            "description": "List of videos successfully retrieved.",
+        },
+        400: {
+            "model": APIError,
+            "description": "Invalid query parameters (e.g., invalid page/size).",
+        },
+        500: {
+            "model": APIError,
+            "description": "Internal server error.",
+        },
+    },
+)
+async def get_videos_category(
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(20, ge=1, le=100, description="Page size"),
+    session: AsyncSession = Depends(get_async_session),
+    category: Literal[
+        "education",
+        "entertainment",
+        "music",
+        "gaming",
+        "technology",
+        "science",
+        "movies",
+        "sports",
+        "news",
+        "travel",
+        "lifestyle",
+        "fashion",
+        "health & fitness",
+        "food & cooking",
+        "comedy",
+        "documentary",
+        "art & design",
+        "business & finance",
+        "animals & nature",
+        "automotive",
+        "history",
+        "podcasts",
+        "shorts",
+    ] = Path(description="Category of videos to filter by."),
+) -> VideoPreviewPage:
+    filters = [
+        Video.privacy_id == uuid5(NAMESPACE_DNS, "privacy_status:public"),
+        Video.status_id == uuid5(NAMESPACE_DNS, "video_status:ready"),
+        Video.category_id == uuid5(NAMESPACE_DNS, f"video_category:{category}"),
+    ]
+    preload = [
+        selectinload(Video.channel),
+        selectinload(Video.privacy),
+        selectinload(Video.resolutions),
+    ]
+    videos, total = await paginate_query(
+        session=session,
+        model=Video,
+        page=page,
+        size=size,
+        filters=filters,
+        preload=preload,
+        order_by=Video.created_at.desc(),
+        mapper=to_video_preview,
+    )
+    return VideoPreviewPage(items=videos, page=page, size=size, total=total)
+
+
+@router_videos.get(
+    "/get_categories",
+    response_model=List[str],
+    summary="List all videos of categories",
+    description="Returns a list of distinct video category Name.",
+    response_description="List of unique category Name.",
+    responses={
+        200: {
+            "model": List[str],
+            "description": "List of categories successfully retrieved.",
+        },
+        500: {
+            "model": APIError,
+            "description": "Internal server error.",
+        },
+    },
+)
+async def get_categories(
+    session: AsyncSession = Depends(get_async_session),
+) -> list[str]:
+    result = await session.execute(
+        select(Category.name)
+        .join(Video, Category.id == Video.category_id)
+        .distinct()
+        .order_by(Category.name)
+    )
+    categories = result.scalars().all()
+
+    return [str(c) for c in categories]
+
+
 @router_videos.post(
     "/reaction/video/{video_id}",
     response_model=ReactionResponse,
@@ -219,7 +332,7 @@ async def react_to_video(
     payload: ReactionRequest,  # {"reaction_name": "like"}
     session: AsyncSession = Depends(get_async_session),
     user_id: UUID = Depends(get_current_user_id),
-):
+) -> ReactionResponse:
     counts = await toggle_reaction(
         session=session,
         user_id=user_id,
@@ -261,7 +374,7 @@ async def react_to_comment(
     payload: ReactionRequest,
     session: AsyncSession = Depends(get_async_session),
     user_id: UUID = Depends(get_current_user_id),
-):
+) -> ReactionResponse:
     counts = await toggle_reaction(
         session=session,
         user_id=user_id,

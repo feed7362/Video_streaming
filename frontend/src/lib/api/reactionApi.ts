@@ -1,15 +1,15 @@
 import clientApi from "./clientApi";
+import type { ReactionResponse } from "./types";
 
-export const addLike = (videoId: string): Promise<void> =>
-    clientApi.post(`/videos/${videoId}/like`).then(() => { });
+export const sendReaction = async (
+    videoId: string,
+    reaction: "like" | "dislike"
+): Promise<ReactionResponse> => {
+    const res = await clientApi.post<ReactionResponse>(
+        `/api/video/reaction/video/${videoId}`,
+        { reaction_name: reaction }
+    );
+    return res.data;
+};
 
-export const removeLike = (videoId: string): Promise<void> =>
-    clientApi.delete(`/videos/${videoId}/like`).then(() => { });
-
-export const addDislike = (videoId: string): Promise<void> =>
-    clientApi.post(`/videos/${videoId}/dislike`).then(() => { });
-
-export const removeDislike = (videoId: string): Promise<void> =>
-    clientApi.delete(`/videos/${videoId}/dislike`).then(() => { });
-
-export default { addLike, removeLike, addDislike, removeDislike };
+export default { sendReaction };

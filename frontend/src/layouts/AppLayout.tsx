@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SiteHeader } from "@/components/site-header";
+import { Toaster } from "@/components/ui/toast/toaster";
 
 export default function AppLayout() {
     return (
@@ -12,6 +13,7 @@ export default function AppLayout() {
                 <main className="flex-1 overflow-y-auto">
                     <Outlet />
                 </main>
+                <Toaster />
             </SidebarProvider>
         </div>
     );
