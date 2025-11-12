@@ -27,14 +27,18 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
-    container_name: frontend_service
-    expose:
-      - "8001"
-    depends_on:
-      - postgres
+      build:
+        context: ../frontend
+        dockerfile: Dockerfile
+      container_name: frontend_service
+      expose:
+        - "8001"
+      depends_on:
+        - postgres
+      develop:
+        watch:
+          - action: rebuild
+            path: ../frontend
 
   postgres:
     image: postgres:latest
@@ -68,6 +72,9 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    environment:
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
     logging:
       driver: "json-file"
       options:
