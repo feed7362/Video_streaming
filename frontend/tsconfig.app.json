@@ -24,7 +24,8 @@
     "types": ["vitest/globals", "@testing-library/jest-dom"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"],
+      "@api/*": ["src/lib/api/*"]
     }
   },
   "include": ["src"]
