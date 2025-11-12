@@ -29,6 +29,11 @@ class S3Settings(BaseAppSettings):
     BUCKET_NAMES: Optional[List[str]] = Field(default=None)
 
 
+class ElasticSettings(BaseAppSettings):
+    ELASTIC_HOST: Optional[str] = Field(default=None)
+    ELASTIC_PASSWORD: Optional[str] = Field(default=None)
+
+
 @lru_cache()
 def get_database_settings() -> DatabaseSettings:
     return DatabaseSettings(**vault.read_secret("database", mount_point="secret"))
@@ -39,3 +44,8 @@ def get_s3_settings() -> S3Settings:
     data = vault.read_secret("s3", mount_point="secret")
     data["BUCKET_NAMES"] = [b.strip() for b in data["BUCKET_NAMES"].split(",")]
     return S3Settings(**data)
+
+
+@lru_cache()
+def get_elastic_settings() -> ElasticSettings:
+    return ElasticSettings(**vault.read_secret("elastic", mount_point="secret"))

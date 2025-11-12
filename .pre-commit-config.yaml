@@ -21,7 +21,7 @@ repos:
 
   # ----------------- Python -----------------
   - repo: https://github.com/psf/black
-    rev: 25.1.0
+    rev: 25.11.0
     hooks:
       - id: black
         language_version: python3.12
@@ -29,7 +29,7 @@ repos:
         exclude: '(^|/|\\)\.venv($|/)'
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.12.10
+    rev: v0.14.4
     hooks:
       - id: ruff
         language_version: python3.12
@@ -38,7 +38,7 @@ repos:
         args: [ "--fix" ]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.17.0
+    rev: v1.18.2
     hooks:
       - id: mypy
         language_version: python3.12
@@ -47,7 +47,7 @@ repos:
 
   # ----------------- Node / JS / TS -----------------
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v9.34.0
+    rev: v9.39.1
     hooks:
       - id: eslint
         entry: npx eslint --config frontend/eslint.config.js
@@ -89,7 +89,7 @@ repos:
 
   # ----------------- Secrets -----------------
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.24.2
+    rev: v8.29.0
     hooks:
       - id: gitleaks
         args:

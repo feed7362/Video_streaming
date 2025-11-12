@@ -5,14 +5,25 @@ from typing import TYPE_CHECKING, Annotated, Literal, Optional
 from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
 
 import xxhash
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from elasticsearch import AsyncElasticsearch
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+)
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.auth import get_current_user_id
+from ..core.background_tasks import deindex_video_in_es, index_video_in_es
 from ..infrastructure import get_async_session, get_rabbit_broker, get_s3_client
+from ..infrastructure.elasticsearch import get_es_client
 from ..models import Channel, Video, VideoResolution
 from ..schemas.endpoint import (
     ErrorResponse,
@@ -21,6 +32,7 @@ from ..schemas.endpoint import (
     FileStreamResponse,
     SignedUrlResponse,
 )
+from ..schemas.search import VideoIndexDocument
 
 if TYPE_CHECKING:  # pragma: no cover - used only for type checkers
     from faststream.rabbit import RabbitBroker
@@ -61,6 +73,7 @@ router_files = APIRouter(
     },
 )
 async def upload_files(
+    background_tasks: BackgroundTasks,
     video: Annotated[UploadFile, File(description="A video file to upload")],
     thumbnail: Annotated[
         Optional[UploadFile], File(description="Preview image for the video")
@@ -100,6 +113,7 @@ async def upload_files(
     s3_client: "S3Client" = Depends(get_s3_client),
     session: AsyncSession = Depends(get_async_session),
     broker: "RabbitBroker" = Depends(get_rabbit_broker),
+    es: "AsyncElasticsearch" = Depends(get_es_client),
 ) -> FileResponse:
     """
     Upload multiple files to S3 asynchronously and trigger encoding tasks in RabbitMQ.
@@ -210,7 +224,18 @@ async def upload_files(
             raise HTTPException(500, "Failed to upload video to storage")
 
         # ----- Publish job -----
-        await broker.publish(new_filename, queue="video.encode")
+        await broker.publish(new_filename, queue="video.encode", priority=10)
+
+        # ----- Index video in ES -----
+        video_doc = VideoIndexDocument(
+            id=inserted_id,
+            name=name,
+            description=description,
+            category=category,
+            channel_id=channel_id,
+            views=0,
+        ).model_dump()
+        background_tasks.add_task(index_video_in_es, video_doc, es)
 
         return FileResponse(
             status="accepted",
@@ -344,10 +369,12 @@ async def get_file(
     },
 )
 async def delete_files(
+    background_tasks: BackgroundTasks,
     video_id: UUID = Query(..., description="UUID of the video to delete."),
     user_id: UUID = Depends(get_current_user_id),
     s3_client: "S3Client" = Depends(get_s3_client),
     session: AsyncSession = Depends(get_async_session),
+    es: "AsyncElasticsearch" = Depends(get_es_client),
 ) -> FileResponse:
     """
     Delete a video, its database record, and all associated storage files.
@@ -391,11 +418,14 @@ async def delete_files(
         except Exception as s3_err:
             logging.warning(f"Failed to remove S3 files for video {video_id}: {s3_err}")
 
-        # ---- Delete record from database ----
+        # ---- Delete record from a database ----
         await session.execute(delete(Video).where(Video.id == video_id))
         await session.commit()
 
         logging.info(f"Video {video_id} deleted successfully by user {user_id}")
+
+        background_tasks.add_task(deindex_video_in_es, str(video_id), es)
+        logging.info(f"Deindexed video {video_id} from ES")
 
         return FileResponse(
             status="deleted",
