@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import VideoPlayer from "@/components/VideoPlayer";
 import VideoCard from "@/components/VideoCard";
 import { Button } from "@/components/ui/button";

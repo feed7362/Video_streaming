@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -10,28 +11,64 @@ from fastapi.responses import JSONResponse
 from src.api.files import router_files
 from src.api.health import router_health
 from src.api.metrics import PrometheusMiddleware, router_metrics
+from src.api.search import router_search
 from src.api.videos import router_videos
+from src.core.es_reindexer import reindex_videos_from_db
 from src.core.rabbit_subsciptions import rabbit_router
 from src.i18n import LanguageMiddleware
 from src.infrastructure.database import engine
+from src.infrastructure.elasticsearch import es_client
 from src.infrastructure.rabbit_client import rabbit_broker
 from src.infrastructure.s3_client import get_s3_client
+from src.schemas.search import VideoIndexMapping
 from utils.db_seeder import seed_initial_data
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
+    # Start RabbitMQ
     await rabbit_broker.start()
     logging.info("Rabbit broker connected successfully.")
+
+    # Check S3
     s3_client = get_s3_client()
     await s3_client.check_bucket_exists()
+    logging.info("S3 connected successfully and bucket exists.")
+
+    # Seed DB data
     await seed_initial_data()
+    logging.info("Created initial data in database.")
+
+    # Ensure the Elasticsearch index exists
+    exists = await es_client.indices.exists(index=VideoIndexMapping.index_name)
+    if not exists:
+        await es_client.indices.create(
+            index=VideoIndexMapping.index_name,
+            mappings=VideoIndexMapping.mappings,
+            settings=VideoIndexMapping.settings,
+        )
+    logging.info("ElasticSearch index verified/created.")
     logging.info("Startup complete. Metrics exposed.")
+
+    # ─────────────── BACKGROUND TASKS ───────────────
+    reindex_task = asyncio.create_task(reindex_videos_from_db(interval_minutes=15))
+
+    logging.info("🚀 Startup complete. Background tasks running.")
     yield
+
+    # Graceful shutdown
+    await es_client.close()
     await rabbit_broker.close()
     logging.info("Rabbit broker connection disposed gracefully.")
     await engine.dispose()
     logging.info("Database engine disposed gracefully.")
+    reindex_task.cancel()
+    try:
+        await reindex_task
+    except asyncio.CancelledError:
+        logging.info("Reindex task cancelled cleanly.")
+    await es_client.close()
+    logging.info("Background tasks cancelled.")
     logging.info("Shutdown complete.")
 
 
@@ -89,6 +126,7 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
     app.include_router(router_metrics)
     app.include_router(router_videos)
     app.include_router(rabbit_router)
+    app.include_router(router_search)
     app.add_middleware(LanguageMiddleware)
     app.add_middleware(PrometheusMiddleware)
 
@@ -99,7 +137,7 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
         "http://127.0.0.1:5173",
         "http://localhost:80",
     ]
-  
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -109,7 +147,9 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
     )
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc) -> JSONResponse:
+    async def http_exception_handler(
+        request: Request, exc: HTTPException
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -130,7 +170,9 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
         )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc) -> JSONResponse:
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=400,
             content={"detail": str(exc)},

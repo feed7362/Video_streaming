@@ -40,8 +40,8 @@ class VideoView(Base):
         Index("uq_video_views_unique", "video_id", "user_id", unique=True),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<View video={self.video_id} user={self.user_id}>"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"View of {self.video_id} by {self.user_id or 'guest'}"

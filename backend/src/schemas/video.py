@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Generic, List, Optional, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..models import Video
 
@@ -59,8 +59,7 @@ class VideoPlayback(BaseModel):
     # Playback source
     master_hls_url: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class VideoRead(BaseModel):
@@ -69,8 +68,7 @@ class VideoRead(BaseModel):
     description: Optional[str]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ------------------------------
@@ -94,18 +92,21 @@ class VideoPreview(BaseModel):
     thumbnail: str
     channel_avatar: str
     channel_name: str
+    views_count: int
+    created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 def to_video_preview(video: Video) -> VideoPreview:
     return VideoPreview(
         id=video.id,
-        title=video.name,  # maps from Video.name
+        title=video.name,
         thumbnail=video.thumbnail_path or "",
         channel_avatar=getattr(video.channel, "avatar_url", ""),
         channel_name=getattr(video.channel, "name", "Unknown Channel"),
+        views_count=video.views_count,
+        created_at=video.created_at,
     )
 
 

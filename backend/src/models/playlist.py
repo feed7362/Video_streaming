@@ -62,12 +62,12 @@ class Playlist(Base):
     )
 
     @validates("name")
-    def validate_name(self, _, value: str) -> str:
+    def validate_name(self, _: str, value: str) -> str:
         assert value.strip(), "Playlist name cannot be empty"
         return value.strip()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Playlist {self.name} ({len(self.videos)} videos)>"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Playlist: {self.name}"

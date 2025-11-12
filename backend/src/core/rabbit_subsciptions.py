@@ -4,6 +4,7 @@ from uuid import NAMESPACE_DNS, uuid4, uuid5
 from fastapi import Depends
 from faststream.rabbit.fastapi import RabbitRouter
 from sqlalchemy import insert, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..infrastructure.database import get_async_session
 from ..models import Video, VideoResolution
@@ -16,7 +17,7 @@ rabbit_router = RabbitRouter(
 
 @rabbit_router.subscriber("video.encode.status")
 async def status_handler(
-    msg: StatusMessage, session=Depends(get_async_session)
+    msg: StatusMessage, session: AsyncSession = Depends(get_async_session)
 ) -> None:
     try:
         logging.info(

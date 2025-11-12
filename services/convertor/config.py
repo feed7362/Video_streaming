@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class VaultClient:
-    def __init__(self):
+    def __init__(self) -> None:
         self.client = hvac.Client(
             url=os.getenv("VAULT_ADDR"),
             token=os.getenv("VAULT_TOKEN"),
