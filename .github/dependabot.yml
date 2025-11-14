@@ -6,11 +6,6 @@ updates:
       interval: "monthly"
 
   - package-ecosystem: "uv"
-    directory: "/services/auth"
-    schedule:
-      interval: "monthly"
-
-  - package-ecosystem: "uv"
     directory: "/services/convertor"
     schedule:
       interval: "monthly"

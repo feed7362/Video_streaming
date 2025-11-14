@@ -5,11 +5,6 @@ allows for independent scaling, development, and deployment of different parts o
 
 ## Service Overview
 
-- **`/auth`**:
-    - **Purpose**: Handles user authentication, authorization, and user management.
-    - **Description**: This service will be responsible for issuing tokens, verifying credentials, and managing user
-      profiles.
-
 - **`/convertor`**:
     - **Purpose**: Performs video transcoding and processing.
     - **Description**: This service listens for messages on a RabbitMQ queue. When a new video is uploaded, it consumes
