@@ -1,0 +1,30 @@
+dependencies:
+- name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+  version: 18.1.4
+- name: minio
+  repository: https://charts.bitnami.com/bitnami
+  version: 14.8.6
+- name: rabbitmq
+  repository: https://charts.bitnami.com/bitnami
+  version: 16.0.14
+- name: keycloak
+  repository: https://charts.bitnami.com/bitnami
+  version: 22.1.1
+- name: vault
+  repository: https://charts.bitnami.com/bitnami
+  version: 1.9.0
+- name: loki
+  repository: https://grafana.github.io/helm-charts
+  version: 6.46.0
+- name: promtail
+  repository: https://grafana.github.io/helm-charts
+  version: 6.17.1
+- name: grafana
+  repository: https://charts.bitnami.com/bitnami
+  version: 12.1.8
+- name: prometheus
+  repository: https://charts.bitnami.com/bitnami
+  version: 2.1.23
+digest: sha256:cb96e8313dce20c225c775541114fed9194d49beb3554f2429a0576fbcad016f
+generated: "2025-11-07T20:04:12.6191511+02:00"

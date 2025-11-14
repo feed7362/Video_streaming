@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "video-streaming.fullname" . }}-convertor
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ include "video-streaming.name" . }}
+    component: convertor
+spec:
+  replicas: {{ .Values.convertor.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "video-streaming.name" . }}
+      component: convertor
+  template:
+    metadata:
+      labels:
+        app: {{ include "video-streaming.name" . }}
+        component: convertor
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ .name | default . }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: convertor
+          image: "{{ .Values.convertor.image.repository }}:{{ .Values.convertor.image.tag }}"
+          imagePullPolicy: {{ .Values.convertor.image.pullPolicy }}
+          ports:
+            - containerPort: 8002
+          # env, envFrom, volumeMounts, etc. will be added later
