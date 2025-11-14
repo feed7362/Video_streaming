@@ -9,6 +9,10 @@ from ..models import Comment
 T = TypeVar("T")
 
 
+class CommentCreate(BaseModel):
+    content: str
+
+
 class CommentRead(BaseModel):
     id: UUID
     user_id: UUID

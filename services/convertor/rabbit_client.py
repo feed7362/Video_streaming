@@ -81,7 +81,7 @@ async def encode_video(filename: str) -> None:
                 "video_id": video_id,
                 "status": "ready",
                 "resolutions": resolutions,
-                "video_path": f"{video_id}/master.m3u8",
+                "video_path": f"minio/videos/{video_id}/master.m3u8",
             },
             queue="video.encode.status",
         )

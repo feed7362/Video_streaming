@@ -35,6 +35,15 @@ async_session_maker = async_sessionmaker(
 )
 
 
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
+    async with async_session_maker() as session:
+        yield session
+
+
+# ─────────────── SYNC ORM LISTENERS ───────────────
+# (Must be 'def', use sync 'Connection')
+
+
 @event.listens_for(Base, "before_insert", propagate=True)
 def set_created_at(mapper: Mapper[Any], connection: Connection, target: Any) -> None:
     if hasattr(target, "created_at"):
@@ -48,9 +57,13 @@ def set_updated_at(mapper: Mapper[Any], connection: Connection, target: Any) -> 
         target.updated_at = datetime.now(UTC)
 
 
+# ─────────────── SYNC I/O LISTENERS ───────────────
+# (Must be 'def', target 'engine.sync_engine')
+
+
 @event.listens_for(engine.sync_engine, "before_cursor_execute")
 def before_cursor_execute(
-    conn: Connection,
+    conn: Connection,  # Use sync 'Connection'
     cursor: Any,
     statement: str,
     parameters: Any,
@@ -76,12 +89,11 @@ def after_cursor_execute(
     logging.debug(f"Query complete in {total:.4f}s")
 
 
-@event.listens_for(engine.sync_engine, "close")
+# ─────────────── SYNC POOL LISTENER ───────────────
+# (Must be 'def', target 'engine.pool')
+
+
+@event.listens_for(engine.pool, "close")
 def on_connection_close(dbapi_connection: Any, connection_record: Pool) -> None:
     """Log connection close events."""
     logging.debug("Database connection closed.")
-
-
-async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session_maker() as session:
-        yield session

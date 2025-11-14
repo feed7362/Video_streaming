@@ -92,6 +92,8 @@ class VideoPreview(BaseModel):
     thumbnail: str
     channel_avatar: str
     channel_name: str
+    views_count: int
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -99,10 +101,12 @@ class VideoPreview(BaseModel):
 def to_video_preview(video: Video) -> VideoPreview:
     return VideoPreview(
         id=video.id,
-        title=video.name,  # maps from Video.name
+        title=video.name,
         thumbnail=video.thumbnail_path or "",
         channel_avatar=getattr(video.channel, "avatar_url", ""),
         channel_name=getattr(video.channel, "name", "Unknown Channel"),
+        views_count=video.views_count,
+        created_at=video.created_at,
     )
 
 

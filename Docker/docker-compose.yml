@@ -255,6 +255,31 @@ services:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
+  elasticsearch:
+    image: elasticsearch:9.2.0
+    container_name: elasticsearch_service
+    environment:
+      - node.name=es01
+      - cluster.name=${CLUSTER_NAME}
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.license.self_generated.type=${LICENSE}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    expose:
+      - "9200"  # Elasticsearch REST API
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
 networks:
   default:
     name: video_streaming_network
@@ -265,6 +290,7 @@ volumes:
   prometheus_data:
   postgres_data:
   vault_data:
+  es_data:
 # docker compose -p video_streaming_stack -f ./Docker/docker-compose.yml build
 # docker compose -p video_streaming_stack -f ./Docker/docker-compose.yml up -d
 

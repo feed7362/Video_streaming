@@ -99,7 +99,7 @@ async def seed_initial_data() -> None:
             .on_conflict_do_nothing(index_elements=["id"])
         )
 
-        # ---- Video Statuses ---- ✅ fixed
+        # ---- Video Statuses ----
         video_statuses = [
             {
                 "id": deterministic_uuid("video_status", i["value"]),
@@ -114,4 +114,4 @@ async def seed_initial_data() -> None:
         )
 
         await session.commit()
-        logging.info("✅ Initial data seeded successfully.")
+        logging.info("Initial data seeded successfully.")

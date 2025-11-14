@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "video-streaming.fullname" . }}-frontend
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ include "video-streaming.name" . }}
+    component: frontend
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "video-streaming.name" . }}
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: {{ include "video-streaming.name" . }}
+        component: frontend
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ .name | default . }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: frontend
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - containerPort: 8001
+          # env, envFrom, volumeMounts, etc. will be added later

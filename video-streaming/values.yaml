@@ -1,0 +1,120 @@
+namespace: video-streaming
+
+global:
+  imagePullSecrets: []
+  # if using private GHCR:
+  # imagePullSecrets:
+  #   - name: ghcr-cred
+
+backend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/feed7362/video_streaming-backend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    port: 8000
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/feed7362/video_streaming-frontend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    port: 8001
+
+convertor:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/feed7362/video_streaming-convertor
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    port: 8002
+
+# -------------------
+# Dependency overrides
+# -------------------
+
+postgresql:
+  auth:
+    username: video_user
+    password: video_pass
+    database: video_db
+  primary:
+    persistence:
+      enabled: true
+
+minio:
+  auth:
+    rootUser: admin
+    rootPassword: admin
+  defaultBuckets: "videos,chunks,ruler,admin"
+  persistence:
+    enabled: true
+  service:
+    ports:
+      api: 9000
+      console: 9001
+
+rabbitmq:
+  auth:
+    username: user
+    password: password
+  persistence:
+    enabled: false
+  service:
+    port: 5672
+    managerPort: 15672
+
+keycloak:
+  auth:
+    adminUser: admin
+    adminPassword: admin
+  postgresql:
+    enabled: false
+  externalDatabase:
+    host: postgresql
+    user: video_user
+    password: video_pass
+    database: keycloak
+
+vault:
+  server:
+    dataStorage:
+      enabled: true
+
+grafana:
+  adminUser: admin
+  adminPassword: admin
+  persistence:
+    enabled: true
+
+prometheus:
+  alertmanager:
+    enabled: false
+  server:
+    persistentVolume:
+      enabled: true
+
+loki:
+  storage:
+    type: s3
+    bucketNames:
+      chunks: chunks
+      ruler: ruler
+      admin: admin
+    s3:
+      s3: minio
+      endpoint: http://minio:9000
+      accessKeyId: admin
+      secretAccessKey: admin
+      insecure: true
+  persistence:
+    enabled: false
+
+promtail:
+  config:
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
