@@ -11,6 +11,8 @@ services:
       - ffmpeg
       - minio
       - rabbitmq
+      - elasticsearch
+      - keycloak
     volumes:
       - ../backend/alembic/versions:/app/alembic/versions
     environment:

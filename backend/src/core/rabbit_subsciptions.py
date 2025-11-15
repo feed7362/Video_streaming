@@ -1,14 +1,18 @@
 import logging
 from uuid import NAMESPACE_DNS, uuid4, uuid5
 
-from fastapi import Depends
+from elasticsearch import AsyncElasticsearch
+from fastapi import BackgroundTasks, Depends
 from faststream.rabbit.fastapi import RabbitRouter
 from sqlalchemy import insert, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..infrastructure.database import get_async_session
+from ..infrastructure.elasticsearch import get_es_client
 from ..models import Video, VideoResolution
 from ..schemas.endpoint import StatusMessage
+from ..schemas.search import VideoIndexDocument
+from .background_tasks import index_video_in_es
 
 rabbit_router = RabbitRouter(
     url="amqp://guest:guest@rabbitmq:5672/", include_in_schema=False
@@ -17,7 +21,10 @@ rabbit_router = RabbitRouter(
 
 @rabbit_router.subscriber("video.encode.status")
 async def status_handler(
-    msg: StatusMessage, session: AsyncSession = Depends(get_async_session)
+    background_tasks: BackgroundTasks,
+    msg: StatusMessage,
+    session: AsyncSession = Depends(get_async_session),
+    es: "AsyncElasticsearch" = Depends(get_es_client),
 ) -> None:
     try:
         logging.info(
@@ -36,16 +43,16 @@ async def status_handler(
                 status_id=status_id,
                 video_path=msg.video_path if msg.status == "ready" else None,
             )
-            .returning(Video.id)
-            .execution_options(synchronize_session="fetch")
+            .returning(Video)
         )
-        verified_id = result.scalar_one_or_none()
+        verified_video = result.scalars().one_or_none()
 
-        if verified_id is None:
+        if verified_video is None:
             logging.error(
                 f"Video.id {msg.video_id} not found in database. "
                 "No status update was performed."
             )
+            return
 
         if msg.status == "ready" and msg.resolutions:
             resolution_entries = []
@@ -67,7 +74,7 @@ async def status_handler(
                 resolution_entries.append(
                     {
                         "id": uuid4(),
-                        "video_id": verified_id,
+                        "video_id": verified_video.id,
                         "height": height,
                         "width": width,
                         "bitrate": bitrate,
@@ -81,6 +88,18 @@ async def status_handler(
             )
 
         await session.commit()
+
+        # ----- Index video in ES -----
+        video_doc = VideoIndexDocument(
+            id=verified_video.id,
+            name=verified_video.name,
+            description=verified_video.description,
+            category=verified_video.category.name,
+            channel_id=verified_video.channel_id,
+            views=0,
+        ).model_dump()
+        background_tasks.add_task(index_video_in_es, video_doc, es)
+
     except Exception as e:
         logging.error(
             f"Error in status_handler for video {msg.video_id}: {e}", exc_info=True

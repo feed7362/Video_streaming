@@ -13,7 +13,6 @@ from src.api.health import router_health
 from src.api.metrics import PrometheusMiddleware, router_metrics
 from src.api.search import router_search
 from src.api.videos import router_videos
-from src.core.es_reindexer import reindex_videos_from_db
 from src.core.rabbit_subsciptions import rabbit_router
 from src.i18n import LanguageMiddleware
 from src.infrastructure.database import engine
@@ -22,6 +21,7 @@ from src.infrastructure.rabbit_client import rabbit_broker
 from src.infrastructure.s3_client import get_s3_client
 from src.schemas.search import VideoIndexMapping
 from utils.db_seeder import seed_initial_data
+from utils.es_reindexer import reindex_videos_from_db
 
 
 @asynccontextmanager
