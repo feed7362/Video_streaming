@@ -1,38 +1,55 @@
-import {useEffect, useRef} from "react";
+﻿import { useEffect, useRef } from "react";
 
 interface InfiniteScrollProps {
     loadMore: () => void;
     hasMore: boolean;
     children: React.ReactNode;
+    rootMargin?: string;
 }
 
-const InfiniteScroll = ({loadMore, hasMore, children}: InfiniteScrollProps) => {
+const InfiniteScroll = ({
+    loadMore,
+    hasMore,
+    children,
+    rootMargin = "300px",
+}: InfiniteScrollProps) => {
     const loaderRef = useRef<HTMLDivElement | null>(null);
+    const observerRef = useRef<IntersectionObserver | null>(null);
 
     useEffect(() => {
-        if (!hasMore) return;
+        if (!hasMore || !loaderRef.current) return;
 
-        const observer = new IntersectionObserver(
+        // якщо вже є спостерігач — очищаємо
+        if (observerRef.current) observerRef.current.disconnect();
+
+        observerRef.current = new IntersectionObserver(
             (entries) => {
                 if (entries[0].isIntersecting) {
                     loadMore();
                 }
             },
-            {threshold: 1.0}
+            { root: null, rootMargin, threshold: 0.1 }
         );
 
-        if (loaderRef.current) {
-            observer.observe(loaderRef.current);
-        }
+        observerRef.current.observe(loaderRef.current);
 
-        return () => observer.disconnect();
-    }, [hasMore, loadMore]);
+        return () => {
+            observerRef.current?.disconnect();
+        };
+    }, [hasMore, loadMore, rootMargin]);
 
     return (
         <>
             {children}
             {hasMore && (
-                <div ref={loaderRef} style={{height: "40px", background: "transparent"}}/>
+                <div
+                    ref={loaderRef}
+                    style={{
+                        height: "1px",
+                        marginTop: "200px",
+                        background: "transparent",
+                    }}
+                />
             )}
         </>
     );

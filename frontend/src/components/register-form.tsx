@@ -8,12 +8,68 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import {Input} from "@/components/ui/input"
-import {Label} from "@/components/ui/label"
+import { Label } from "@/components/ui/label"
+import { useState } from "react";
+import { toast } from "react-hot-toast";
+import { registerUser, checkUserExists } from "@api/authApi";
+import { useNavigate } from "react-router-dom";
+import { AxiosError } from "axios";
 
 export function RegisterForm({
                                  className,
                                  ...props
-                             }: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div">) {
+    const navigate = useNavigate();
+
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [passwordRepeat, setPasswordRepeat] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!email || !password) {
+            toast.error("All fields are required!");
+            return;
+        }
+
+        if (password !== passwordRepeat) {
+            toast.error("Passwords do not match!");
+            return;
+        }
+
+        const { usernameExists, emailExists } = await checkUserExists(email, email);
+        if (usernameExists) {
+            toast.error("Username already exists");
+            return;
+        }
+        if (emailExists) {
+            toast.error("Email already registered");
+            return;
+        }
+
+        if (password.length < 8) {
+            toast.error("Password must be at least 8 characters long");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await registerUser(email, password);
+            toast.success("Registration successful");
+            navigate("/");
+        } catch (err: unknown) {
+            if (err instanceof AxiosError && err.response?.data) {
+                toast.error((err.response.data as { message?: string }).message || "Registration failed");
+            } else {
+                toast.error("Registration failed");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
             <Card>
@@ -24,7 +80,7 @@ export function RegisterForm({
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form>
+                    <form onSubmit={handleSubmit}>
                         <div className="grid gap-6">
                             <div className="flex flex-col gap-4">
                                 <div className="grid gap-6">
@@ -34,18 +90,31 @@ export function RegisterForm({
                                             id="email"
                                             type="email"
                                             placeholder="m@example.com"
+                                            onChange={(e) => setEmail(e.target.value)}
                                             required
                                         />
                                     </div>
                                     <div className="grid gap-3">
                                         <Label htmlFor="password">Password</Label>
-                                        <Input id="password" type="password" required/>
+                                        <Input
+                                            id="password"
+                                            type="password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            required
+                                        />
 
                                         <Label htmlFor="password-repeat">Repeat password</Label>
-                                        <Input id="password-repeat" type="password" required/>
+                                        <Input
+                                            id="password-repeat"
+                                            type="password"
+                                            value={passwordRepeat}
+                                            onChange={(e) => setPasswordRepeat(e.target.value)}
+                                            required
+                                        />
                                     </div>
-                                    <Button type="submit" className="w-full">
-                                        Register
+                                    <Button type="submit" className="w-full" disabled={loading}>
+                                        {loading ? "Registering..." : "Register"}
                                     </Button>
                                 </div>
                                 <div

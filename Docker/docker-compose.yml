@@ -29,14 +29,18 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
-    container_name: frontend_service
-    expose:
-      - "8001"
-    depends_on:
-      - postgres
+      build:
+        context: ../frontend
+        dockerfile: Dockerfile
+      container_name: frontend_service
+      expose:
+        - "8001"
+      depends_on:
+        - postgres
+      develop:
+        watch:
+          - action: rebuild
+            path: ../frontend
 
   postgres:
     build:
@@ -69,13 +73,6 @@ services:
       context: ../services/convertor
       dockerfile: Dockerfile
     container_name: ffmpeg_service
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ gpu ]
     environment:
       - VAULT_ADDR=${VAULT_ADDR}
       - VAULT_TOKEN=${VAULT_TOKEN}
@@ -293,7 +290,7 @@ services:
 networks:
   default:
     name: video_streaming_network
-
+    external: true
 volumes:
   minio_data:
   grafana_data:

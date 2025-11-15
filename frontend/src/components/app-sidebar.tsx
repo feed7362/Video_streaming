@@ -16,125 +16,35 @@ const data = {
     navMain: [
         {
             title: "Getting Started",
-            url: "#",
+            url: "/register",
             items: [
                 {
-                    title: "Installation",
-                    url: "#",
-                },
-                {
-                    title: "Project Structure",
-                    url: "#",
-                },
-            ],
-        },
-        {
-            title: "Building Your Application",
-            url: "#",
-            items: [
-                {
-                    title: "Routing",
-                    url: "#",
-                },
-                {
-                    title: "Data Fetching",
-                    url: "#",
+                    title: "Home",
+                    url: "/",
                     isActive: true,
                 },
                 {
-                    title: "Rendering",
-                    url: "#",
+                    title: "Upload new video",
+                    url: "/upload",
                 },
                 {
-                    title: "Caching",
-                    url: "#",
+                    title: "Subscriptions",
+                    url: "/subscriptions",
                 },
                 {
-                    title: "Styling",
-                    url: "#",
+                    title: "History",
+                    url: "/history",
                 },
                 {
-                    title: "Optimizing",
-                    url: "#",
+                    title: "Liked",
+                    url: "/liked",
                 },
                 {
-                    title: "Configuring",
-                    url: "#",
+                    title: "Watch later",
+                    url: "/watch-later",
                 },
                 {
-                    title: "Testing",
-                    url: "#",
-                },
-                {
-                    title: "Authentication",
-                    url: "#",
-                },
-                {
-                    title: "Deploying",
-                    url: "#",
-                },
-                {
-                    title: "Upgrading",
-                    url: "#",
-                },
-                {
-                    title: "Examples",
-                    url: "#",
-                },
-            ],
-        },
-        {
-            title: "API Reference",
-            url: "#",
-            items: [
-                {
-                    title: "Components",
-                    url: "#",
-                },
-                {
-                    title: "File Conventions",
-                    url: "#",
-                },
-                {
-                    title: "Functions",
-                    url: "#",
-                },
-                {
-                    title: "next.config.js Options",
-                    url: "#",
-                },
-                {
-                    title: "CLI",
-                    url: "#",
-                },
-                {
-                    title: "Edge Runtime",
-                    url: "#",
-                },
-            ],
-        },
-        {
-            title: "Architecture",
-            url: "#",
-            items: [
-                {
-                    title: "Accessibility",
-                    url: "#",
-                },
-                {
-                    title: "Fast Refresh",
-                    url: "#",
-                },
-                {
-                    title: "Next.js Compiler",
-                    url: "#",
-                },
-                {
-                    title: "Supported Browsers",
-                    url: "#",
-                },
-                {
-                    title: "Turbopack",
+                    title: "Settings",
                     url: "#",
                 },
             ],
