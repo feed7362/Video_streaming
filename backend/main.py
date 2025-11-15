@@ -8,6 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from src.api.auth import router_auth
 from src.api.files import router_files
 from src.api.health import router_health
 from src.api.metrics import PrometheusMiddleware, router_metrics
@@ -127,6 +128,7 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
     app.include_router(router_videos)
     app.include_router(rabbit_router)
     app.include_router(router_search)
+    app.include_router(router_auth)
     app.add_middleware(LanguageMiddleware)
     app.add_middleware(PrometheusMiddleware)
 

@@ -29,18 +29,14 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   frontend:
-      build:
-        context: ../frontend
-        dockerfile: Dockerfile
-      container_name: frontend_service
-      expose:
-        - "8001"
-      depends_on:
-        - postgres
-      develop:
-        watch:
-          - action: rebuild
-            path: ../frontend
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: frontend_service
+    expose:
+      - "8001"
+    depends_on:
+      - postgres
 
   postgres:
     build:
@@ -73,6 +69,13 @@ services:
       context: ../services/convertor
       dockerfile: Dockerfile
     container_name: ffmpeg_service
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
     environment:
       - VAULT_ADDR=${VAULT_ADDR}
       - VAULT_TOKEN=${VAULT_TOKEN}
@@ -212,8 +215,6 @@ services:
       KC_DB_SCHEMA: public
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
       KC_HTTP_RELATIVE_PATH: /auth
       KC_PROXY: edge                          # if behind nginx/traefik proxy
       KC_HEALTH_ENABLED: "true"
@@ -290,7 +291,7 @@ services:
 networks:
   default:
     name: video_streaming_network
-    external: true
+
 volumes:
   minio_data:
   grafana_data:

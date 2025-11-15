@@ -1,34 +1,36 @@
 from datetime import datetime
+from typing import Dict, List
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict
+
+from src.models import User
 
 
-class UserBase(BaseModel):
-    username: str
-    email: EmailStr
-    is_active: bool
-    is_verified: bool
-
-
-class UserCreate(UserBase):
-    password: str  # plain, will be hashed before save
-    is_active: bool = True
-    is_verified: bool = False
-
-
-class UserRead(UserBase):
+class UserRead(BaseModel):
     id: UUID
-    registered_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class UserUpdate(UserBase):
-    id: UUID
-    email: EmailStr
     username: str
-    role_id: UUID
-    is_active: bool
-    is_verified: bool
+    email: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CurrentUser(BaseModel):
+    user_id: UUID
+    username: str
+    email: str
+    roles: List[str]
+    token: Dict
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+def to_current_user(user: User, roles: list[str], token: dict) -> CurrentUser:
+    return CurrentUser(
+        user_id=user.id,
+        username=user.username,
+        email=user.email,
+        roles=roles,
+        token=token,
+    )

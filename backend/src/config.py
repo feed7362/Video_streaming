@@ -34,6 +34,13 @@ class ElasticSettings(BaseAppSettings):
     ELASTIC_PASSWORD: Optional[str] = Field(default=None)
 
 
+class KeycloakSettings(BaseAppSettings):
+    CLIENT_ID: Optional[str] = Field(default=None)
+    CLIENT_SECRET_KEY: Optional[str] = Field(default=None)
+    REALM_NAME: Optional[str] = Field(default=None)
+    SERVER_URL: Optional[str] = Field(default=None)
+
+
 @lru_cache()
 def get_database_settings() -> DatabaseSettings:
     return DatabaseSettings(**vault.read_secret("database", mount_point="secret"))
@@ -49,3 +56,8 @@ def get_s3_settings() -> S3Settings:
 @lru_cache()
 def get_elastic_settings() -> ElasticSettings:
     return ElasticSettings(**vault.read_secret("elastic", mount_point="secret"))
+
+
+@lru_cache()
+def get_keycloak_settings() -> KeycloakSettings:
+    return KeycloakSettings(**vault.read_secret("keycloak", mount_point="secret"))
