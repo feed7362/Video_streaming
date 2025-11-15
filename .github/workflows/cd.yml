@@ -18,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
-#      auth: ${{ steps.filter.outputs.auth }}
       convertor: ${{ steps.filter.outputs.convertor }}
 #      moderation: ${{ steps.filter.outputs.moderation }}
       frontend: ${{ steps.filter.outputs.frontend }}
@@ -32,8 +31,6 @@ jobs:
           filters: |
             backend:
               - 'backend/**'
-            auth:
-              - 'services/auth/**'
             convertor:
               - 'services/convertor/**'
             moderation:
@@ -52,8 +49,6 @@ jobs:
         include:
           - service: backend
             path: ./backend
-          - service: auth
-            path: ./services/auth
           - service: convertor
             path: ./services/convertor
           - service: moderation

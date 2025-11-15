@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "video-streaming.fullname" . }}-test-all"
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "video-streaming.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: test-connections
+      image: busybox
+      command: ["/bin/sh", "-c"]
+      args:
+        - >
+          echo "🔍 Starting umbrella connectivity test...";
+
+          echo "\n➡️  Testing BFF Service ({{ include "video-streaming.fullname" . }}-bff:{{ .Values.backend.service.port }})";
+          wget -qO- {{ include "video-streaming.fullname" . }}-bff:{{ .Values.backend.service.port }} || exit 1;
+
+          echo "\n➡️  Testing Frontend Service ({{ include "video-streaming.fullname" . }}-frontend:{{ .Values.frontend.service.port }})";
+          wget -qO- {{ include "video-streaming.fullname" . }}-frontend:{{ .Values.frontend.service.port }} || exit 1;
+
+          echo "\n➡️  Testing Convertor Service ({{ include "video-streaming.fullname" . }}-ffmpeg:{{ .Values.convertor.service.port }})";
+          wget -qO- {{ include "video-streaming.fullname" . }}-ffmpeg:{{ .Values.convertor.service.port }} || exit 1;
+
+          echo "\n✅ All services responded successfully!";
