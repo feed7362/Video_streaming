@@ -1,33 +1,14 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { getVideos, getVideo } from "@api/videoApi";
 import { timeAgo } from "@/utils/timeAgo";
-// ВИПРАВЛЕННЯ: Тепер імпортуємо VideoDetail напряму, а не через псевдонім
-import type { VideoPreview, VideoComment, VideoDetail } from "@api/types";
+// ВИПРАВЛЕНО: VideoPreviewWithTime імпортовано, Remove explicit UseVideoResult import to let TS infer return type
+import type { VideoComment, VideoDetail, SearchFilters, VideoPreviewWithTime } from "@api/types";
 import { useSearchParams } from "react-router-dom";
+import { search } from "@api/searchApi";
 
+// ПРИМІТКА: Імпорт UseVideoResult видалено — дозволяємо TypeScript вивести тип повернення.
 
-// ВИПРАВЛЕННЯ: Використовуємо VideoPreview як базу для прев'ю зі стовпчика "Up Next"
-type VideoPreviewWithTime = VideoPreview & {
-    timeAgo: string;
-};
-
-// Тип для React.Dispatch
-type SetVideoState = React.Dispatch<React.SetStateAction<VideoDetail | null>>;
-
-interface UseVideoResult {
-    video: VideoDetail | null;
-    videos: VideoPreviewWithTime[];
-    comments: VideoComment[];
-    error: string | null;
-    loading: boolean;
-    hasMore: boolean;
-    loadMore: () => Promise<void>;
-    formatViews: (views: number | undefined) => string;
-    metaDataText: string;
-    setVideo: SetVideoState;
-}
-
-export function useVideo(): UseVideoResult {
+export function useVideo() {
     const [searchParams] = useSearchParams();
     const videoId = searchParams.get("v");
 
@@ -38,6 +19,9 @@ export function useVideo(): UseVideoResult {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchFilters, setSearchFilters] = useState<SearchFilters | undefined>(undefined);
 
     const formatViews = useCallback((views: number | undefined): string => {
         if (views === undefined) return '';
@@ -54,16 +38,10 @@ export function useVideo(): UseVideoResult {
 
     const fetchVideo = useCallback(async () => {
         if (!videoId) return;
-
         try {
-            console.log("Fetching video for id:", videoId);
             const data = await getVideo(videoId);
-
             const createdDate = data.created_at || new Date().toISOString();
-
             setError(null);
-
-            // Створюємо об'єкт VideoDetail, мапуючи поля з API (Video)
             setVideo({
                 id: data.id || "",
                 title: data.title || "",
@@ -78,9 +56,7 @@ export function useVideo(): UseVideoResult {
                 description: data.description || "No description provided for this video.",
                 timeAgo: timeAgo(createdDate),
             } as VideoDetail);
-
             setComments(data.comments ?? []);
-
         } catch (err) {
             console.error(err);
             setError("Video not found");
@@ -108,6 +84,41 @@ export function useVideo(): UseVideoResult {
             console.error(err);
         }
     }, [page, hasMore, loading, setVideos, setPage, setHasMore]);
+
+    const loadMoreSearchResults = useCallback(async () => {
+        if (!hasMore || loading) return;
+        if (!searchQuery) return;
+        setLoading(true);
+
+        try {
+            const nextPage = page + 1;
+            const newResults = await search(searchQuery, nextPage, searchFilters);
+
+            const resultsWithTime: VideoPreviewWithTime[] = newResults.map(v => ({
+                ...v,
+                timeAgo: timeAgo(v.createdAt || new Date().toISOString())
+            }));
+
+            setVideos((prev) => [...prev, ...resultsWithTime]);
+            setPage(nextPage);
+            setHasMore(newResults.length > 0);
+        } catch (err) {
+            console.error("Error with loading results:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [
+        page,
+        hasMore,
+        loading,
+        searchQuery,
+        searchFilters,
+        setLoading,
+        setVideos,
+        setPage,
+        setHasMore,
+        search
+    ]);
 
     const fetchInitialVideos = useCallback(async () => {
         try {
@@ -148,6 +159,15 @@ export function useVideo(): UseVideoResult {
         loadMore,
         formatViews,
         metaDataText,
-        setVideo
+        setVideos,
+        loadMoreSearchResults,
+        setSearchQuery,
+        setSearchFilters,
+        searchQuery,
+        setPage,
+        setLoading,
+        setHasMore,
+        page,
+        setVideo,
     };
 }

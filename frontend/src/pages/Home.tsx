@@ -28,7 +28,6 @@ export default function Home() {
     const isFetchingRef = useRef(false);
     const size = 9;
 
-    // 🔹 Отримання категорій
     useEffect(() => {
         categoriesApi
             .getCategories()
@@ -38,7 +37,6 @@ export default function Home() {
             .catch(console.error);
     }, []);
 
-    // 🔹 Завантаження відео
     const loadMore = useCallback(async () => {
         if (isFetchingRef.current || !hasMore) return;
 
@@ -46,54 +44,65 @@ export default function Home() {
         setLoading(true);
 
         try {
-            console.log("🔁 Calling videoApi.getVideos()");
+            console.log(`Fetching page ${page}...`);
+
             const newVideosPreview = await videoApi.getVideos({
                 page,
                 size,
                 category: activeCategory !== "All" ? activeCategory : undefined,
             });
 
-            const newVideos = newVideosPreview.map((v: VideoPreview) => ({
-                id: v.id,
-                title: v.title,
-                thumbnail: v.previewUrl || "",
-                channel_avatar: v.channel_avatar || "",
-                channel_name: v.channel || "Unknown Channel",
-            }));
+            const newVideos: Video[] = newVideosPreview.map((v: VideoPreview) => {
+                const item = v as VideoPreview & { name?: string; thumbnail?: string; avatar_url?: string };
+
+                return {
+                    id: item.id,
+                    title: item.title || item.name || "Untitled Video",
+                    thumbnail: item.previewUrl || item.thumbnail_url || item.thumbnail || "/placeholder.jpg",
+                    channel_avatar: item.channel_avatar || item.avatar_url || "",
+                    channel_name: item.channel || "Unknown Channel",
+                };
+            });
 
             if (newVideos.length < size) {
                 setHasMore(false);
             }
 
             if (newVideos.length > 0) {
-                setVideos((prev) => [...prev, ...newVideos]);
+                setVideos((prev) => {
+                    const existingIds = new Set(prev.map((v) => v.id));
+                    const uniqueNewVideos = newVideos.filter((v) => !existingIds.has(v.id));
+                    return [...prev, ...uniqueNewVideos];
+                });
+
                 setPage((prev) => prev + 1);
+            } else {
+                setHasMore(false);
             }
+
         } catch (err) {
-            console.error(" Failed to load videos:", err);
+            console.error("Failed to load videos:", err);
         } finally {
             setLoading(false);
             isFetchingRef.current = false;
         }
     }, [page, activeCategory, hasMore]);
 
-    // 🔹 При зміні категорії — скидаємо стан
     useEffect(() => {
         setVideos([]);
         setPage(1);
         setHasMore(true);
+        isFetchingRef.current = false;
     }, [activeCategory]);
 
-    // 🔹 Перше завантаження
     useEffect(() => {
         if (videos.length === 0 && hasMore && !isFetchingRef.current) {
             loadMore();
         }
-    }, [activeCategory]);
+    }, [activeCategory, loadMore, videos.length, hasMore]);
 
     return (
         <div className="my-4 mx-auto max-w-[1400px] px-6">
-            {/* 🔹 Категорії */}
             <div
                 className="mb-6 flex overflow-x-auto overflow-y-hidden no-scrollbar cursor-grab active:cursor-grabbing select-none"
                 onMouseDown={(e: React.MouseEvent<HTMLDivElement>) => {
@@ -120,8 +129,7 @@ export default function Home() {
                         key={cat.id}
                         onClick={() => setActiveCategory(cat.name)}
                         variant={activeCategory === cat.name ? "default" : "outline"}
-                        className={`mx-2 whitespace-nowrap transition-all ${activeCategory === cat.name ? "bg-black text-white" : ""
-                            }`}
+                        className={`mx-2 whitespace-nowrap transition-all ${activeCategory === cat.name ? "bg-black text-white" : ""}`}
                     >
                         {cat.name}
                     </Button>
@@ -147,8 +155,9 @@ export default function Home() {
                                 />
                             </Link>
                         ))}
+
                         {loading && videos.length > 0 && (
-                            <div className="text-center py-4 text-gray-500">
+                            <div className="text-center py-4 text-gray-500 col-span-full w-full">
                                 Loading more videos...
                             </div>
                         )}

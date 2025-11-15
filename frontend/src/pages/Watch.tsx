@@ -9,7 +9,7 @@ import { useFetchCategories } from "@/hooks/useCategories";
 import { useVideo } from "@/hooks/useVideos";
 import { useReactions } from "@/hooks/useReactions";
 import { useDownload } from "@/hooks/useDownload";
-import type { VideoDetail } from "@api/types";
+import type { VideoDetail, VideoComment, VideoPreviewWithTime } from "@api/types";
 
 /*import type { getComments, addComment, deleteComment, addReply, updateComment } from "@api/commentApi";*/
 /*import { useFetchCategories } from "@/hooks/useCategories";*/
@@ -39,7 +39,7 @@ export default function Watch() {
 
         onVideoUpdate: (newVideo: VideoDetail) => {
             if (setVideo) {
-                setVideo(newVideo as unknown as VideoDetail | null);
+                setVideo(newVideo);
             } else {
                 console.error("setVideo function is not available.");
             }
@@ -104,7 +104,7 @@ export default function Watch() {
                 <div className="mt-6">
                     <h2 className="text-lg sm:text-xl font-semibold mb-3">{comments.length} Comments</h2>
                     <div className="space-y-4">
-                        {comments.map((comment) => (
+                        {comments.map((comment: VideoComment) => (
                             <div key={comment.id} className="border-b pb-2">
                                 <p className="font-medium">{comment.userId}</p>
                                 <p className="text-gray-600 text-sm sm:text-base">{comment.content}</p>
@@ -133,12 +133,12 @@ export default function Watch() {
                 ) : (
                     <InfiniteScroll loadMore={loadMore} hasMore={hasMore}>
                         <div className="space-y-4">
-                            {videos.map((video) => (
+                            {videos.map((video: VideoPreviewWithTime) => (
                                 <Link key={video.id} to={`/watch?v=${video.id}`} className="w-full">
                                     <VideoCard
                                         id={video.id}
                                         title={video.title}
-                                        thumbnail={video.thumbnail_url}
+                                        thumbnail={video.previewUrl || video.thumbnail_url}
                                         channel_avatar={video.channel_avatar}
                                         channel_name={video.channel_name}
                                         views={video.views}

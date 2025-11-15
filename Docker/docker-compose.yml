@@ -76,9 +76,6 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    environment:
-      - VAULT_ADDR=${VAULT_ADDR}
-      - VAULT_TOKEN=${VAULT_TOKEN}
     logging:
       driver: "json-file"
       options:
@@ -283,7 +280,7 @@ services:
 networks:
   default:
     name: video_streaming_network
-
+    external: true
 volumes:
   minio_data:
   grafana_data:

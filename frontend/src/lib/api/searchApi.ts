@@ -1,45 +1,63 @@
-import { timeAgo } from '@/utils/timeAgo';
-import type { VideoPreview, ChannelPreview } from './types';
-import clientApi from "./clientApi";
+import clientApi from "@api/clientApi";
+import type { SearchFilters, SearchResponse, VideoPreview, VideoPreviewWithTime, SearchHintsResponse } from "@api/types";
+import { timeAgo } from "@/utils/timeAgo";
 
-export const searchVideos = (query: string, page: number = 0): Promise<VideoPreview[]> =>
-    clientApi
-        .get<VideoPreview[]>(`/search/videos`, { params: { q: query, page } })
-        .then(res =>
-            res.data.map(video => ({
-                ...video,
-                createdAt: timeAgo(video.createdAt),
-            }))
-        );
+interface ApiVideoItem extends VideoPreview {
+    name?: string;
+}
 
-export const searchChannels = (query: string, page: number = 0): Promise<ChannelPreview[]> =>
-    clientApi
-        .get<ChannelPreview[]>(`/search/channels`, { params: { q: query, page } })
-        .then(res => res.data);
+export const search = async (query: string, page: number, filters?: SearchFilters): Promise<VideoPreviewWithTime[]> => {
+    const params = {
+        q: query,
+        page: page,
+        category: filters?.category === "All" ? undefined : filters?.category,
+        min_views: filters?.minViews,
+        max_views: filters?.maxViews,
+        smart_search: filters?.smartSearch,
+        has_description: filters?.includeDescription
+    };
 
-export const getRecommendedVideos = (videoId: string): Promise<VideoPreview[]> =>
-    clientApi
-        .get<VideoPreview[]>(`/videos/${videoId}/recommended`)
-        .then(res =>
-            res.data.map(video => ({
-                ...video,
-                createdAt: timeAgo(video.createdAt),
-            }))
-        );
+    try {
+        const response = await clientApi.post<SearchResponse>(`/api/search/video`, {}, {
+            params: params
+        });
 
-export const getPopularVideos = (page: number = 0): Promise<VideoPreview[]> =>
-    clientApi
-        .get<VideoPreview[]>(`/videos/popular`, { params: { page } })
-        .then(res =>
-            res.data.map(video => ({
-                ...video,
-                createdAt: timeAgo(video.createdAt),
-            }))
-        );
+        const results = response.data?.results || [];
+
+        return results.map((item: VideoPreview) => {
+            const serverItem = item as ApiVideoItem;
+            const title = serverItem.name || item.title || "Untitled Video";
+
+            return {
+                ...item,
+                title: title,
+                timeAgo: timeAgo(item.publishedAt || item.createdAt || new Date().toISOString()),
+                previewUrl: item.thumbnail_url || item.previewUrl || "/placeholder.jpg",
+            } as VideoPreviewWithTime;
+        });
+    } catch (error) {
+        console.error(error);
+        return [];
+    }
+};
+
+export const getHints = async (query: string): Promise<string[]> => {
+    if (!query || query.length < 1) return [];
+
+    console.log("[searchApi] Sending GET request to /api/search/video_hints?q=" + query);
+
+    try {
+        const response = await clientApi.get<SearchHintsResponse>(`/api/search/video_hints`, {
+            params: { q: query }
+        });
+        return response.data.hints || [];
+    } catch (error) {
+        console.error("[SearchApi] Failed to get hints:", error);
+        return [];
+    }
+};
 
 export default {
-    searchVideos,
-    searchChannels,
-    getRecommendedVideos,
-    getPopularVideos,
+    search,
+    getHints,
 };

@@ -19,6 +19,7 @@ const Liked = lazy(() => import("@/pages/Liked"));
 const History = lazy(() => import("@/pages/History"));
 const WatchLater = lazy(() => import("@/pages/WatchLater"));
 const Subscriptions = lazy(() => import("@/pages/Subscriptions"));
+const SearchResults = lazy(() => import("@/pages/SearchResults"));
 
 export default function AppRouter() {
     return (
@@ -35,6 +36,7 @@ export default function AppRouter() {
                     <Route path="/history" element={<History />} />
                     <Route path="/watch-later" element={<WatchLater />} />
                     <Route path="/subscriptions" element={<Subscriptions />} />
+                    <Route path="/search-results" element={<SearchResults />} />
                 </Route>
 
                 <Route path="/reset-password" element={<ResetPass />} />

@@ -11,6 +11,8 @@ export interface ChannelInfo {
 }
 
 export interface VideoPreview {
+    // name can be present from some server responses but isn't always required
+    name?: string;
     thumbnail_url?: string;
     channel_name?: string;
     id: string;
@@ -21,11 +23,13 @@ export interface VideoPreview {
     channel: string;
     views: number;
     likesCount: number;
+    publishedAt: string;
     dislikesCount: number;
     privacy: string;
 }
 
 export interface Video {
+    publishedAt: string;
     id: string;
     title: string;
     size: number;
@@ -83,10 +87,10 @@ export interface UserInfo {
 }
 
 export interface ChannelPreview {
-channel_name: string;
-channel_avatar: string;
-subscribersCount: number;
-videosCount: number;
+    channel_name: string;
+    channel_avatar: string;
+    subscribersCount: number;
+    videosCount: number;
 }
 
 export interface CommentPage {
@@ -115,13 +119,13 @@ export interface PlaylistPreview {
 }
 
 export interface Notification {
-id: string;
-userId: string;
-type: "new_video" | "new_subscriber" | "comment_reply" | "like" | "dislike";
-content: string;
-isRead: boolean;
-createdAt: string;
-relatedEntityId?: string;
+    id: string;
+    userId: string;
+    type: "new_video" | "new_subscriber" | "comment_reply" | "like" | "dislike";
+    content: string;
+    isRead: boolean;
+    createdAt: string;
+    relatedEntityId?: string;
 }
 export interface ChangelogEntry {
     date: string;
@@ -184,3 +188,53 @@ export type VideoDetail = VideoPreview & {
 export type VideoPreviewWithTime = VideoPreview & {
     timeAgo: string;
 };
+
+export interface SearchFilters {
+    category?: string;
+    minViews?: number; // Зроблено опціональним
+    maxViews?: number; // Зроблено опціональним
+    includeDescription: boolean; // Залишено обов'язковим
+    smartSearch: boolean;
+}
+
+export interface SearchResponse {
+    results: VideoPreview[];
+}
+type SetVideoState = React.Dispatch<React.SetStateAction<VideoDetail | null>>;
+export interface UseVideoResult {
+    // --- Основні стани ---
+    video: VideoDetail | null;
+    videos: VideoPreviewWithTime[];
+    comments: VideoComment[];
+    error: string | null;
+    loading: boolean;
+    hasMore: boolean;
+    page: number; // Поточна сторінка для пагінації
+    setVideo: SetVideoState;
+    // --- Функції відображення та логіки ---
+    loadMore: () => Promise<void>;
+    loadMoreSearchResults: () => Promise<void>;
+    formatViews: (views: number | undefined) => string;
+    metaDataText: string;
+
+    // --- Сеттери для загального стану ---
+    setVideos: React.Dispatch<React.SetStateAction<VideoPreviewWithTime[]>>;
+    setPage: React.Dispatch<React.SetStateAction<number>>;
+    setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+    setHasMore: React.Dispatch<React.SetStateAction<boolean>>;
+
+    // --- Стан та сеттери для Пошуку ---
+    searchQuery: string; // Поточний пошуковий запит
+    setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+    setSearchFilters: React.Dispatch<React.SetStateAction<SearchFilters | undefined>>;
+}
+
+export interface NoSearchResultsProps {
+    query: string;
+}
+export interface SearchApiResponse {
+    results: VideoPreview[];
+}
+export interface SearchHintsResponse {
+    hints: string[];
+}
