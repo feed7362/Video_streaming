@@ -43,14 +43,17 @@ services:
             path: ../frontend
 
   postgres:
-    image: postgres:latest
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    container_name: postgres_service
     environment:
       POSTGRES_MULTIPLE_DATABASES: "${VIDEO_DB},${KEYCLOAK_DB}"
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./entrypoints/postgres_entrypoint.sh:/docker-entrypoint-initdb.d/postgres_entrypoint.sh
+      - ./postgres/postgres_entrypoint.sh:/docker-entrypoint-initdb.d/postgres_entrypoint.sh
     expose:
       - "5432"
     healthcheck:
