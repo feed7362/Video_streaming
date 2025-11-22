@@ -11,6 +11,7 @@ import { useReactions } from "@/hooks/useReactions";
 import { useDownload } from "@/hooks/useDownload";
 import type { VideoDetail, VideoComment, VideoPreviewWithTime } from "@api/types";
 
+import { VideoPrivacyStatus } from "@/components/VideoPrivacyStatus";
 /*import type { getComments, addComment, deleteComment, addReply, updateComment } from "@api/commentApi";*/
 /*import { useFetchCategories } from "@/hooks/useCategories";*/
 
@@ -31,10 +32,10 @@ export default function Watch() {
 
     const [resolution, setResolution] = useState("720p");
 
-    const { handleDownload } = useDownload({ video: video as unknown as VideoDetail, resolution });
+    const { handleDownload } = useDownload({ video: video as VideoDetail, resolution });
 
     const { handleReaction } = useReactions({
-        initialVideo: video as unknown as VideoDetail,
+        initialVideo: video as VideoDetail,
         initialUserReaction: null,
 
         onVideoUpdate: (newVideo: VideoDetail) => {
@@ -51,11 +52,14 @@ export default function Watch() {
 
     const avatarSize = 40;
 
+    const isPrivate = video.privacy && video.privacy.toLowerCase() !== 'public';
+
     return (
         <div className="flex flex-col lg:flex-row items-start gap-6 lg:gap-10 p-4 sm:p-6">
             <div className="w-full lg:w-2/3 lg:max-w-6xl">
-                <VideoPlayer src={video.previewUrl || ""} />
+                <VideoPlayer src={video.hlsUrl} />
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold my-4">{video.title}</h1>
+
                 <div className="flex items-center gap-3 mb-4">
                     <img
                         className="rounded-full"
@@ -67,34 +71,42 @@ export default function Watch() {
                     />
                     <span className="text-gray-700 font-medium">{video.channel}</span>
 
-                    <span className="text-gray-500 text-sm ml-2">
-                        {metaDataText}
-                    </span>
+                    <div className="flex items-center ml-2 space-x-2 text-gray-500 text-sm">
+                        <span>{metaDataText}</span>
+
+                        {isPrivate && (
+                            <VideoPrivacyStatus
+                                privacy={video.privacy}
+                                className="ml-1"
+                            />
+                        )}
+
+                    </div>
                 </div>
                 <div className="mb-6 text-gray-700 text-sm sm:text-base">
                     <h4 className="font-semibold">Description:</h4>
                     <p>{video.description}</p>
                 </div>
                 <div className="flex items-center gap-4 mt-4 mb-6">
-                    <Button onClick={() => handleReaction("like")} className="flex items-center gap-2">
+                    <Button onClick={() => handleReaction("like")} variant="ghost" className="flex items-center gap-2">
                         <img src="/thumbs_up.svg" alt="Like" />
                         <span>{video.likesCount}</span>
                     </Button>
-                    <Button onClick={() => handleReaction("dislike")} className="flex items-center gap-2">
+                    <Button onClick={() => handleReaction("dislike")} variant="ghost" className="flex items-center gap-2">
                         <img src="/thumbs-down.svg" alt="Dislike" />
                         <span>{video.dislikesCount}</span>
                     </Button>
                     <select
                         value={resolution}
                         onChange={(e) => setResolution(e.target.value)}
-                        className="p-2 rounded border border-gray-300 text-sm"
+                        className="p-2 text-sm"
                     >
                         <option value="360p">360p</option>
                         <option value="720p">720p</option>
                         <option value="1080p">1080p</option>
                     </select>
                     <Button
-                        className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-full text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700 flex items-center justify-center gap-2"
+                        className="text-gray-900 bg-white focus:outline-none hover:bg-gray-100 font-medium rounded-full text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700 flex items-center justify-center gap-2"
                         onClick={() => handleDownload()}
                     >
                         <img src="/arrow-big-down.svg" alt="Download" className="w-5 h-5" />
@@ -143,6 +155,7 @@ export default function Watch() {
                                         channel_name={video.channel_name}
                                         views={video.views}
                                         timeAgo={video.timeAgo}
+                                        privacy={video.privacy}
                                     />
                                 </Link>
                             ))}

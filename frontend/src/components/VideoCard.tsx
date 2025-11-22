@@ -1,6 +1,8 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { CARD_CONFIG } from "@/components/CARD_CONFIG.tsx";
+import { formatViews } from "@/utils/formatters";
+import { VideoPrivacyStatus } from "@/components/VideoPrivacyStatus";
 
 interface VideoCardProps {
     id?: string;
@@ -8,29 +10,20 @@ interface VideoCardProps {
     thumbnail?: string;
     channel_avatar?: string;
     channel_name?: string;
-    // ✅ ДОДАНО: Перегляди
     views?: number;
-    // ✅ ДОДАНО: Відносна дата (наприклад, "3 дні тому")
     timeAgo?: string;
-    loading?: boolean; // if true, render skeleton
+    loading?: boolean;
+    privacy?: string;
 }
-
-// Функція для форматування числа переглядів (наприклад, 12000 -> 12K)
-const formatViews = (views: number | undefined): string => {
-    if (views === undefined) return '';
-    if (views < 1000) return views.toString();
-    if (views < 1000000) return `${(views / 1000).toFixed(1)}K`;
-    return `${(views / 1000000).toFixed(1)}M`;
-};
-
 
 export default function VideoCard({
     title,
     thumbnail,
     channel_avatar,
     channel_name,
-    views, // ✅ Прийняття нового пропсу
-    timeAgo, // ✅ Прийняття нового пропсу
+    views,
+    timeAgo,
+    privacy,
     loading = false,
 }: VideoCardProps) {
     const { height, avatarSize, metaRatio } = CARD_CONFIG;
@@ -88,7 +81,12 @@ export default function VideoCard({
                 <div className="flex flex-col flex-1 min-w-0">
                     <h2 className="font-semibold truncate">{title}</h2>
                     <h4 className="text-sm text-gray-500 truncate">{channel_name}</h4>
-                    {/* ✅ ВИПРАВЛЕНО: Використання обчисленого metaText */}
+                    {privacy && privacy.toLowerCase() !== 'public' && (
+                        <VideoPrivacyStatus
+                            privacy={privacy}
+                            className="!h-auto"
+                        />
+                    )}
                     <h3 className="text-sm text-gray-500">
                         {metaText}
                     </h3>

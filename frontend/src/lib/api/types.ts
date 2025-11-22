@@ -11,7 +11,6 @@ export interface ChannelInfo {
 }
 
 export interface VideoPreview {
-    // name can be present from some server responses but isn't always required
     name?: string;
     thumbnail_url?: string;
     channel_name?: string;
@@ -25,7 +24,7 @@ export interface VideoPreview {
     likesCount: number;
     publishedAt: string;
     dislikesCount: number;
-    privacy: string;
+    privacy: VideoPrivacyStatus;
 }
 
 export interface Video {
@@ -43,10 +42,11 @@ export interface Video {
     views_count: number;
     likes_count: number;
     dislikes_count: number;
-    privacy: string;
+    privacy: VideoPrivacyStatus;
     category?: string;
     channel_avatar?: string;
     channel_name: string;
+    master_url?: string;
     status: "Processing" | "Ready" | "Failed";
     comments?: VideoComment[];
     commentCount?: number;
@@ -177,23 +177,28 @@ export interface ReactionResponse {
     };
 }
 
+export type VideoPrivacyStatus = "Private" | "Public" | string;
+
 export type VideoDetail = VideoPreview & {
     timeAgo?: string;
     description: string;
     likesCount: number;
-    dislikeCount: number;
+    dislikesCount: number;
+    hlsUrl: string;
     userReaction: 'like' | 'dislike' | null;
+    privacy: VideoPrivacyStatus;
 };
 
 export type VideoPreviewWithTime = VideoPreview & {
     timeAgo: string;
+    thumbnail: string;
 };
 
 export interface SearchFilters {
     category?: string;
-    minViews?: number; // Зроблено опціональним
-    maxViews?: number; // Зроблено опціональним
-    includeDescription: boolean; // Залишено обов'язковим
+    minViews?: number;
+    maxViews?: number;
+    includeDescription: boolean;
     smartSearch: boolean;
 }
 
@@ -237,4 +242,8 @@ export interface SearchApiResponse {
 }
 export interface SearchHintsResponse {
     hints: string[];
+}
+
+export interface VideoPrivacyStatusProps {
+    privacy: VideoPrivacyStatus;
 }

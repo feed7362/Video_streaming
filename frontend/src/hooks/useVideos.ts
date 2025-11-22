@@ -1,12 +1,10 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { getVideos, getVideo } from "@api/videoApi";
 import { timeAgo } from "@/utils/timeAgo";
-// ВИПРАВЛЕНО: VideoPreviewWithTime імпортовано, Remove explicit UseVideoResult import to let TS infer return type
 import type { VideoComment, VideoDetail, SearchFilters, VideoPreviewWithTime } from "@api/types";
 import { useSearchParams } from "react-router-dom";
 import { search } from "@api/searchApi";
 
-// ПРИМІТКА: Імпорт UseVideoResult видалено — дозволяємо TypeScript вивести тип повернення.
 
 export function useVideo() {
     const [searchParams] = useSearchParams();
@@ -19,7 +17,7 @@ export function useVideo() {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
-
+ 
     const [searchQuery, setSearchQuery] = useState("");
     const [searchFilters, setSearchFilters] = useState<SearchFilters | undefined>(undefined);
 
@@ -36,12 +34,19 @@ export function useVideo() {
         return `${viewCountText} views ${video.timeAgo ? '• ' + video.timeAgo : ''}`;
     }, [video, formatViews]);
 
+
     const fetchVideo = useCallback(async () => {
         if (!videoId) return;
         try {
             const data = await getVideo(videoId);
             const createdDate = data.created_at || new Date().toISOString();
             setError(null);
+
+            const apiPrivacy = data.privacy?.toLowerCase();
+            const mappedPrivacy =
+                apiPrivacy === "private" ? "Private" :
+                    "Public";
+
             setVideo({
                 id: data.id || "",
                 title: data.title || "",
@@ -50,7 +55,8 @@ export function useVideo() {
                 channel_avatar: data.channel_avatar || "",
                 channel: data.channel_name || "Unknown Channel",
                 views: data.views_count ?? 0,
-                privacy: data.privacy || "Private",
+                hlsUrl: data.master_hls_url || "",
+                privacy: mappedPrivacy,
                 likesCount: data.likes_count ?? 0,
                 dislikesCount: data.dislikes_count ?? 0,
                 description: data.description || "No description provided for this video.",
@@ -74,7 +80,8 @@ export function useVideo() {
 
             const videosWithTime: VideoPreviewWithTime[] = newVideos.map(v => ({
                 ...v,
-                timeAgo: timeAgo(v.createdAt || new Date().toISOString())
+                timeAgo: timeAgo(v.createdAt || new Date().toISOString()),
+                thumbnail: v.thumbnail_url || v.previewUrl || "",
             }));
 
             setVideos((prev) => [...prev, ...videosWithTime]);
@@ -127,7 +134,8 @@ export function useVideo() {
 
             const initialVideosWithTime: VideoPreviewWithTime[] = firstVideos.map(v => ({
                 ...v,
-                timeAgo: timeAgo(v.createdAt || new Date().toISOString())
+                timeAgo: timeAgo(v.createdAt || new Date().toISOString()),
+                thumbnail: v.thumbnail_url || v.previewUrl || "",
             }));
 
             setVideos(initialVideosWithTime);

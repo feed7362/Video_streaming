@@ -1,29 +1,21 @@
-﻿/* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState, useCallback, useRef } from "react";
+﻿import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import VideoCard from "@/components/VideoCard";
 import InfiniteScroll from "@/components/infinite-scroll";
 import categoriesApi from "@api/categoriesApi";
-import type { Category, VideoPreview } from "@api/types";
+import type { Category, VideoPreview, VideoPreviewWithTime } from "@api/types";
 import videoApi from "@api/videoApi";
-
-interface Video {
-    id: string;
-    title: string;
-    thumbnail: string;
-    channel_avatar: string;
-    channel_name: string;
-}
+import { timeAgo } from "@/utils/timeAgo";
 
 export default function Home() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [activeCategory, setActiveCategory] = useState<string>("All");
 
-    const [videos, setVideos] = useState<Video[]>([]);
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
+    const [videos, setVideos] = useState<VideoPreviewWithTime[]>([]);
 
     const isFetchingRef = useRef(false);
     const size = 9;
@@ -44,34 +36,40 @@ export default function Home() {
         setLoading(true);
 
         try {
-            console.log(`Fetching page ${page}...`);
-
             const newVideosPreview = await videoApi.getVideos({
                 page,
                 size,
                 category: activeCategory !== "All" ? activeCategory : undefined,
             });
 
-            const newVideos: Video[] = newVideosPreview.map((v: VideoPreview) => {
-                const item = v as VideoPreview & { name?: string; thumbnail?: string; avatar_url?: string };
+            const newVideosWithTime: VideoPreviewWithTime[] = newVideosPreview.map((v: VideoPreview) => {
+                const createdDate = v.createdAt || new Date().toISOString();
 
                 return {
-                    id: item.id,
-                    title: item.title || item.name || "Untitled Video",
-                    thumbnail: item.previewUrl || item.thumbnail_url || item.thumbnail || "/placeholder.jpg",
-                    channel_avatar: item.channel_avatar || item.avatar_url || "",
-                    channel_name: item.channel || "Unknown Channel",
+                    ...v,
+                    thumbnail: v.previewUrl || v.thumbnail_url || "/placeholder.jpg",
+                    title: v.title || v.name || "Untitled Video",
+                    channel_name: v.channel || "Unknown Channel",
+                    timeAgo: timeAgo(createdDate),
+                    channel_avatar: v.channel_avatar || "",
+                    previewUrl: v.previewUrl || v.thumbnail_url || "",
+                    createdAt: createdDate,
+                    views: v.views ?? 0,
+                    likesCount: v.likesCount ?? 0,
+                    dislikesCount: v.dislikesCount ?? 0,
+                    privacy: v.privacy,
                 };
             });
 
-            if (newVideos.length < size) {
+
+            if (newVideosWithTime.length < size) {
                 setHasMore(false);
             }
 
-            if (newVideos.length > 0) {
+            if (newVideosWithTime.length > 0) {
                 setVideos((prev) => {
                     const existingIds = new Set(prev.map((v) => v.id));
-                    const uniqueNewVideos = newVideos.filter((v) => !existingIds.has(v.id));
+                    const uniqueNewVideos = newVideosWithTime.filter((v) => !existingIds.has(v.id));
                     return [...prev, ...uniqueNewVideos];
                 });
 
@@ -152,6 +150,9 @@ export default function Home() {
                                     thumbnail={video.thumbnail}
                                     channel_avatar={video.channel_avatar}
                                     channel_name={video.channel_name}
+                                    privacy={video.privacy}
+                                    views={video.views}
+                                    timeAgo={video.timeAgo}
                                 />
                             </Link>
                         ))}
@@ -163,6 +164,7 @@ export default function Home() {
                         )}
                     </InfiniteScroll>
                 )}
+
             </div>
         </div>
     );

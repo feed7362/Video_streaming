@@ -80,6 +80,7 @@ export const getVideo = async (id: string): Promise<Video> => {
     timeAgo: timeAgo(res.data.created_at),
     thumbnail_url: res.data.thumbnail_url || "",
     channel_avatar: res.data.channel_avatar || "",
+    master_hls_url: res.data.master_hls_url || "",
     preview_url: res.data.preview_url || res.data.thumbnail_url || "",
     comments: res.data.comments || [],
   };
