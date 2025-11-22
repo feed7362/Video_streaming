@@ -15,18 +15,19 @@ interface VideosResponse {
 }
 
 export const mapToPreview = (video: Video): VideoPreview => ({
-    id: video.id,
-    previewUrl: video.thumbnail_url || "/placeholder.jpg",
-    title: video.name || video.title || "Untitled",
-    name: video.name || video.title || "Untitled",
-    createdAt: video.created_at || new Date().toISOString(),
-    publishedAt: video.publishedAt || video.created_at || new Date().toISOString(),
-    channel: video.channel_name || "Unknown Channel",
-    channel_avatar: video.avatar_url || "",
-    views: video.views_count ?? 0,
-    likesCount: video.likes_count ?? 0,
-    dislikesCount: video.dislikes_count ?? 0,
-    privacy: video.privacy === "public" ? "Public" : "Private",
+  id: video.id,
+  previewUrl: video.thumbnail_url || "/placeholder.jpg",
+  title: video.name || video.title || "Untitled",
+  name: video.name || video.title || "Untitled",
+  createdAt: video.created_at || new Date().toISOString(),
+  publishedAt:
+    video.publishedAt || video.created_at || new Date().toISOString(),
+  channel: video.channel_name || "Unknown Channel",
+  channel_avatar: video.avatar_url || "",
+  views: video.views_count ?? 0,
+  likesCount: video.likes_count ?? 0,
+  dislikesCount: video.dislikes_count ?? 0,
+  privacy: video.privacy === "public" ? "Public" : "Private",
 });
 
 export const mapToDetail = (video: Video): Video => ({
@@ -79,6 +80,7 @@ export const getVideo = async (id: string): Promise<Video> => {
     ...res.data,
     timeAgo: timeAgo(res.data.created_at),
     thumbnail_url: res.data.thumbnail_url || "",
+    master_hls_url: res.data.master_hls_url,
     channel_avatar: res.data.channel_avatar || "",
     preview_url: res.data.preview_url || res.data.thumbnail_url || "",
     comments: res.data.comments || [],
