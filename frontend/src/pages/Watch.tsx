@@ -55,10 +55,13 @@ export default function Watch() {
 
     const isPrivate = video.privacy && video.privacy.toLowerCase() !== 'public';
 
+    console.log("[Watch] video.hlsUrl:", video.hlsUrl);
+
     return (
         <div className="flex flex-col lg:flex-row items-start gap-6 lg:gap-10 p-4 sm:p-6">
             <div className="w-full lg:w-2/3 lg:max-w-6xl">
-                <VideoPlayer src={video.hlsUrl} />
+                {/* Prefer HLS manifest URL (hlsUrl) and fall back to preview image */}
+                <VideoPlayer src={video.hlsUrl || video.previewUrl || ""} />
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold my-4">{video.title}</h1>
 
                 <div className="flex items-center gap-3 mb-4">

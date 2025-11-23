@@ -1,6 +1,4 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card } from "@/components/ui/card";
-import { CARD_CONFIG } from "@/components/CARD_CONFIG.tsx";
 import { formatViews } from "@/utils/formatters";
 import { VideoPrivacyStatus } from "@/components/VideoPrivacyStatus";
 
@@ -26,72 +24,72 @@ export default function VideoCard({
     privacy,
     loading = false,
 }: VideoCardProps) {
-    const { height, avatarSize, metaRatio } = CARD_CONFIG;
 
-    const metaHeight = height * metaRatio;
-    const thumbnailHeight = height * (1 - metaRatio);
-
-    // Форматуємо перегляди для відображення
-    const formattedViews = formatViews(views);
-    // Створюємо рядок метаданих: "1.2K переглядів · 3 дні тому"
-    const metaText = `${formattedViews} переглядів${timeAgo ? ` · ${timeAgo}` : ''}`;
-
-
+    // Скелетон
     if (loading) {
         return (
-            <div className="w-full">
-                <div className="flex flex-col gap-0 w-full" style={{ height }}>
-                    <Skeleton
-                        className="rounded-t-xl block w-full"
-                        style={{ height: thumbnailHeight }}
-                    />
-                    <div className="flex items-center gap-3 px-2" style={{ height: metaHeight }}>
-                        <Skeleton className="rounded-full" style={{ width: avatarSize, height: avatarSize }} />
-                        <div className="flex-1 min-w-0">
-                            <Skeleton className="h-4 mb-2" style={{ width: "60%" }} />
-                            {/* Скелетон для метаданих */}
-                            <Skeleton className="h-4" style={{ width: "40%" }} />
-                        </div>
+            <div className="flex flex-col gap-3 w-full p-2">
+                <Skeleton className="w-full aspect-video rounded-xl" />
+                <div className="flex gap-3 px-1">
+                    <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                    <div className="flex flex-col gap-2 w-full">
+                        <Skeleton className="h-4 w-[90%]" />
+                        <Skeleton className="h-4 w-[60%]" />
                     </div>
                 </div>
             </div>
         );
     }
 
-    return (
+    const formattedViews = formatViews(views);
+    const metaText = `${formattedViews} views • ${timeAgo || ''}`;
+    const isPrivate = privacy && privacy.toLowerCase() !== 'public';
 
-        <Card className="p-0 gap-0 rounded-xl overflow-hidden w-full" style={{ height }}>
-            <img
-                src={thumbnail}
-                alt={title}
-                className="rounded-t-xl block w-full"
-                style={{ height: thumbnailHeight, objectFit: "cover", display: "block" }}
-            />
-            <div className="flex items-start gap-3 px-3 py-2" style={{ height: metaHeight }}>
+    return (
+        // Головний контейнер:
+        // rounded-xl overflow-hidden: Задає загальну форму картки.
+        // hover:bg-gray-100: Вмикає сірий фон при наведенні.
+        <div className="group flex flex-col w-full hover:bg-gray-100 cursor-pointer rounded-xl overflow-hidden transition-colors duration-200">
+
+            {/* Картинка */}
+            <div className="relative w-full aspect-video bg-gray-100">
                 <img
-                    className="avatar-img rounded-full"
-                    src={channel_avatar}
-                    alt={channel_name || "channel avatar"}
-                    width={avatarSize}
-                    height={avatarSize}
-                    decoding="async"
-                    loading="lazy"
-                    style={{ width: avatarSize, height: avatarSize, display: "block", objectFit: "cover" }}
+                    src={thumbnail}
+                    alt={title}
+                    className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
                 />
-                <div className="flex flex-col flex-1 min-w-0">
-                    <h2 className="font-semibold truncate">{title}</h2>
-                    <h4 className="text-sm text-gray-500 truncate">{channel_name}</h4>
-                    {privacy && privacy.toLowerCase() !== 'public' && (
-                        <VideoPrivacyStatus
-                            privacy={privacy}
-                            className="!h-auto"
-                        />
-                    )}
-                    <h3 className="text-sm text-gray-500">
-                        {metaText}
+            </div>
+
+            {/* Інформація під картинкою */}
+            {/* ЗМІНА: Додано rounded-b-xl. 
+               Це явно заокруглює нижні кути цього блоку, гарантуючи, 
+               що сірий фон при наведенні буде мати правильну форму внизу. */}
+            <div className="flex items-start gap-3 p-3 rounded-b-xl">
+                {/* Аватар */}
+                <img
+                    src={channel_avatar}
+                    alt={channel_name}
+                    className="h-9 w-9 rounded-full object-cover shrink-0"
+                />
+
+                {/* Текст */}
+                <div className="flex flex-col overflow-hidden">
+                    <h3 className="font-semibold text-base leading-snug truncate text-black group-hover:text-gray-900" title={title}>
+                        {title}
                     </h3>
+
+                    <div className="mt-1 text-sm text-gray-600 flex flex-col">
+                        <span className="hover:text-gray-900">{channel_name}</span>
+
+                        <div className="flex items-center flex-wrap gap-1 mt-0.5">
+                            {isPrivate && (
+                                <VideoPrivacyStatus privacy={privacy!} className="mr-1 scale-90 origin-left" />
+                            )}
+                            <span>{metaText}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </Card>
+        </div>
     );
 }

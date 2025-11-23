@@ -18,7 +18,7 @@ export function useVideo() {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
- 
+
     const [searchQuery, setSearchQuery] = useState("");
     const [searchFilters, setSearchFilters] = useState<SearchFilters | undefined>(undefined);
 
