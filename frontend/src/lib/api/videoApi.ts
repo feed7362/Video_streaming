@@ -3,9 +3,14 @@ import { timeAgo } from "@/utils/timeAgo";
 import type {
   Video,
   VideoPreview,
-  UploadResponse,
-  DownloadResponse,
-} from "./types";
+} from "../../types/video";
+
+import type {
+    UploadResponse,
+} from "../../types/upload";
+import type {
+    DownloadResponse,
+} from "../../types/download";
 
 interface VideosResponse {
   items: Video[];

@@ -1,5 +1,5 @@
 import clientApi from "./clientApi";
-import type { Playlist, PlaylistPreview } from './types';
+import type { Playlist, PlaylistPreview } from '../../types/playlist';
 
 export const createPlaylist = (name: string, isPublic: boolean): Promise<Playlist> =>
     clientApi.post<Playlist>('/playlists', { name, isPublic }).then(res => res.data);

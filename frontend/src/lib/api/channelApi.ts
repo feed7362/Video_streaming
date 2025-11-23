@@ -1,4 +1,4 @@
-import type { ChannelInfo } from "./types";
+import type { ChannelInfo } from "../../types/channel";
 import clientApi from "./clientApi";
 
 export const getChannelInfo = (channelName: string): Promise<ChannelInfo> =>

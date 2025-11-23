@@ -1,5 +1,5 @@
 import clientApi from "./clientApi";
-import type { Category } from "./types";
+import type { Category } from "../../types/category";
 
 export const getCategories = async (): Promise<Category[]> => {
     const res = await clientApi.get("/api/video/get_categories");

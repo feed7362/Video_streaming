@@ -1,5 +1,5 @@
 import clientApi from "./clientApi";
-import type { ReactionResponse } from "./types";
+import type { ReactionResponse } from "../../types/reaction";
 
 export const sendReaction = async (
     videoId: string,

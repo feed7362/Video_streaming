@@ -1,4 +1,4 @@
-import type { NoSearchResultsProps } from "@api/types";
+import type { NoSearchResultsProps } from "../types/search";
 
 export default function NoSearchResults({ query }: NoSearchResultsProps) {
     return (

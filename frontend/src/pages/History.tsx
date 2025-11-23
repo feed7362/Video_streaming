@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import VideoCard from "@/components/VideoCard";
 import InfiniteScroll from "@/components/infinite-scroll";
 import { Link } from "react-router-dom";
-import type { VideoPreview } from "@api/types";
+import type { VideoPreview } from "../types/video";
 import { getUserHistory, clearUserHistory, removeVideoFromHistory } from "@api/historyApi";
 import { Button } from "@/components/ui/button";
 

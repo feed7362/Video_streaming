@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/components/ui/toast/use-toast";
 import reactionApi from "@api/reactionApi";
-import type { VideoDetail } from "@api/types";
+import type { VideoDetail } from "../types/video";
 
 type ReactionType = "like" | "dislike";
 type UserReactionState = ReactionType | null;

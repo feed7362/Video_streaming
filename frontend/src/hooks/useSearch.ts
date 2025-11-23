@@ -1,6 +1,7 @@
 ﻿import { useState, useCallback, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import type { SearchFilters, VideoPreviewWithTime, SearchResponse, VideoPreview, SearchHintsResponse } from "@api/types";
+import type { SearchFilters, SearchResponse, SearchHintsResponse } from "../types/search";
+import type { VideoPreviewWithTime, VideoPreview } from "../types/video";
 import { timeAgo } from "@/utils/timeAgo";
 import clientApi from "@api/clientApi";
 import React from "react";

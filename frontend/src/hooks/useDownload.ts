@@ -2,7 +2,7 @@ import { useCallback } from "react";
 
 import { useToast } from "@/components/ui/toast/use-toast";
 import { downloadVideo } from "@api/videoApi";
-import type { VideoDetail } from "@api/types";
+import type { VideoDetail } from "../types/video";
 
 interface UseDownloadProps {
     video: VideoDetail | null;

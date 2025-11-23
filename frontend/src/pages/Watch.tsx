@@ -9,7 +9,8 @@ import { useFetchCategories } from "@/hooks/useCategories";
 import { useVideo } from "@/hooks/useVideos";
 import { useReactions } from "@/hooks/useReactions";
 import { useDownload } from "@/hooks/useDownload";
-import type { VideoDetail, VideoComment, VideoPreviewWithTime } from "@api/types";
+import type { VideoDetail, VideoPreviewWithTime } from "../types/video";
+import type { VideoComment } from "../types/comment";
 
 import { VideoPrivacyStatus } from "@/components/VideoPrivacyStatus";
 /*import type { getComments, addComment, deleteComment, addReply, updateComment } from "@api/commentApi";*/

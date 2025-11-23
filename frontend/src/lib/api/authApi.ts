@@ -1,5 +1,5 @@
 import clientApi from "./clientApi";
-import type { ChangelogEntry, UserInfo } from "./types";
+import type { ChangelogEntry, UserInfo } from "../../types/user";
 
 export const getChangelog = async (): Promise<ChangelogEntry[]> => {
     const res = await clientApi.get<ChangelogEntry[]>("/api/changelog");

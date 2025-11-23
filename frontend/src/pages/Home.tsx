@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import VideoCard from "@/components/VideoCard";
 import InfiniteScroll from "@/components/infinite-scroll";
 import categoriesApi from "@api/categoriesApi";
-import type { Category, VideoPreview, VideoPreviewWithTime } from "@api/types";
+import type { VideoPreview, VideoPreviewWithTime } from "../types/video";
+import type { Category } from "../types/category";
 import videoApi from "@api/videoApi";
 import { timeAgo } from "@/utils/timeAgo";
 

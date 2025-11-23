@@ -4,7 +4,8 @@ import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import VideoCard from "@/components/VideoCard";
 import InfiniteScroll from "@/components/infinite-scroll";
-import type { ChannelInfo, VideoPreview } from "@api/types";
+import type { VideoPreview } from "../types/video";
+import type { ChannelInfo} from "../types/channel";
 import channelApi from "@api/channelApi";
 import videoApi from "@api/videoApi";
 

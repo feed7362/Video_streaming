@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 export default function Register() {
     return (
         <div className="flex flex-col lg:flex-row min-h-screen w-full overflow-hidden">
-            {/* Ліва частина / фон */}
+           
             <div
                 className="relative w-full lg:w-1/2 bg-cover bg-center"
                 style={{ backgroundImage: "url(/authentication-bg.png)" }}

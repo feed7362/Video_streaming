@@ -1,5 +1,5 @@
 import clientApi from "./clientApi";
-import type { Notification } from './types';
+import type { Notification } from '../../types/notification';
 
 export const getNotifications = (): Promise<Notification[]> =>
     clientApi.get<Notification[]>('/notifications').then(res => res.data);

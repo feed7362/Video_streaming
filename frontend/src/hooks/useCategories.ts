@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import categoriesApi from "@api/categoriesApi";
-import type { Category } from "@api/types";
+import type { Category } from "../types/category";
 import { useToast } from "@/components/ui/toast/use-toast";
 
 interface UseFetchCategoriesResult {

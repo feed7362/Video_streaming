@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { getVideos, getVideo } from "@api/videoApi";
 import { timeAgo } from "@/utils/timeAgo";
-import type { VideoComment, VideoDetail, SearchFilters, VideoPreviewWithTime } from "@api/types";
+import type { VideoDetail, VideoPreviewWithTime } from "../types/video";
+import type { SearchFilters } from "../types/search";
+import type { VideoComment } from "../types/comment";
 import { useSearchParams } from "react-router-dom";
 import { search } from "@api/searchApi";
-
 
 export function useVideo() {
     const [searchParams] = useSearchParams();

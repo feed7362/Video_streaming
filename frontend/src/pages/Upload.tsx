@@ -6,7 +6,7 @@ import { useTheme } from "@/components/theme-provider";
 import api from "@api/videoApi";
 import categoriesApi from "@api/categoriesApi";
 import { useToast } from "@/components/ui/toast/use-toast";
-import type { Category } from "@api/types";
+import type { Category } from "../types/category";
 import { getErrorMessage } from "@/utils/error";
 
 export default function Upload() {

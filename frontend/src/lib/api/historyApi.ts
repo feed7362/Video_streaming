@@ -1,5 +1,5 @@
 import clientApi from "./clientApi";
-import type { VideoPreview } from "./types";
+import type { VideoPreview } from "../../types/video";
 
 export const getUserHistory = (
     page: number = 1,
