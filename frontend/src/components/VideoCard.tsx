@@ -12,6 +12,9 @@ interface VideoCardProps {
     timeAgo?: string;
     loading?: boolean;
     privacy?: string;
+    description?: string; // Можна додати опис, якщо він є в даних
+    // Новий проп для перемикання вигляду
+    variant?: "vertical" | "horizontal";
 }
 
 export default function VideoCard({
@@ -22,16 +25,21 @@ export default function VideoCard({
     views,
     timeAgo,
     privacy,
+    description,
     loading = false,
+    variant = "vertical",
 }: VideoCardProps) {
 
-    // Скелетон
+    const isHorizontal = variant === "horizontal";
+
     if (loading) {
         return (
-            <div className="flex flex-col gap-3 w-full p-2">
-                <Skeleton className="w-full aspect-video rounded-xl" />
-                <div className="flex gap-3 px-1">
-                    <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+            <div className={`flex w-full gap-3 p-2 ${isHorizontal ? 'flex-col sm:flex-row' : 'flex-col'}`}>
+                <Skeleton
+                    className={`rounded-xl aspect-video ${isHorizontal ? 'w-full sm:w-[360px] shrink-0' : 'w-full'}`}
+                />
+                <div className="flex gap-3 px-1 w-full">
+                    {!isHorizontal && <Skeleton className="h-9 w-9 rounded-full shrink-0" />}
                     <div className="flex flex-col gap-2 w-full">
                         <Skeleton className="h-4 w-[90%]" />
                         <Skeleton className="h-4 w-[60%]" />
@@ -46,13 +54,19 @@ export default function VideoCard({
     const isPrivate = privacy && privacy.toLowerCase() !== 'public';
 
     return (
-        // Головний контейнер:
-        // rounded-xl overflow-hidden: Задає загальну форму картки.
-        // hover:bg-gray-100: Вмикає сірий фон при наведенні.
-        <div className="group flex flex-col w-full hover:bg-gray-100 cursor-pointer rounded-xl overflow-hidden transition-colors duration-200">
+        <div
+            className={`
+                group flex w-full cursor-pointer rounded-xl overflow-hidden transition-colors duration-200 hover:bg-gray-100
+                ${isHorizontal ? 'flex-col sm:flex-row gap-4 p-2' : 'flex-col gap-3'} 
+            `}
+        >
 
-            {/* Картинка */}
-            <div className="relative w-full aspect-video bg-gray-100">
+            <div
+                className={`
+                    relative bg-gray-100 aspect-video rounded-xl overflow-hidden
+                    ${isHorizontal ? 'w-full sm:w-[360px] shrink-0' : 'w-full'}
+                `}
+            >
                 <img
                     src={thumbnail}
                     alt={title}
@@ -60,34 +74,49 @@ export default function VideoCard({
                 />
             </div>
 
-            {/* Інформація під картинкою */}
-            {/* ЗМІНА: Додано rounded-b-xl. 
-               Це явно заокруглює нижні кути цього блоку, гарантуючи, 
-               що сірий фон при наведенні буде мати правильну форму внизу. */}
-            <div className="flex items-start gap-3 p-3 rounded-b-xl">
-                {/* Аватар */}
-                <img
-                    src={channel_avatar}
-                    alt={channel_name}
-                    className="h-9 w-9 rounded-full object-cover shrink-0"
-                />
+            <div className={`flex items-start gap-3 ${isHorizontal ? 'py-1' : 'p-3 rounded-b-xl'}`}>
+                {!isHorizontal && (
+                    <img
+                        src={channel_avatar}
+                        alt={channel_name}
+                        className="h-9 w-9 rounded-full object-cover shrink-0"
+                    />
+                )}
 
-                {/* Текст */}
-                <div className="flex flex-col overflow-hidden">
-                    <h3 className="font-semibold text-base leading-snug truncate text-black group-hover:text-gray-900" title={title}>
+                <div className="flex flex-col overflow-hidden gap-1">
+                    <h3 className={`font-semibold text-black group-hover:text-gray-900 leading-snug ${isHorizontal ? 'text-lg line-clamp-2' : 'text-base truncate'}`} title={title}>
                         {title}
                     </h3>
 
-                    <div className="mt-1 text-sm text-gray-600 flex flex-col">
-                        <span className="hover:text-gray-900">{channel_name}</span>
-
-                        <div className="flex items-center flex-wrap gap-1 mt-0.5">
-                            {isPrivate && (
-                                <VideoPrivacyStatus privacy={privacy!} className="mr-1 scale-90 origin-left" />
-                            )}
-                            <span>{metaText}</span>
-                        </div>
+                    <div className="text-sm text-gray-600 flex items-center flex-wrap gap-1">
+                        {isPrivate && (
+                            <VideoPrivacyStatus privacy={privacy!} className="mr-1 scale-90 origin-left" />
+                        )}
+                        <span>{metaText}</span>
                     </div>
+
+                    {isHorizontal && (
+                        <div className="flex items-center gap-2 mt-2 py-2">
+                            <img
+                                src={channel_avatar}
+                                alt={channel_name}
+                                className="h-6 w-6 rounded-full object-cover shrink-0"
+                            />
+                            <span className="text-sm text-gray-600 hover:text-gray-900">{channel_name}</span>
+                        </div>
+                    )}
+
+                    {!isHorizontal && (
+                        <div className="text-sm text-gray-600 hover:text-gray-900">
+                            {channel_name}
+                        </div>
+                    )}
+
+                    {isHorizontal && description && (
+                        <p className="text-sm text-gray-500 line-clamp-2 mt-1 hidden sm:block">
+                            {description}
+                        </p>
+                    )}
                 </div>
             </div>
         </div>
