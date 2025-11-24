@@ -1,8 +1,8 @@
 import { Link, useSearchParams } from "react-router-dom";
-import { useSearch } from "@/hooks/useSearch";
+import { useSearch } from "@/hooks/search/useSearch";
 import NoSearchResults from "@/pages/NoSearchResults";
-import InfiniteScroll from "@/components/infinite-scroll";
-import VideoCard from "@/components/VideoCard";
+import InfiniteScroll from "@/components/misc/infinite-scroll";
+import VideoCard from "@/components/cards/VideoCard";
 
 export default function SearchResults() {
     const [searchParams] = useSearchParams();

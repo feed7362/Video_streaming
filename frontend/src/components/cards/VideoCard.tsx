@@ -1,7 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatViews } from "@/utils/formatters";
-import { VideoPrivacyStatus } from "@/components/VideoPrivacyStatus";
-
+import { VideoPrivacyStatus } from "@/components/video/VideoPrivacyStatus";
+import { useVideo } from "@/hooks/video/useVideos";
 interface VideoCardProps {
     id?: string;
     title?: string;
@@ -12,8 +11,7 @@ interface VideoCardProps {
     timeAgo?: string;
     loading?: boolean;
     privacy?: string;
-    description?: string; // Можна додати опис, якщо він є в даних
-    // Новий проп для перемикання вигляду
+    description?: string;
     variant?: "vertical" | "horizontal";
 }
 
@@ -22,14 +20,13 @@ export default function VideoCard({
     thumbnail,
     channel_avatar,
     channel_name,
-    views,
-    timeAgo,
     privacy,
     description,
     loading = false,
     variant = "vertical",
 }: VideoCardProps) {
 
+    const { metaDataText } = useVideo();
     const isHorizontal = variant === "horizontal";
 
     if (loading) {
@@ -49,8 +46,6 @@ export default function VideoCard({
         );
     }
 
-    const formattedViews = formatViews(views);
-    const metaText = `${formattedViews} views • ${timeAgo || ''}`;
     const isPrivate = privacy && privacy.toLowerCase() !== 'public';
 
     return (
@@ -92,7 +87,7 @@ export default function VideoCard({
                         {isPrivate && (
                             <VideoPrivacyStatus privacy={privacy!} className="mr-1 scale-90 origin-left" />
                         )}
-                        <span>{metaText}</span>
+                        <span>{metaDataText}</span>
                     </div>
 
                     {isHorizontal && (

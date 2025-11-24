@@ -1,22 +1,8 @@
 ﻿import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/components/ui/toast/use-toast";
 import reactionApi from "@api/reactionApi";
-import type { VideoDetail } from "../types/video";
-
-type ReactionType = "like" | "dislike";
-type UserReactionState = ReactionType | null;
-
-interface UseReactionsProps {
-    initialVideo: VideoDetail | null;
-    initialUserReaction: UserReactionState;
-    onVideoUpdate: (newVideo: VideoDetail) => void;
-}
-
-interface UseReactionsResult {
-    userReaction: UserReactionState;
-    handleReaction: (reactionType: ReactionType) => Promise<void>;
-    isPending: boolean;
-}
+import type { VideoDetail } from "../../types/video";
+import type { UserReactionState, ReactionType, UseReactionsProps, UseReactionsResult } from "../../types/reaction";
 
 export function useReactions({
     initialVideo,

@@ -15,3 +15,12 @@ export interface ChannelPreview {
     subscribersCount: number;
     videosCount: number;
 }
+
+export interface Channel {
+    id: string;
+    channel_avatar: string;
+    channel_name: string;
+    handle: string;
+    subscribers: string;
+    description: string;
+}

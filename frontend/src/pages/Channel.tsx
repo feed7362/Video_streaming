@@ -1,53 +1,17 @@
-import { useEffect, useState, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
-import { SiteHeader } from "@/components/site-header";
+import { Link } from "react-router-dom";
+import { SiteHeader } from "@/components/layout/site-header";
 import { Button } from "@/components/ui/button";
-import VideoCard from "@/components/VideoCard";
-import InfiniteScroll from "@/components/infinite-scroll";
-import type { VideoPreview } from "../types/video";
-import type { ChannelInfo} from "../types/channel";
-import channelApi from "@api/channelApi";
-import videoApi from "@api/videoApi";
-
+import VideoCard from "@/components/cards/VideoCard";
+import InfiniteScroll from "@/components/misc/infinite-scroll";
+import { useChannel } from "@/hooks/channel/useChannel";
 export default function Channel() {
-    const { channel_name } = useParams<{ channel_name: string }>();
-    const [channel, setChannel] = useState<ChannelInfo | null>(null);
-    const [videos, setVideos] = useState<VideoPreview[]>([]);
-    const [page, setPage] = useState(1);
-    const [hasMore, setHasMore] = useState(true);
-    const [loading, setLoading] = useState(false);
-
-    const loadChannelInfo = async () => {
-        if (!channel_name) return;
-        const data = await channelApi.getChannelInfo(channel_name);
-        setChannel(data);
-    };
-
-    const loadMore = useCallback(async () => {
-        if (loading || !channel_name) return;
-        setLoading(true);
-
-        const data = await videoApi.getVideos({ page, channel_name });
-
-        if (!data || data.length === 0) {
-            setHasMore(false);
-            setLoading(false);
-            return;
-        }
-
-        setVideos(prev => [...prev, ...data]);
-        setPage(prev => prev + 1);
-        setLoading(false);
-    }, [page, loading, channel_name]);
-
-    useEffect(() => {
-        setVideos([]);
-        setPage(1);
-        setHasMore(true);
-
-        loadChannelInfo();
-        loadMore();
-    }, [channel_name]);
+    const {
+            loadMore,
+            channel,
+            videos,
+            hasMore,
+            loading,
+        } = useChannel();
 
     if (!channel) return <div className="text-center py-20">Loading...</div>;
 

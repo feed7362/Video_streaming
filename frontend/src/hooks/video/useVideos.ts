@@ -1,11 +1,10 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { getVideos, getVideo } from "@api/videoApi";
 import { timeAgo } from "@/utils/timeAgo";
-import type { VideoDetail, VideoPreviewWithTime } from "../types/video";
-import type { SearchFilters } from "../types/search";
-import type { VideoComment } from "../types/comment";
+import type { VideoDetail, VideoPreviewWithTime } from "../../types/video";
+import type { VideoComment } from "../../types/comment";
 import { useSearchParams } from "react-router-dom";
-import { search } from "@api/searchApi";
+import { formatViews } from "@/utils/formatters";
 
 export function useVideo() {
     const [searchParams] = useSearchParams();
@@ -20,20 +19,12 @@ export function useVideo() {
     const [hasMore, setHasMore] = useState(true);
 
     const [searchQuery, setSearchQuery] = useState("");
-    const [searchFilters, setSearchFilters] = useState<SearchFilters | undefined>(undefined);
-
-    const formatViews = useCallback((views: number | undefined): string => {
-        if (views === undefined) return '';
-        if (views < 1000) return `${views}`;
-        if (views < 1000000) return `${(views / 1000).toFixed(1).replace(/\.0$/, '')}K`;
-        return `${(views / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
-    }, []);
 
     const metaDataText = useMemo(() => {
         if (!video) return '';
         const viewCountText = formatViews(video.views);
-        return `${viewCountText} views ${video.timeAgo ? '• ' + video.timeAgo : ''}`;
-    }, [video, formatViews]);
+        return `${viewCountText} views ${video.timeAgo ? '' + video.timeAgo : ''}`;
+    }, [video]);
 
 
     const fetchVideo = useCallback(async () => {
@@ -93,41 +84,6 @@ export function useVideo() {
         }
     }, [page, hasMore, loading, setVideos, setPage, setHasMore]);
 
-    const loadMoreSearchResults = useCallback(async () => {
-        if (!hasMore || loading) return;
-        if (!searchQuery) return;
-        setLoading(true);
-
-        try {
-            const nextPage = page + 1;
-            const newResults = await search(searchQuery, nextPage, searchFilters);
-
-            const resultsWithTime: VideoPreviewWithTime[] = newResults.map(v => ({
-                ...v,
-                timeAgo: timeAgo(v.createdAt || new Date().toISOString())
-            }));
-
-            setVideos((prev) => [...prev, ...resultsWithTime]);
-            setPage(nextPage);
-            setHasMore(newResults.length > 0);
-        } catch (err) {
-            console.error("Error with loading results:", err);
-        } finally {
-            setLoading(false);
-        }
-    }, [
-        page,
-        hasMore,
-        loading,
-        searchQuery,
-        searchFilters,
-        setLoading,
-        setVideos,
-        setPage,
-        setHasMore,
-        search
-    ]);
-
     const fetchInitialVideos = useCallback(async () => {
         try {
             setLoading(true);
@@ -169,9 +125,7 @@ export function useVideo() {
         formatViews,
         metaDataText,
         setVideos,
-        loadMoreSearchResults,
         setSearchQuery,
-        setSearchFilters,
         searchQuery,
         setPage,
         setLoading,

@@ -1,18 +1,18 @@
 ﻿import { useState } from "react";
-import VideoPlayer from "@/components/VideoPlayer";
-import VideoCard from "@/components/VideoCard";
+import VideoPlayer from "@/components/video/VideoPlayer";
+import VideoCard from "@/components/cards/VideoCard";
 import { Button } from "@/components/ui/button";
-import InfiniteScroll from "@/components/infinite-scroll";
+import InfiniteScroll from "@/components/misc/infinite-scroll";
 import { Link } from "react-router-dom";
 
-import { useFetchCategories } from "@/hooks/useCategories";
-import { useVideo } from "@/hooks/useVideos";
-import { useReactions } from "@/hooks/useReactions";
-import { useDownload } from "@/hooks/useDownload";
+import { useFetchCategories } from "@/hooks/category/useCategories";
+import { useVideo } from "@/hooks/video/useVideos";
+import { useReactions } from "@/hooks/reaction/useReactions";
+import { useDownload } from "@/hooks/download/useDownload";
 import type { VideoDetail, VideoPreviewWithTime } from "../types/video";
 import type { VideoComment } from "../types/comment";
 
-import { VideoPrivacyStatus } from "@/components/VideoPrivacyStatus";
+import { VideoPrivacyStatus } from "@/components/video/VideoPrivacyStatus";
 /*import type { getComments, addComment, deleteComment, addReply, updateComment } from "@api/commentApi";*/
 /*import { useFetchCategories } from "@/hooks/useCategories";*/
 
@@ -60,7 +60,6 @@ export default function Watch() {
     return (
         <div className="flex flex-col lg:flex-row items-start gap-6 lg:gap-10 p-4 sm:p-6">
             <div className="w-full lg:w-2/3 lg:max-w-6xl">
-                {/* Prefer HLS manifest URL (hlsUrl) and fall back to preview image */}
                 <VideoPlayer src={video.hlsUrl || video.previewUrl || ""} />
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold my-4">{video.title}</h1>
 

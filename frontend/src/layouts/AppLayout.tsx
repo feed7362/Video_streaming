@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { SiteHeader } from "@/components/site-header";
+import { SiteHeader } from "@/components/layout/site-header";
 import { Toaster } from "@/components/ui/toast/toaster";
 
 export default function AppLayout() {

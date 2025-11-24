@@ -1,55 +1,17 @@
-import { useEffect, useState } from "react";
-import VideoCard from "@/components/VideoCard";
-import InfiniteScroll from "@/components/infinite-scroll";
+import VideoCard from "@/components/cards/VideoCard";
+import InfiniteScroll from "@/components/misc/infinite-scroll";
 import { Link } from "react-router-dom";
-import type { VideoPreview } from "../types/video";
-import { getUserHistory, clearUserHistory, removeVideoFromHistory } from "@api/historyApi";
 import { Button } from "@/components/ui/button";
-
+import { useHistory } from "@/hooks/history/useHistory";
 export default function History() {
-    const [videos, setVideos] = useState<VideoPreview[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [hasMore, setHasMore] = useState(true);
-    const [page, setPage] = useState(1);
-    const pageSize = 20;
-
-    const loadMore = async () => {
-        if (!hasMore) return;
-        setLoading(true);
-        try {
-            const response = await getUserHistory(page, pageSize);
-            setVideos(prev => [...prev, ...response.items]);
-            setHasMore(videos.length + response.items.length < response.total);
-            setPage(prev => prev + 1);
-        } catch (err: unknown) {
-            console.error("Failed to load history:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        loadMore();
-    }, []);
-
-    const handleRemoveVideo = async (videoId: string) => {
-        try {
-            await removeVideoFromHistory(videoId);
-            setVideos(prev => prev.filter(v => v.id !== videoId));
-        } catch (err) {
-            console.error("Failed to remove video from history:", err);
-        }
-    };
-
-    const handleClearHistory = async () => {
-        try {
-            await clearUserHistory();
-            setVideos([]);
-            setHasMore(false);
-        } catch (err) {
-            console.error("Failed to clear history:", err);
-        }
-    };
+    const {
+        videos,
+        loading,
+        hasMore,
+        loadMore,
+        handleRemoveVideo,
+        handleClearHistory,
+    } = useHistory();
 
     return (
         <div className="my-4 mx-auto max-w-[1400px] px-6">

@@ -1,5 +1,5 @@
 ﻿import { Badge } from "@/components/ui/badge";
-import type { VideoPrivacyStatusProps } from "../types/video";
+import type { VideoPrivacyStatusProps } from "../../types/video";
 import React from "react";
 
 const Icons_Paths = {

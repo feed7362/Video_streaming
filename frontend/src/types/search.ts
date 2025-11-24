@@ -8,10 +8,17 @@ export interface SearchFilters {
     smartSearch: boolean;
 }
 
+export interface UseSearchOptions {
+    enabled?: boolean;
+    initialPage?: number;
+}
+
 export interface SearchResponse {
     results: VideoPreview[];
 }
+
 type SetVideoState = React.Dispatch<React.SetStateAction<VideoDetail | null>>;
+
 export interface UseVideoResult {
     video: VideoDetail | null;
     videos: VideoPreviewWithTime[];
@@ -42,6 +49,7 @@ export interface NoSearchResultsProps {
 export interface SearchApiResponse {
     results: VideoPreview[];
 }
-export interface SearchHintsResponse {
-    hints: string[];
+
+export interface SearchFormProps {
+    className?: string;
 }

@@ -1,4 +1,4 @@
-import { RegisterForm } from "@/components/register-form";
+import { RegisterForm } from "@/components/forms/register-form";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 

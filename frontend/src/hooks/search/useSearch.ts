@@ -1,7 +1,7 @@
 ﻿import { useState, useCallback, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import type { SearchFilters, SearchResponse, SearchHintsResponse } from "../types/search";
-import type { VideoPreviewWithTime, VideoPreview } from "../types/video";
+import type { SearchFilters, SearchResponse, UseSearchOptions} from "../../types/search";
+import type { VideoPreviewWithTime, VideoPreview, ApiVideoItem } from "../../types/video";
 import { timeAgo } from "@/utils/timeAgo";
 import clientApi from "@api/clientApi";
 import React from "react";
@@ -26,20 +26,10 @@ export interface UseSearchReturn {
     setPage: SetNumberState;
     setVideos: React.Dispatch<React.SetStateAction<VideoPreviewWithTime[]>>;
     setHasMore: SetBooleanState;
-
-    // Нові поля для підказок
-    hints: string[];
-    loadHints: (query: string) => Promise<void>;
-    setHints: React.Dispatch<React.SetStateAction<string[]>>;
-}
-
-interface ApiVideoItem extends VideoPreview {
-    name?: string;
 }
 
 const PAGE_SIZE = 9;
 
-// Функція пошуку відео
 const fetchSearchResults = async (query: string, page: number, filters?: SearchFilters): Promise<VideoPreviewWithTime[]> => {
     const params = {
         q: query,
@@ -76,25 +66,6 @@ const fetchSearchResults = async (query: string, page: number, filters?: SearchF
     }
 };
 
-// Функція отримання підказок
-const getHints = async (query: string): Promise<string[]> => {
-    if (!query || query.length < 1) return [];
-    try {
-        const response = await clientApi.get<SearchHintsResponse>(`/api/search/video_hints`, {
-            params: { q: query }
-        });
-        return response.data.hints || [];
-    } catch (error) {
-        console.error("[SearchApi] Failed to get hints:", error);
-        return [];
-    }
-};
-
-interface UseSearchOptions {
-    enabled?: boolean;
-    initialPage?: number;
-}
-
 export function useSearch({ enabled = false, initialPage = 1 }: UseSearchOptions = {}): UseSearchReturn {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -117,59 +88,6 @@ export function useSearch({ enabled = false, initialPage = 1 }: UseSearchOptions
 
         return { category, minViews, maxViews, smartSearch, includeDescription };
     });
-
-    // Стан для підказок
-    const [hints, setHints] = useState<string[]>([]);
-
-    // Функція завантаження підказок
-    const loadHints = useCallback(async (query: string) => {
-        // --- ЛОГ 2: Чи доходить виклик до хука? ---
-        console.log("[useSearch] 🎣 loadHints called with:", query);
-
-        if (!query || query.trim().length < 1) {
-            setHints([]);
-            return;
-        }
-        const results = await getHints(query);
-
-        // --- ЛОГ 4: Що повернув API? ---
-        console.log("[useSearch] Hints received:", results);
-
-        setHints(results);
-    }, []);
-
-    const loadMoreSearchResults = useCallback(async () => {
-        if (!enabled) return;
-
-        const nextPage = page + 1;
-        if (!hasMore || loading) return;
-        if (!searchQuery && !searchFilters) return;
-
-        setLoading(true);
-
-        try {
-            const newResults = await fetchSearchResults(searchQuery, nextPage, searchFilters);
-
-            if (newResults.length < PAGE_SIZE) {
-                setHasMore(false);
-            }
-
-            if (newResults.length > 0) {
-                setVideos((prev) => {
-                    const existingIds = new Set(prev.map(v => v.id));
-                    const uniqueNew = newResults.filter(v => !existingIds.has(v.id));
-                    return [...prev, ...uniqueNew];
-                });
-                setPage(nextPage);
-            } else {
-                setHasMore(false);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    }, [page, hasMore, loading, searchQuery, searchFilters, enabled]);
 
     const runSearch = useCallback((query: string, filters?: SearchFilters) => {
         setSearchQuery(query);
@@ -215,18 +133,76 @@ export function useSearch({ enabled = false, initialPage = 1 }: UseSearchOptions
                 .catch(err => console.error(err))
                 .finally(() => setLoading(false));
         }
-    }, [searchParams, searchFilters, enabled]);
+    }, [searchQuery, searchParams, searchFilters, enabled]);
+
+    const loadMoreSearchResults = useCallback(async () => {
+        if (!hasMore || loading) return;
+        if (!searchQuery) return;
+        setLoading(true);
+
+        try {
+            const nextPage = page + 1;
+            const newResults = await fetchSearchResults(searchQuery, nextPage, searchFilters);
+
+            setVideos(prev => [...prev, ...newResults]);
+            setPage(nextPage);
+            setHasMore(newResults.length > 0);
+        } catch (err) {
+            console.error("Error with loading results:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [
+        page,
+        hasMore,
+        loading,
+        searchQuery,
+        searchFilters,
+        setLoading,
+        setVideos,
+        setPage,
+        setHasMore,
+    ]);
+
+    //const loadMoreSearchResults = useCallback(async () => {
+    //    if (!enabled) return;
+
+    //    const nextPage = page + 1;
+    //    if (!hasMore || loading) return;
+    //    if (!searchQuery && !searchFilters) return;
+
+    //    setLoading(true);
+
+    //    try {
+    //        const newResults = await fetchSearchResults(searchQuery, nextPage, searchFilters);
+
+    //        if (newResults.length < PAGE_SIZE) {
+    //            setHasMore(false);
+    //        }
+
+    //        if (newResults.length > 0) {
+    //            setVideos((prev) => {
+    //                const existingIds = new Set(prev.map(v => v.id));
+    //                const uniqueNew = newResults.filter(v => !existingIds.has(v.id));
+    //                return [...prev, ...uniqueNew];
+    //            });
+    //            setPage(nextPage);
+    //        } else {
+    //            setHasMore(false);
+    //        }
+    //    } catch (err) {
+    //        console.error(err);
+    //    } finally {
+    //        setLoading(false);
+    //    }
+    //}, [page, hasMore, loading, searchQuery, searchFilters, enabled]);
 
     return {
         videos, loading, hasMore, page,
         searchQuery, searchFilters,
         setSearchFilters, setSearchQuery,
-        runSearch, loadMoreSearchResults,
+        runSearch,
         setLoading, setPage, setVideos, setHasMore,
-
-        // Нові властивості
-        hints,
-        loadHints,
-        setHints
+        loadMoreSearchResults,
     };
 }

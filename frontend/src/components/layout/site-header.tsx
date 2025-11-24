@@ -1,9 +1,9 @@
 import {Command, SidebarIcon} from "lucide-react"
-import {SearchForm} from "@/components/search-form"
+import {SearchForm} from "@/components/forms/search-form"
 import {Button} from "@/components/ui/button"
 import {useSidebar} from "@/components/ui/sidebar"
-import {NavUser} from "@/components/nav-user";
-import {ModeToggle} from "@/components/mode-toggle";
+import {NavUser} from "@/components/layout/nav-user";
+import {ModeToggle} from "@/components/theme/mode-toggle";
 
 const data = {
     user: {

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -9,33 +8,15 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "react-hot-toast";
-import { sendPasswordReset } from "@api/authApi";
+import { useForgotPass }  from "@/hooks/forgotPass/useForgotPass";
 
 export default function ForgotPass() {
-    const [email, setEmail] = useState("");
-    const [loading, setLoading] = useState(false);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!email) {
-            toast.error("Please enter your email");
-            return;
-        }
-
-        try {
-            setLoading(true);
-            await sendPasswordReset(email);
-            toast.success("Password reset email sent!");
-            setEmail("");
-        } catch (err: unknown) {
-            console.error(err);
-            toast.error("Failed to send reset email");
-        } finally {
-            setLoading(false);
-        }
-    };
+    const {
+        email,
+        setEmail,
+        loading,
+        handleSubmit,
+    } = useForgotPass();
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-900 via-gray-800 to-black p-4 sm:p-6 md:p-10">

@@ -1,6 +1,7 @@
 import clientApi from "@api/clientApi";
 import type { VideoPreview, VideoPreviewWithTime } from "../../types/video";
-import type { SearchFilters, SearchResponse, SearchHintsResponse } from "../../types/search";
+import type { SearchFilters, SearchResponse } from "../../types/search";
+import type { SearchHintsResponse } from "../../types/hints";
 import { timeAgo } from "@/utils/timeAgo";
 
 interface ApiVideoItem extends VideoPreview {

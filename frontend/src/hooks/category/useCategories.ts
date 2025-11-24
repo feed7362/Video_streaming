@@ -1,13 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import categoriesApi from "@api/categoriesApi";
-import type { Category } from "../types/category";
+import type { Category } from "../../types/category";
 import { useToast } from "@/components/ui/toast/use-toast";
-
-interface UseFetchCategoriesResult {
-    categories: string[];
-    active: string;
-    setActive: React.Dispatch<React.SetStateAction<string>>;
-}
+import type { UseFetchCategoriesResult } from "../../types/category";
 
     export function useFetchCategories(): UseFetchCategoriesResult {
         const [categories, setCategories] = useState<string[]>([]);

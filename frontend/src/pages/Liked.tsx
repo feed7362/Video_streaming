@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import VideoCard from "@/components/VideoCard";
-import InfiniteScroll from "@/components/infinite-scroll";
+import VideoCard from "@/components/cards/VideoCard";
+import InfiniteScroll from "@/components/misc/infinite-scroll";
 import { Link } from "react-router-dom";
 
 interface Video {

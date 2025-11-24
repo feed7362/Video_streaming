@@ -90,3 +90,7 @@ export interface UseVideoResult {
 export interface VideoPrivacyStatusProps {
     privacy: VideoPrivacyStatus;
 }
+
+export interface ApiVideoItem extends VideoPreview {
+    name?: string;
+}

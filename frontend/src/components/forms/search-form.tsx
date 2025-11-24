@@ -3,34 +3,22 @@ import { Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { SearchFiltersDialog } from "@/components/ui/searchFiltersDialog";
-import { useSearch } from "@/hooks/useSearch";
+import { useSearch } from "@/hooks/search/useSearch";
+import type { SearchFormProps } from "../../types/search";
+import { useHints } from "../../hooks/hints/useHints";
 
 const SidebarInput = Input;
 
-interface SearchFormProps {
-    className?: string;
-}
-
 export function SearchForm({ className }: SearchFormProps) {
-    const {
-        searchQuery,
-        setSearchQuery,
-        runSearch,
-        searchFilters,
-        hints,       
-        loadHints,   
-        setHints  
-    } = useSearch();
+    const { searchQuery, setSearchQuery, runSearch, searchFilters } = useSearch();
+    const { hints, loadHints, setHints } = useHints();
 
     const [isFocused, setIsFocused] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
-            console.log("[SearchForm] Debounce fired. Query:", searchQuery);
-
             if (searchQuery.trim().length >= 1) {
-                console.log("[SearchForm] Calling loadHints...");
                 loadHints(searchQuery);
             } else {
                 setHints([]);
@@ -91,7 +79,7 @@ export function SearchForm({ className }: SearchFormProps) {
             {isFocused && hints.length > 0 && (
                 <div className="absolute top-full mt-1 w-full bg-background border rounded-md shadow-lg z-50 overflow-hidden">
                     <ul>
-                        {hints.map((hint, index) => (
+                        {hints.map((hint: string, index: number) => (
                             <li key={index}>
                                 <button
                                     type="button"

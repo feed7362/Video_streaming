@@ -13,9 +13,13 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useFetchCategories } from "@/hooks/category/useCategories";
 import { useSearch } from "@/hooks/search/useSearch";
-import type { Category as CategoryType } from "../../types/category";
 
 const MAX_VIEW_LIMIT = 10000000;
+
+type CategoryType = {
+    id: string;
+    name: string;
+};
 
 export function SearchFiltersDialog() {
     const [open, setOpen] = useState(false);
