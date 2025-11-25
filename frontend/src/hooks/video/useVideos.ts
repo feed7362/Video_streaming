@@ -26,7 +26,6 @@ export function useVideo() {
         return `${viewCountText} views ${video.timeAgo ? '' + video.timeAgo : ''}`;
     }, [video]);
 
-
     const fetchVideo = useCallback(async () => {
         if (!videoId) return;
         try {
@@ -61,7 +60,7 @@ export function useVideo() {
         } finally {
             setLoading(false);
         }
-    }, [videoId, setError, setVideo, setComments]);
+    }, [videoId]);
 
     const loadMore = useCallback(async () => {
         if (!hasMore || loading) return;
@@ -74,6 +73,10 @@ export function useVideo() {
                 ...v,
                 timeAgo: timeAgo(v.createdAt || new Date().toISOString()),
                 thumbnail: v.thumbnail_url || v.previewUrl || "",
+                thumbnail_url: v.thumbnail_url || v.previewUrl || "",
+                description: v.description || "",
+                publishedAt: v.publishedAt || v.createdAt || new Date().toISOString(),
+                channel_name: v.channel_name || v.channel || "Unknown Channel",
             }));
 
             setVideos((prev) => [...prev, ...videosWithTime]);
@@ -82,7 +85,7 @@ export function useVideo() {
         } catch (err) {
             console.error(err);
         }
-    }, [page, hasMore, loading, setVideos, setPage, setHasMore]);
+    }, [page, hasMore, loading]);
 
     const fetchInitialVideos = useCallback(async () => {
         try {
@@ -93,6 +96,10 @@ export function useVideo() {
                 ...v,
                 timeAgo: timeAgo(v.createdAt || new Date().toISOString()),
                 thumbnail: v.thumbnail_url || v.previewUrl || "",
+                thumbnail_url: v.thumbnail_url || v.previewUrl || "",
+                description: v.description || "",
+                publishedAt: v.publishedAt || v.createdAt || new Date().toISOString(),
+                channel_name: v.channel_name || v.channel || "Unknown Channel",
             }));
 
             setVideos(initialVideosWithTime);
@@ -103,7 +110,7 @@ export function useVideo() {
         } finally {
             setLoading(false);
         }
-    }, [setLoading, setVideos, setPage, setHasMore]);
+    }, []);
 
     useEffect(() => {
         fetchVideo();

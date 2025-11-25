@@ -9,12 +9,11 @@ import { useFetchCategories } from "@/hooks/category/useCategories";
 import { useVideo } from "@/hooks/video/useVideos";
 import { useReactions } from "@/hooks/reaction/useReactions";
 import { useDownload } from "@/hooks/download/useDownload";
-import type { VideoDetail, VideoPreviewWithTime } from "../types/video";
-import type { VideoComment } from "../types/comment";
+import type { VideoDetail, VideoPreviewWithTime } from "@/types/video";
+import type { VideoComment } from "@/types/comment";
 
-import { VideoPrivacyStatus } from "@/components/video/VideoPrivacyStatus";
-/*import type { getComments, addComment, deleteComment, addReply, updateComment } from "@api/commentApi";*/
-/*import { useFetchCategories } from "@/hooks/useCategories";*/
+// Імпортуємо компонент з іншим іменем, щоб уникнути конфлікту імен з типом VideoPrivacyStatus
+import { VideoPrivacyStatus as VideoPrivacyBadge } from "@/components/video/VideoPrivacyStatus";
 
 export default function Watch() {
     const { categories, active, setActive } = useFetchCategories();
@@ -53,14 +52,43 @@ export default function Watch() {
 
     const avatarSize = 40;
 
-    const isPrivate = video.privacy && video.privacy.toLowerCase() !== 'public';
+    // Перевірка на null/undefined для privacy
+    const isPrivate = video.privacy && typeof video.privacy === 'string' && video.privacy.toLowerCase() !== 'public';
 
     console.log("[Watch] video.hlsUrl:", video.hlsUrl);
+
+    const qualities: { label: string; url: string }[] = [
+        { label: "Auto", url: video.hlsUrl || video.previewUrl  || "" },
+    ];
+
+    const handleNextVideo = () => {
+        const currentIndex = videos.findIndex(v => v.id === video.id);
+        const next = videos[currentIndex + 1];
+        if (!next) return;
+
+        // Приводимо VideoPreviewWithTime до VideoDetail
+        const nextVideoAsDetail: VideoDetail = {
+            ...next,
+            description: next.description || "",
+            hlsUrl: next.previewUrl || "",
+            likesCount: next.likesCount || 0,
+            dislikesCount: next.dislikesCount || 0,
+            userReaction: null,
+            privacy: next.privacy || "public",
+            timeAgo: next.timeAgo,
+        };
+
+        setVideo(nextVideoAsDetail);
+    };
 
     return (
         <div className="flex flex-col lg:flex-row items-start gap-6 lg:gap-10 p-4 sm:p-6">
             <div className="w-full lg:w-2/3 lg:max-w-6xl">
-                <VideoPlayer src={video.hlsUrl || video.previewUrl || ""} />
+                <VideoPlayer
+                    videoId={video.id}
+                    qualities={qualities}
+                    onNext={handleNextVideo}
+                />
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold my-4">{video.title}</h1>
 
                 <div className="flex items-center gap-3 mb-4">
@@ -78,7 +106,7 @@ export default function Watch() {
                         <span>{metaDataText}</span>
 
                         {isPrivate && (
-                            <VideoPrivacyStatus
+                            <VideoPrivacyBadge
                                 privacy={video.privacy}
                                 className="ml-1"
                             />
@@ -88,7 +116,7 @@ export default function Watch() {
                 </div>
                 <div className="mb-6 text-gray-700 text-sm sm:text-base">
                     <h4 className="font-semibold">Description:</h4>
-                    <p>{video.description}</p>
+                    <p>{video.description || "No description available"}</p>
                 </div>
                 <div className="flex items-center gap-4 mt-4 mb-6">
                     <Button onClick={() => handleReaction("like")} variant="ghost" className="flex items-center gap-2">

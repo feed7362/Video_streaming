@@ -1,5 +1,6 @@
 import type { VideoComment } from "./comment";
 import type { SearchFilters } from "./search";
+
 export interface VideoPreview {
     name?: string;
     thumbnail_url?: string;
@@ -15,6 +16,7 @@ export interface VideoPreview {
     publishedAt: string;
     dislikesCount: number;
     privacy: VideoPrivacyStatus;
+    description?: string; // “ут воно необов'€зкове
 }
 
 export interface Video {
@@ -49,7 +51,7 @@ export type VideoPrivacyStatus = "Private" | "Public" | string;
 
 export type VideoDetail = VideoPreview & {
     timeAgo?: string;
-    description: string;
+    description?: string; // ¬»ѕ–ј¬Ћ≈Ќќ: додано ?, тепер зб≥гаЇтьс€ з VideoPreview
     likesCount: number;
     dislikesCount: number;
     hlsUrl: string;
@@ -60,6 +62,16 @@ export type VideoDetail = VideoPreview & {
 export type VideoPreviewWithTime = VideoPreview & {
     timeAgo: string;
     thumbnail: string;
+    description?: string; // ¬»ѕ–ј¬Ћ≈Ќќ: додано ?, тепер зб≥гаЇтьс€ з VideoPreview
+    privacy: VideoPrivacyStatus;
+    thumbnail_url: string;
+    channel_name: string;
+    channel_avatar: string;
+    createdAt: string;
+    views: number;
+    likesCount: number;
+    dislikesCount: number;
+    publishedAt: string;
 };
 
 type SetVideoState = React.Dispatch<React.SetStateAction<VideoDetail | null>>;

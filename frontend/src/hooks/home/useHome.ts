@@ -41,9 +41,14 @@ export function useHome() {
 
             const newVideosWithTime: VideoPreviewWithTime[] = newVideosPreview.map((v: VideoPreview) => {
                 const createdDate = v.createdAt || new Date().toISOString();
+                // Визначаємо безпечний URL для тумбнейлу
+                const safeThumbnailUrl = v.thumbnail_url || v.previewUrl || "";
+
                 return {
                     ...v,
-                    thumbnail: v.previewUrl || v.thumbnail_url || "/placeholder.jpg",
+                    thumbnail: safeThumbnailUrl || "/placeholder.jpg",
+                    // ВИПРАВЛЕНО: Явно задаємо thumbnail_url як рядок
+                    thumbnail_url: safeThumbnailUrl,
                     title: v.title || v.name || "Untitled Video",
                     channel_name: v.channel || "Unknown Channel",
                     timeAgo: timeAgo(createdDate),
@@ -54,6 +59,8 @@ export function useHome() {
                     likesCount: v.likesCount ?? 0,
                     dislikesCount: v.dislikesCount ?? 0,
                     privacy: v.privacy,
+                    // Додаємо publishedAt, якщо його немає в ...v
+                    publishedAt: v.publishedAt || createdDate
                 };
             });
 
