@@ -4,7 +4,7 @@ from typing import List, Optional
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from src.infrastructure.vault import VaultClient
+from .infrastructure.vault import VaultClient
 
 vault = VaultClient()
 
