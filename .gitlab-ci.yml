@@ -2,7 +2,6 @@ workflow:
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^dev/'
       when: always
-    - when: manual
 
 variables:
   UV_VERSION: "0.9.18"
