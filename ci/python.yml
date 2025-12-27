@@ -50,4 +50,3 @@ test-python:
     paths:
       - .cache/pip
       - $UV_CACHE_DIR
-    coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+%)/'
