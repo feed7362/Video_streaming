@@ -17,9 +17,9 @@ export function SearchForm({ className }: SearchFormProps) {
         setSearchQuery,
         runSearch,
         searchFilters,
-        hints,       
-        loadHints,   
-        setHints  
+        hints,
+        loadHints,
+        setHints
     } = useSearch();
 
     const [isFocused, setIsFocused] = useState(false);

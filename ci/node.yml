@@ -1,0 +1,38 @@
+lint-node:
+  stage: lint
+  parallel:
+    matrix:
+      - SERVICE: frontend
+        NODE_VERSION: "20"
+      - SERVICE: frontend
+        NODE_VERSION: "21"
+      - SERVICE: frontend
+        NODE_VERSION: "22"
+  image: "node:${NODE_VERSION}"
+  before_script:
+    - cd $SERVICE
+    - npm install --prefer-offline
+  script:
+    - npm run lint
+
+
+test-node:
+  stage: test
+  parallel:
+    matrix:
+      - SERVICE: frontend
+        NODE_VERSION: "20"
+      - SERVICE: frontend
+        NODE_VERSION: "21"
+      - SERVICE: frontend
+        NODE_VERSION: "22"
+  image: "node:${NODE_VERSION}"
+  before_script:
+    - cd $SERVICE
+    - npm install --prefer-offline
+  script:
+    - npm test
+    - npm audit
+  artifacts:
+    paths:
+      - $SERVICE/licenses.json

@@ -2,10 +2,10 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": [ "src/*" ],
-      "@api/*": [ "src/lib/api/*" ]
+      "@/*": ["src/*"],
+      "@api/*": ["src/lib/api/*"]
     },
-    "types": [ "vitest/globals", "@testing-library/jest-dom" ],
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
     "jsx": "react-jsx"
   },
   "files": [],

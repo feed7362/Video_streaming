@@ -1,0 +1,41 @@
+workflow:
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^dev/'
+      when: always
+    - when: manual
+
+variables:
+  UV_VERSION: "0.9.18"
+  PYTHON_VERSION: "3.12"
+  BASE_LAYER: bookworm-slim
+  # GitLab CI creates a separate mountpoint for the build directory,
+  # so we need to copy instead of using hard links.
+  UV_LINK_MODE: copy
+  UV_CACHE_DIR: "$HOME/.cache/uv"
+
+stages:
+  - lint
+  - test
+  - security
+  - auto-pr
+  - deploy
+
+include:
+  - local: 'ci/python.yml'
+  - local: 'ci/node.yml'
+  - local: 'ci/deploy.yml'
+  - local: 'ci/security.yml'
+  - local: 'ci/auto-pr.yml'
+
+#pages:
+#  stage: deploy
+#  image: node:22
+#  script:
+#    - npm install
+#    - npm run build
+#    - cp -r public/ public-pages/
+#  artifacts:
+#    paths:
+#      - public-pages
+#  only:
+#    - main

@@ -1,0 +1,18 @@
+include:
+  - template: Security/SAST.gitlab-ci.yml
+
+codeql-python:
+  image: ghcr.io/github/codeql-action/codeql-cli:latest
+  stage: security
+  script:
+    # Create CodeQL database
+    - codeql database create codeql-db --language=python
+    # Analyze code with CodeQL
+    - codeql database analyze codeql-db --format=sarif-latest --output=results-python.sarif
+  artifacts:
+    reports:
+      sast: results-python.sarif
+    expire_in: 1 week
+  only:
+    - merge_requests
+    - schedules

@@ -1,0 +1,53 @@
+lint-python:
+  stage: lint
+  image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
+  parallel:
+    matrix:
+      - SERVICE: backend
+      - SERVICE: services/convertor
+      - SERVICE: services/moderation
+  before_script:
+    - echo "Running uv sync"
+    - uv sync --frozen
+  script:
+    - cd $SERVICE
+    - uvx ruff@latest check .
+    - uvx black@latest --check .
+    - uvx mypy@latest --install-types --non-interactive . --config-file pyproject.toml
+  cache:
+    paths:
+      - .cache/pip
+      - $UV_CACHE_DIR
+
+test-python:
+  stage: test
+  image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
+  parallel:
+    matrix:
+      - SERVICE: backend
+      - SERVICE: services/convertor
+      - SERVICE: services/moderation
+  before_script:
+    - echo "Running uv sync"
+    - uv sync --frozen
+  script:
+    - cd $SERVICE
+    - uvx run pytest@latest \
+      --cov=. \
+      --cov-report=term \
+      --cov-report=xml:coverage.xml \
+      tests/ --junitxml=report.xml
+    - uvx pip-audit@latest > audit.json || true
+    - uvx pip-licenses@latest --from=mixed --with-authors --with-urls > licenses.json
+  artifacts:
+    paths:
+    - $SERVICE/report.xml
+    - $SERVICE/coverage.xml
+    - $SERVICE/audit.json
+    - $SERVICE/licenses.json
+    expire_in: 1 week
+  cache:
+    paths:
+      - .cache/pip
+      - $UV_CACHE_DIR
+    coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+%)/'

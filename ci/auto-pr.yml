@@ -1,0 +1,37 @@
+auto-pr-to-stage:
+  stage: auto-pr
+  image: curlimages/curl:latest
+  script:
+    # 1. Checkout dev branch
+    - git config user.name "CI Bot"
+    - git config user.email "ci@example.com"
+    - git checkout dev
+
+    # 2. Push dev branch (in case of changes)
+    - git push origin dev || echo "No changes to push"
+
+    # 3. Create Merge Request via GitLab API
+    - |
+      MR_RESPONSE=$(curl --request POST "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests" \
+        --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+        --header "Content-Type: application/json" \
+        --data '{
+          "source_branch": "dev",
+          "target_branch": "stage",
+          "title": "Merge dev into stage (auto MR)",
+          "description": "Auto MR after successful CI",
+          "remove_source_branch": false,
+          "labels": "auto-pr",
+          "remove_source_branch": false
+        }')
+      echo "Merge Request created: $MR_RESPONSE"
+
+    # 4. Optional: auto-merge immediately
+    - |
+      MR_ID=$(echo $MR_RESPONSE | jq '.id')
+      curl --request PUT "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$MR_ID/merge" \
+        --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+        --header "Content-Type: application/json" \
+        --data '{"merge_when_pipeline_succeeds": true, "should_remove_source_branch": false}'
+  only:
+    - dev
