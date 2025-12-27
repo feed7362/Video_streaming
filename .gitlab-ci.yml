@@ -12,6 +12,10 @@ variables:
   UV_LINK_MODE: copy
   UV_CACHE_DIR: "$HOME/.cache/uv"
 
+default:
+  tags:
+    - local
+
 stages:
   - lint
   - test
