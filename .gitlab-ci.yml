@@ -17,6 +17,7 @@ stages:
   - test
   - security
   - auto-pr
+  - detect
   - deploy
 
 include:
