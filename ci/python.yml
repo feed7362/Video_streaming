@@ -7,10 +7,10 @@ lint-python:
       - SERVICE: services/convertor
       - SERVICE: services/moderation
   before_script:
+    - cd $SERVICE
     - echo "Running uv sync"
     - uv sync --frozen
   script:
-    - cd $SERVICE
     - uvx ruff@latest check .
     - uvx black@latest --check .
     - uvx mypy@latest --install-types --non-interactive . --config-file pyproject.toml
@@ -28,10 +28,10 @@ test-python:
       - SERVICE: services/convertor
       - SERVICE: services/moderation
   before_script:
+    - cd $SERVICE
     - echo "Running uv sync"
     - uv sync --frozen
   script:
-    - cd $SERVICE
     - uvx run pytest@latest \
       --cov=. \
       --cov-report=term \
