@@ -478,10 +478,10 @@ async def delete_comment(
     comment_id: UUID,
     session: AsyncSession = Depends(get_async_session),
     user_id: UUID = Depends(get_current_user_id),
-):
+) -> JSONResponse:
     """Delete a comment (only allowed by the comment author or video owner)."""
 
-    # 1. Fetch the comment with related video + channel (for ownership check)
+    # 1. Fetch the comment with the related video + channel (for ownership check)
     result = await session.execute(
         select(Comment)
         .options(selectinload(Comment.video).selectinload(Video.channel))

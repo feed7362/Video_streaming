@@ -1,3 +1,5 @@
+from typing import Callable
+
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer
 from keycloak import KeycloakOpenID
@@ -23,11 +25,11 @@ keycloak_openid = KeycloakOpenID(
 
 
 # JWKS for JWT validation
-async def get_certs():
+async def get_certs() -> dict:
     return await keycloak_openid.a_certs()
 
 
-async def get_well_known():
+async def get_well_known() -> dict:
     return await keycloak_openid.a_well_known()
 
 
@@ -85,7 +87,7 @@ async def create_user(decoded: dict, session: AsyncSession) -> User:
 # AUTH DEPENDENCY (used in routes)
 # ---------------------------------------------------------
 async def get_current_user(
-    credentials=Depends(bearer),
+    credentials: HTTPBearer = Depends(bearer),
     session: AsyncSession = Depends(get_async_session),
 ) -> CurrentUser:
 
@@ -112,8 +114,8 @@ def logout(refresh_token: str) -> bytes:
     return keycloak_openid.logout(refresh_token)
 
 
-def require_role(role: str):
-    def dependency(user=Depends(get_current_user)):
+def require_role(role: str) -> Callable[..., CurrentUser]:
+    def dependency(user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
         roles = user._token["roles"]
         if role not in roles:
             raise HTTPException(

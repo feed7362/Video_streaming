@@ -6,15 +6,15 @@ from typing import Any, Dict, List
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload
 
-from src.infrastructure.database import async_session_maker
-from src.infrastructure.elasticsearch import get_es_client
-from src.models.video import Video
+from ..src.infrastructure.database import async_session_maker
+from ..src.infrastructure.elasticsearch import get_es_client
+from ..src.models.video import Video
 
 
 async def reindex_videos_from_db(
     interval_minutes: int = 5,
     batch_size: int = 500,
-):
+) -> None:
     """Periodically reindex all videos from DB to Elasticsearch."""
     try:
         es = await get_es_client()
