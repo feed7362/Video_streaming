@@ -1,52 +1,53 @@
-lint-python:
-  stage: lint
+.python-job:
   image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
   parallel:
     matrix:
       - SERVICE: backend
       - SERVICE: services/convertor
       - SERVICE: services/moderation
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip/$SERVICE"
+    UV_CACHE_DIR: "$CI_PROJECT_DIR/.cache/uv/$SERVICE"
   before_script:
     - cd $SERVICE
-    - echo "Running uv sync"
     - uv sync --frozen
-  script:
-    - uvx ruff@latest check .
-    - uvx black@latest --check .
-    - uvx mypy@latest --install-types --non-interactive . --config-file pyproject.toml
   cache:
+    key: "$CI_COMMIT_REF_SLUG-$SERVICE" # Unique cache key per service
     paths:
       - .cache/pip
-      - $UV_CACHE_DIR
+      - .cache/uv
+
+
+lint-python:
+  extends: .python-job
+  stage: lint
+  script:
+    - uv run ruff check . --config pyproject.toml
+    - uv run black --check . --config-file pyproject.toml
+    - uv run mypy --install-types --non-interactive . --config-file pyproject.toml
+    - uv run isort . --settings-path pyproject.toml
 
 test-python:
+  extends: .python-job
   stage: test
-  image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
-  parallel:
-    matrix:
-      - SERVICE: backend
-      - SERVICE: services/convertor
-      - SERVICE: services/moderation
-  before_script:
-    - cd $SERVICE
-    - echo "Running uv sync"
-    - uv sync --frozen
   script:
-    - uvx run pytest@latest \
+    - uv run pytest \
       --cov=. \
       --cov-report=term \
-      --cov-report=xml:coverage.xml \
-      tests/ --junitxml=report.xml
-    - uvx pip-audit@latest > audit.json || true
-    - uvx pip-licenses@latest --from=mixed --with-authors --with-urls > licenses.json
+      --cov-report=xml:coverage-${SERVICE//\//-}.xml \
+      tests/ --junitxml=report-${SERVICE//\//-}.xml
+    - uv run pip-audit > audit-${SERVICE//\//-}.json || true
+    - uv run pip-licenses --from=mixed --with-authors --with-urls > licenses-${SERVICE//\//-}.json
   artifacts:
+    when: always
     paths:
-    - $SERVICE/report.xml
-    - $SERVICE/coverage.xml
-    - $SERVICE/audit.json
-    - $SERVICE/licenses.json
+      - $SERVICE/report.xml
+      - $SERVICE/coverage.xml
+      - $SERVICE/audit.json
+      - $SERVICE/licenses.json
+    reports:
+      junit: $SERVICE/report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: $SERVICE/coverage.xml
     expire_in: 1 week
-  cache:
-    paths:
-      - .cache/pip
-      - $UV_CACHE_DIR
