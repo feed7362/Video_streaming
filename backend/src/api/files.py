@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.auth import get_current_user_id
 from ..core.background_tasks import deindex_video_in_es
+from ..core.dependecies import limit_requests
 from ..infrastructure import get_async_session, get_rabbit_broker, get_s3_client
 from ..infrastructure.elasticsearch import get_es_client
 from ..models import Channel, Video, VideoResolution
@@ -53,6 +54,9 @@ router_files = APIRouter(
 @router_files.post(
     "/upload_video",
     response_model=FileResponse,
+    dependencies=[
+        Depends(limit_requests("upload_video", max_requests=5, window_seconds=60))
+    ],
     summary="Upload video files",
     description="Uploads one or more video files to object storage and schedules encoding jobs.",
     response_description="Metadata describing the uploaded files.",
@@ -245,6 +249,9 @@ async def upload_files(
 @router_files.get(
     "/download_video",
     response_model=FileStreamResponse,
+    dependencies=[
+        Depends(limit_requests("download_video", max_requests=5, window_seconds=60))
+    ],
     summary="Download a stored video file",
     description="Streams a video file stored in object storage as a binary response.",
     response_description="Binary stream of the requested file.",
@@ -339,6 +346,9 @@ async def get_file(
 @router_files.delete(
     "/delete_video",
     response_model=FileResponse,
+    dependencies=[
+        Depends(limit_requests("delete_video", max_requests=5, window_seconds=60))
+    ],
     summary="Delete a video and its assets",
     description=(
         "Deletes a video entry from the database and removes all its related files "

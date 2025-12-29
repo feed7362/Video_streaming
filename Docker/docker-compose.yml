@@ -13,6 +13,7 @@ services:
       - rabbitmq
       - elasticsearch
       - keycloak
+      - redis
     volumes:
       - ../backend/alembic/versions:/app/alembic/versions
     environment:
@@ -58,6 +59,19 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  redis:
+    image: redis:latest
+    container_name: redis_service
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -299,6 +313,7 @@ volumes:
   postgres_data:
   vault_data:
   es_data:
+  redis-data:
 # docker compose -p video_streaming_stack -f ./Docker/docker-compose.yml build
 # docker compose -p video_streaming_stack -f ./Docker/docker-compose.yml up -d
 

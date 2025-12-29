@@ -19,6 +19,7 @@ from src.i18n import LanguageMiddleware
 from src.infrastructure.database import engine
 from src.infrastructure.elasticsearch import es_client
 from src.infrastructure.rabbit_client import rabbit_broker
+from src.infrastructure.redis import get_redis
 from src.infrastructure.s3_client import get_s3_client
 from src.schemas.search import VideoIndexMapping
 from utils.db_seeder import seed_initial_data
@@ -51,6 +52,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     logging.info("ElasticSearch index verified/created.")
     logging.info("Startup complete. Metrics exposed.")
 
+    redis = get_redis()
+    await redis.ping()
+    print("Redis connected successfully.")
+
     # ─────────────── BACKGROUND TASKS ───────────────
     reindex_task = asyncio.create_task(reindex_videos_from_db(interval_minutes=15))
 
@@ -69,6 +74,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     except asyncio.CancelledError:
         logging.info("Reindex task cancelled cleanly.")
     await es_client.close()
+
+    await redis.aclose()
+    print("Redis connection closed.")
     logging.info("Background tasks cancelled.")
     logging.info("Shutdown complete.")
 

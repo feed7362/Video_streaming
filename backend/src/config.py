@@ -41,6 +41,11 @@ class KeycloakSettings(BaseAppSettings):
     SERVER_URL: Optional[str] = Field(default=None)
 
 
+class RedisSettings(BaseAppSettings):
+    REDIS_HOST: Optional[str] = Field(default=None)
+    REDIS_PORT: Optional[int] = Field(default=None)
+
+
 @lru_cache()
 def get_database_settings() -> DatabaseSettings:
     return DatabaseSettings(**vault.read_secret("database", mount_point="secret"))
@@ -61,3 +66,8 @@ def get_elastic_settings() -> ElasticSettings:
 @lru_cache()
 def get_keycloak_settings() -> KeycloakSettings:
     return KeycloakSettings(**vault.read_secret("keycloak", mount_point="secret"))
+
+
+@lru_cache()
+def get_redis_settings() -> RedisSettings:
+    return RedisSettings(**vault.read_secret("redis", mount_point="secret"))
