@@ -79,7 +79,7 @@ jobs:
 
 
       - name: Upload per-service coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.prepare-artifact.outputs.coverage_name }}
           path: ${{ steps.prepare-artifact.outputs.coverage_path }}
@@ -93,7 +93,7 @@ jobs:
           uvx pip-audit@latest > audit.json || true
 
       - name: Upload per-service audit report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.prepare-artifact.outputs.audit_name }}
           path: ${{ steps.prepare-artifact.outputs.audit_path }}
@@ -107,7 +107,7 @@ jobs:
           uvx pip-licenses@latest --from=mixed --with-authors --with-urls > licenses.json
 
       - name: Upload license report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.prepare-artifact.outputs.license_name }}
           path: ${{ steps.prepare-artifact.outputs.license_path }}
@@ -158,7 +158,7 @@ jobs:
           if [ -f package.json ]; then npx license-checker --json > licenses.json ; fi
 
       - name: Upload license report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: license-report
           path: licenses.json
