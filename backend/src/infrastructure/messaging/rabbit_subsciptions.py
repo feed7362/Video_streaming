@@ -7,12 +7,12 @@ from faststream.rabbit.fastapi import RabbitRouter
 from sqlalchemy import insert, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..infrastructure.database import get_async_session
-from ..infrastructure.elasticsearch import get_es_client
-from ..models import Video, VideoResolution
-from ..schemas.endpoint import StatusMessage
-from ..schemas.search import VideoIndexDocument
-from .background_tasks import index_video_in_es
+from src.core.background_tasks import index_video_in_es
+from src.infrastructure.database import get_async_session
+from src.infrastructure.elasticsearch import get_es_client
+from src.models import Video, VideoResolution
+from src.schemas.endpoint import StatusMessage
+from src.schemas.search import VideoIndexDocument
 
 rabbit_router = RabbitRouter(
     url="amqp://guest:guest@rabbitmq:5672/", include_in_schema=False
