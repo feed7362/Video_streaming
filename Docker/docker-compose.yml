@@ -7,13 +7,9 @@ services:
     expose:
       - "8000"
     depends_on:
-      - postgres
-      - ffmpeg
-      - minio
       - rabbitmq
-      - elasticsearch
-      - keycloak
       - redis
+      - keycloak
     volumes:
       - ../backend/alembic/versions:/app/alembic/versions
     environment:
@@ -95,7 +91,7 @@ services:
       - VAULT_TOKEN=${VAULT_TOKEN}
       - NVIDIA_VISIBLE_DEVICES=all
     expose:
-      - "8002"
+      - "9102"   # metrics ONLY
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -305,6 +301,7 @@ services:
 networks:
   default:
     name: video_streaming_network
+    external: true
 
 volumes:
   minio_data:

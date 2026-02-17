@@ -31,7 +31,7 @@ convertor:
     tag: "latest"
     pullPolicy: IfNotPresent
   service:
-    port: 8002
+    port: 9102
 
 # -------------------
 # Dependency overrides
