@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from starlette.responses import JSONResponse
+from fastapi.responses import JSONResponse
 
 from ..infrastructure.keycloak_client import get_current_user, require_role
 from ..schemas.user import CurrentUser

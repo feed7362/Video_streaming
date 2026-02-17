@@ -11,7 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..infrastructure.database import get_async_session
-from ..infrastructure.rabbit_client import get_rabbit_broker
+from ..infrastructure.messaging.client import get_rabbit_broker
 from ..infrastructure.s3_client import S3Client, get_s3_client
 from ..schemas.endpoint import HealthStatus
 

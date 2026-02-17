@@ -4,18 +4,19 @@ from typing import List, Literal
 from uuid import NAMESPACE_DNS, UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from starlette.responses import JSONResponse
 
-from ..core.auth import get_current_user_id
-from ..core.pagination import paginate_query
-from ..core.video import (
+from src.services.auth import get_current_user_id
+from src.services.reactions import toggle_reaction
+from src.services.video import (
     get_video_by_id,
     record_video_view,
-    toggle_reaction,
 )
+
+from ..core.pagination import paginate_query
 from ..infrastructure.database import get_async_session
 from ..models import (
     Category,
@@ -30,7 +31,13 @@ from ..schemas.comments import CommentCreate, CommentPage, CommentRead, to_comme
 from ..schemas.endpoint import APIError, ErrorResponse
 from ..schemas.privacy import PrivacyLevel, PrivacyResponse
 from ..schemas.reaction import ReactionRequest, ReactionResponse
-from ..schemas.video import VideoPage, VideoPlayback, VideoPreviewPage, to_video_preview
+from ..schemas.video import (
+    VideoPage,
+    VideoPlayback,
+    VideoPreviewPage,
+    map_video_to_playback,
+    to_video_preview,
+)
 
 router_videos = APIRouter(
     prefix="/api/video",
@@ -78,21 +85,8 @@ async def get_video_info(
 
         await record_video_view(session, video_id=video.id, user_id=user_id)
         logging.info(f"Streaming playlist master: {video_id}")
-        return VideoPlayback(
-            id=video.id,
-            name=video.name,
-            description=video.description,
-            created_at=video.created_at,
-            master_hls_url=video.video_path,
-            privacy=video.privacy.name,
-            resolutions=resolutions,
-            channel_name=video.channel.channel_name,
-            likes_count=video.likes_count,
-            dislikes_count=video.dislikes_count,
-            views_count=video.views_count + 1,
-            thumbnail_url=video.thumbnail_path,
-            avatar_url=video.channel.avatar_path,
-        )
+        return map_video_to_playback(video, resolutions)
+
     except Exception as e:
         logging.error(f"Error streaming file: {e}")
         raise HTTPException(

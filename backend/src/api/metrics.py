@@ -25,7 +25,7 @@ router_metrics = APIRouter(
 
 
 @router_metrics.get(
-    "",
+    "/",
     include_in_schema=True,
     summary="Retrieve Prometheus metrics",
     description=(
