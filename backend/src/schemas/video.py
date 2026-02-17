@@ -110,6 +110,24 @@ def to_video_preview(video: Video) -> VideoPreview:
     )
 
 
+def map_video_to_playback(video: Video, resolutions: list[str]) -> VideoPlayback:
+    return VideoPlayback(
+        id=video.id,
+        name=video.name,
+        description=video.description,
+        created_at=video.created_at,
+        master_hls_url=video.video_path,
+        privacy=video.privacy.name,
+        resolutions=resolutions,
+        channel_name=video.channel.channel_name,
+        likes_count=video.likes_count,
+        dislikes_count=video.dislikes_count,
+        views_count=video.views_count + 1,
+        thumbnail_url=video.thumbnail_path,
+        avatar_url=video.channel.avatar_path,
+    )
+
+
 class VideoPreviewPage(Page[VideoPreview]):
     """Paginated list of lightweight video previews."""
 
