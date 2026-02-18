@@ -1,20 +1,18 @@
 import logging
 import uuid
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
 
 import xxhash
 from fastapi import UploadFile
-from faststream.rabbit import RabbitBroker
-from s3_client import S3Client
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.errors.files import (
+from ..errors.files import (
     ChannelNotFoundError,
     DuplicateVideoError,
     InvalidThumbnailFormatError,
@@ -25,11 +23,16 @@ from src.errors.files import (
     S3DownloadError,
     VideoNotFoundError,
 )
-from src.models import Channel
-from src.models.video import Video
-from src.models.video_resolutions import VideoResolution
-from src.models.video_views import VideoView
-from src.schemas.endpoint import FileMeta, FileResponse
+from ..models.channel import Channel
+from ..models.video import Video
+from ..models.video_resolutions import VideoResolution
+from ..models.video_views import VideoView
+from ..schemas.endpoint import FileMeta, FileResponse
+
+if TYPE_CHECKING:
+    from faststream.rabbit import RabbitBroker
+
+    from ..infrastructure.s3_client import S3Client
 
 
 async def get_video_by_id(
@@ -125,8 +128,8 @@ class VideoService:
     def __init__(
         self,
         session: AsyncSession,
-        s3_client: S3Client,
-        broker: Optional[RabbitBroker] = None,
+        s3_client: "S3Client",
+        broker: Optional["RabbitBroker"] = None,
     ):
         self.session = session
         self.s3_client = s3_client

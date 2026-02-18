@@ -10,12 +10,8 @@ from fastapi import (
     Query,
     UploadFile,
 )
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.responses import StreamingResponse
-
-from src.api.dependencies.rate_limit import limit_requests
-from src.services.auth import get_current_user_id
 
 from ..core.background_tasks import deindex_video_in_es
 from ..infrastructure import get_async_session, get_rabbit_broker, get_s3_client
@@ -27,8 +23,10 @@ from ..schemas.endpoint import (
     FileStreamResponse,
 )
 from ..schemas.files import SignedUrlResponse
+from ..services.auth import get_current_user_id
 from ..services.file_signing import FileSigningService
 from ..services.video import VideoService
+from .dependencies.rate_limit import limit_requests
 
 if TYPE_CHECKING:
     from faststream.rabbit import RabbitBroker
