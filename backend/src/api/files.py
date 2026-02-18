@@ -25,7 +25,7 @@ from ..schemas.endpoint import (
 from ..schemas.files import SignedUrlResponse
 from ..services.auth import get_current_user_id
 from ..services.file_signing import FileSigningService
-from ..services.video import VideoService
+from ..services.files import FileService
 from .dependencies.rate_limit import limit_requests
 
 if TYPE_CHECKING:
@@ -113,7 +113,7 @@ async def upload_files(
     Upload multiple files to S3 asynchronously and trigger encoding tasks in RabbitMQ.
     Returns metadata about uploaded files.
     """
-    service = VideoService(session, s3_client, broker)
+    service = FileService(session, s3_client, broker)
 
     return await service.upload_video(
         video=video,
@@ -168,7 +168,7 @@ async def get_file(
     may be requested in its original resolution or a specific resolution as
     available. The response is streamed as a binary file.
     """
-    service = VideoService(session, s3_client)
+    service = FileService(session, s3_client)
     object_key, filename, media_type = await service.get_video_file(
         video_id, user_id, resolution
     )
@@ -210,7 +210,7 @@ async def delete_files(
     """
     Delete a video, its database record, and all associated storage files.
     """
-    service = VideoService(session, s3_client)
+    service = FileService(session, s3_client)
     video = await service.delete_video(video_id, user_id)
     background_tasks.add_task(deindex_video_in_es, str(video_id), es)
 
