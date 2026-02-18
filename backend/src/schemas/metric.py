@@ -22,3 +22,9 @@ RESPONSES_TOTAL = Counter(
     "Total number of responses",
     ["status_code", "method", "path"],
 )
+
+VIDEO_SEARCH_TOTAL = Counter(
+    "video_search_requests_total",
+    "Total video search requests",
+    ["smart_search", "category"],
+)
