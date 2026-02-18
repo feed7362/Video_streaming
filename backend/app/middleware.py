@@ -1,7 +1,7 @@
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.metrics import PrometheusMiddleware
 from src.i18n import LanguageMiddleware
+from src.services.metrics import PrometheusMiddleware
 
 
 def add_middlewares(app):
