@@ -20,6 +20,6 @@ async def admin_panel(user: CurrentUser = Depends(require_role("admin"))) -> dic
     return {"msg": f"Hello Admin {user.username}"}
 
 
-@router_auth.get("/current_user")
+@router_auth.get("/me")
 async def user_panel(user: CurrentUser = Depends(get_current_user)) -> dict:
     return {"msg": f"Hello User {user.username}"}
