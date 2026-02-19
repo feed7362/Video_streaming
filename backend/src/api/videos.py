@@ -1,43 +1,18 @@
-import logging
-from datetime import datetime
 from typing import List, Literal
-from uuid import NAMESPACE_DNS, UUID, uuid5
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, Path, Query
 from fastapi.responses import JSONResponse
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from src.services.auth import get_current_user_id
-from src.services.reactions import toggle_reaction
-from src.services.video import (
-    get_video_by_id,
-    record_video_view,
-)
-
-from ..core.pagination import paginate_query
-from ..infrastructure.database import get_async_session
-from ..models import (
-    Category,
-    Channel,
-    CommentReaction,
-    PrivacyStatus,
-    Video,
-    VideoReaction,
-)
-from ..models.comments import Comment
-from ..schemas.comments import CommentCreate, CommentPage, CommentRead, to_comment_read
-from ..schemas.endpoint import APIError, ErrorResponse
+from ..schemas.comments import CommentCreate, CommentPage, CommentRead
+from ..schemas.endpoint import ErrorResponse
 from ..schemas.privacy import PrivacyLevel, PrivacyResponse
 from ..schemas.reaction import ReactionRequest, ReactionResponse
-from ..schemas.video import (
-    VideoPage,
-    VideoPlayback,
-    VideoPreviewPage,
-    map_video_to_playback,
-    to_video_preview,
-)
+from ..schemas.video import VideoPage, VideoPlayback, VideoPreviewPage
+from ..services.auth import get_current_user_id
+from ..services.comments import CommentService
+from ..services.videos import VideoService
+from .dependencies.services import get_comment_service, get_video_service
 
 router_videos = APIRouter(
     prefix="/api/video",
@@ -75,24 +50,10 @@ async def get_video_info(
     video_id: UUID = Path(
         ..., description="UUID of the video to retrieve playback info for."
     ),
-    session: AsyncSession = Depends(get_async_session),
     user_id: UUID = Depends(get_current_user_id),
+    service: VideoService = Depends(get_video_service),
 ) -> VideoPlayback:
-    try:
-        video, resolutions = await get_video_by_id(video_id, session)
-        if not video:
-            raise HTTPException(status_code=404, detail="Video not found")
-
-        await record_video_view(session, video_id=video.id, user_id=user_id)
-        logging.info(f"Streaming playlist master: {video_id}")
-        return map_video_to_playback(video, resolutions)
-
-    except Exception as e:
-        logging.error(f"Error streaming file: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=ErrorResponse(message=str(e)).model_dump(),
-        )
+    return await service.get_playback(video_id=video_id, user_id=user_id)
 
 
 @router_videos.get(
@@ -107,7 +68,7 @@ async def get_video_info(
             "description": "Comments retrieved successfully.",
         },
         400: {
-            "model": APIError,
+            "model": ErrorResponse,
             "description": "Invalid pagination parameters provided.",
         },
         404: {
@@ -131,22 +92,9 @@ async def get_comments(
         le=100,
         description="Number of comments to include per page (1-100).",
     ),
-    session: AsyncSession = Depends(get_async_session),
+    service: CommentService = Depends(get_comment_service),
 ) -> CommentPage:
-    filters = [Comment.video_id == video_id]
-    preload = [selectinload(Comment.user)]
-
-    comments, total = await paginate_query(
-        session=session,
-        model=Comment,
-        page=page,
-        size=size,
-        filters=filters,
-        order_by=Comment.created_at.desc(),
-        preload=preload,
-        mapper=to_comment_read,
-    )
-
+    comments, total = await service.get_by_video(video_id, page, size)
     return CommentPage(items=comments, page=page, size=size, total=total)
 
 
@@ -162,11 +110,11 @@ async def get_comments(
             "description": "List of videos successfully retrieved.",
         },
         400: {
-            "model": APIError,
+            "model": ErrorResponse,
             "description": "Invalid query parameters (e.g., invalid page/size).",
         },
         500: {
-            "model": APIError,
+            "model": ErrorResponse,
             "description": "Internal server error.",
         },
     },
@@ -174,27 +122,9 @@ async def get_comments(
 async def get_videos(
     page: int = Query(1, ge=1, description="Page number"),
     size: int = Query(20, ge=1, le=100, description="Page size"),
-    session: AsyncSession = Depends(get_async_session),
+    service: VideoService = Depends(get_video_service),
 ) -> VideoPreviewPage:
-    filters = [
-        Video.privacy_id == uuid5(NAMESPACE_DNS, "privacy_status:public"),
-        Video.status_id == uuid5(NAMESPACE_DNS, "video_status:ready"),
-    ]
-    preload = [
-        selectinload(Video.channel),
-        selectinload(Video.privacy),
-        selectinload(Video.resolutions),
-    ]
-    videos, total = await paginate_query(
-        session=session,
-        model=Video,
-        page=page,
-        size=size,
-        filters=filters,
-        preload=preload,
-        order_by=Video.created_at.desc(),
-        mapper=to_video_preview,
-    )
+    videos, total = await service.list_videos(page=page, size=size)
     return VideoPreviewPage(items=videos, page=page, size=size, total=total)
 
 
@@ -210,11 +140,11 @@ async def get_videos(
             "description": "List of videos successfully retrieved.",
         },
         400: {
-            "model": APIError,
+            "model": ErrorResponse,
             "description": "Invalid query parameters (e.g., invalid page/size).",
         },
         500: {
-            "model": APIError,
+            "model": ErrorResponse,
             "description": "Internal server error.",
         },
     },
@@ -222,7 +152,6 @@ async def get_videos(
 async def get_videos_category(
     page: int = Query(1, ge=1, description="Page number"),
     size: int = Query(20, ge=1, le=100, description="Page size"),
-    session: AsyncSession = Depends(get_async_session),
     category: Literal[
         "education",
         "entertainment",
@@ -248,27 +177,9 @@ async def get_videos_category(
         "podcasts",
         "shorts",
     ] = Path(description="Category of videos to filter by."),
+    service: VideoService = Depends(get_video_service),
 ) -> VideoPreviewPage:
-    filters = [
-        Video.privacy_id == uuid5(NAMESPACE_DNS, "privacy_status:public"),
-        Video.status_id == uuid5(NAMESPACE_DNS, "video_status:ready"),
-        Video.category_id == uuid5(NAMESPACE_DNS, f"video_category:{category}"),
-    ]
-    preload = [
-        selectinload(Video.channel),
-        selectinload(Video.privacy),
-        selectinload(Video.resolutions),
-    ]
-    videos, total = await paginate_query(
-        session=session,
-        model=Video,
-        page=page,
-        size=size,
-        filters=filters,
-        preload=preload,
-        order_by=Video.created_at.desc(),
-        mapper=to_video_preview,
-    )
+    videos, total = await service.list_videos(page=page, size=size, category=category)
     return VideoPreviewPage(items=videos, page=page, size=size, total=total)
 
 
@@ -284,23 +195,15 @@ async def get_videos_category(
             "description": "List of categories successfully retrieved.",
         },
         500: {
-            "model": APIError,
+            "model": ErrorResponse,
             "description": "Internal server error.",
         },
     },
 )
 async def get_categories(
-    session: AsyncSession = Depends(get_async_session),
-) -> list[str]:
-    result = await session.execute(
-        select(Category.name)
-        .join(Video, Category.id == Video.category_id)
-        .distinct()
-        .order_by(Category.name)
-    )
-    categories = result.scalars().all()
-
-    return [str(c) for c in categories]
+    service: VideoService = Depends(get_video_service),
+) -> List[str]:
+    return await service.list_categories()
 
 
 @router_videos.post(
@@ -315,29 +218,22 @@ async def get_categories(
             "description": "Reactions successfully retrieved.",
         },
         400: {
-            "model": APIError,
+            "model": ErrorResponse,
             "description": "Invalid parameters (e.g., invalid like/dislike count).",
         },
         500: {
-            "model": APIError,
+            "model": ErrorResponse,
             "description": "Internal server error.",
         },
     },
 )
 async def react_to_video(
     video_id: UUID,
-    payload: ReactionRequest,  # {"reaction_name": "like"}
-    session: AsyncSession = Depends(get_async_session),
+    payload: ReactionRequest,
     user_id: UUID = Depends(get_current_user_id),
+    service: VideoService = Depends(get_video_service),
 ) -> ReactionResponse:
-    counts = await toggle_reaction(
-        session=session,
-        user_id=user_id,
-        target_model=VideoReaction,
-        target_field=VideoReaction.video_id,
-        target_id=video_id,
-        reaction_name=payload.reaction_name,
-    )
+    counts = await service.react(video_id, user_id, payload.reaction_name)
     return ReactionResponse(
         target_id=video_id,
         target_type="video",
@@ -357,11 +253,11 @@ async def react_to_video(
             "description": "Reactions successfully retrieved.",
         },
         400: {
-            "model": APIError,
+            "model": ErrorResponse,
             "description": "Invalid parameters (e.g., invalid like/dislike count).",
         },
         500: {
-            "model": APIError,
+            "model": ErrorResponse,
             "description": "Internal server error.",
         },
     },
@@ -369,17 +265,10 @@ async def react_to_video(
 async def react_to_comment(
     comment_id: UUID,
     payload: ReactionRequest,
-    session: AsyncSession = Depends(get_async_session),
     user_id: UUID = Depends(get_current_user_id),
+    service: CommentService = Depends(get_comment_service),
 ) -> ReactionResponse:
-    counts = await toggle_reaction(
-        session=session,
-        user_id=user_id,
-        target_model=CommentReaction,
-        target_field=CommentReaction.comment_id,
-        target_id=comment_id,
-        reaction_name=payload.reaction_name,
-    )
+    counts = await service.react(comment_id, user_id, payload.reaction_name)
     return ReactionResponse(
         target_id=comment_id,
         target_type="comment",
@@ -394,9 +283,9 @@ async def react_to_comment(
     description="Adds a new comment to the specified video.",
     responses={
         201: {"model": CommentRead, "description": "Comment created successfully."},
-        404: {"model": APIError, "description": "Video not found."},
-        400: {"model": APIError, "description": "Invalid data."},
-        500: {"model": APIError, "description": "Internal server error."},
+        404: {"model": ErrorResponse, "description": "Video not found."},
+        400: {"model": ErrorResponse, "description": "Invalid data."},
+        500: {"model": ErrorResponse, "description": "Internal server error."},
     },
     status_code=201,
 )
@@ -406,51 +295,12 @@ async def add_comment(
     parent_id: UUID | None = Query(
         None, description="Optional ID of the parent comment to reply to."
     ),
-    session: AsyncSession = Depends(get_async_session),
     user_id: UUID = Depends(get_current_user_id),
+    service: CommentService = Depends(get_comment_service),
 ) -> CommentRead:
-    """Add a new comment to a video."""
-
-    # 1. Validate the video exists
-    video = await session.scalar(select(Video).where(Video.id == video_id))
-    if not video:
-        raise HTTPException(status_code=404, detail="Video not found")
-
-    if parent_id:
-        parent_comment = await session.scalar(
-            select(Comment).where(Comment.id == parent_id)
-        )
-        if not parent_comment:
-            raise HTTPException(status_code=404, detail="Parent comment not found")
-        if parent_comment.video_id != video_id:
-            raise HTTPException(
-                status_code=400,
-                detail="Parent comment belongs to a different video",
-            )
-
-    # 2. Create a comment instance
-    comment = Comment(
-        video_id=video_id,
-        user_id=user_id,
-        content=payload.content,
-        parent_id=parent_id,
-        created_at=datetime.now(),
+    return await service.create(
+        video_id=video_id, user_id=user_id, content=payload.content, parent_id=parent_id
     )
-
-    # 3. Save to DB
-    session.add(comment)
-    await session.commit()
-    await session.refresh(comment)
-
-    result = await session.execute(
-        select(Comment)
-        .options(selectinload(Comment.user))
-        .where(Comment.id == comment.id)
-    )
-    comment_with_user = result.scalar_one()
-
-    # 5. Return as schema
-    return to_comment_read(comment_with_user)
 
 
 @router_videos.delete(
@@ -460,46 +310,22 @@ async def add_comment(
     responses={
         204: {"description": "Comment deleted successfully."},
         403: {
-            "model": APIError,
+            "model": ErrorResponse,
             "description": "Not authorized to delete this comment.",
         },
-        404: {"model": APIError, "description": "Comment not found."},
-        500: {"model": APIError, "description": "Internal server error."},
+        404: {"model": ErrorResponse, "description": "Comment not found."},
+        500: {"model": ErrorResponse, "description": "Internal server error."},
     },
     status_code=204,
 )
 async def delete_comment(
     comment_id: UUID,
-    session: AsyncSession = Depends(get_async_session),
     user_id: UUID = Depends(get_current_user_id),
-) -> JSONResponse:
+    service: CommentService = Depends(get_comment_service),
+) -> None:
     """Delete a comment (only allowed by the comment author or video owner)."""
 
-    # 1. Fetch the comment with the related video + channel (for ownership check)
-    result = await session.execute(
-        select(Comment)
-        .options(selectinload(Comment.video).selectinload(Video.channel))
-        .where(Comment.id == comment_id)
-    )
-    comment = result.scalar_one_or_none()
-
-    if not comment:
-        raise HTTPException(status_code=404, detail="Comment not found")
-
-    # 2. Authorization: only author or video owner can delete
-    is_author = comment.user_id == user_id
-    is_video_owner = comment.video.channel.user_id == user_id
-
-    if not (is_author or is_video_owner):
-        raise HTTPException(
-            status_code=403, detail="Not allowed to delete this comment"
-        )
-
-    # 3. Delete and commit
-    await session.delete(comment)
-    await session.commit()
-
-    return JSONResponse(status_code=204, content=None)
+    await service.delete(comment_id=comment_id, user_id=user_id)
 
 
 @router_videos.patch(
@@ -513,9 +339,12 @@ async def delete_comment(
             "model": PrivacyResponse,
             "description": "PrivacyLevel successfully updated.",
         },
-        403: {"model": APIError, "description": "Not allowed to update this resource."},
-        404: {"model": APIError, "description": "Video not found."},
-        500: {"model": APIError, "description": "Internal server error."},
+        403: {
+            "model": ErrorResponse,
+            "description": "Not allowed to update this resource.",
+        },
+        404: {"model": ErrorResponse, "description": "Video not found."},
+        500: {"model": ErrorResponse, "description": "Internal server error."},
     },
 )
 async def update_privacy(
@@ -525,41 +354,14 @@ async def update_privacy(
         description="Privacy setting: `public` or `private`",
         examples=["public", "private"],
     ),
-    session: AsyncSession = Depends(get_async_session),
     user_id: UUID = Depends(get_current_user_id),
+    service: VideoService = Depends(get_video_service),
 ) -> PrivacyResponse:
-    privacy_row = await session.scalar(
-        select(PrivacyStatus).where(PrivacyStatus.name == updated_privacy)
+    old_privacy, new_privacy = await service.update_privacy(
+        video_id=video_id, user_id=user_id, privacy_name=updated_privacy
     )
-    if not privacy_row:
-        raise HTTPException(400, f"Invalid privacy level '{updated_privacy}'")
-
-    # Join to ensure this video belongs to the user's channel
-    video = await session.scalar(
-        select(Video)
-        .options(selectinload(Video.privacy))
-        .join(Channel)
-        .where(Video.id == video_id, Channel.user_id == user_id)
-    )
-    if not video:
-        raise HTTPException(403, "You do not own this video or it does not exist")
-
-    old_privacy = video.privacy.name if video.privacy else "unknown"
-
-    # Update the video privacy_id
-    try:
-        await session.execute(
-            update(Video).where(Video.id == video_id).values(privacy_id=privacy_row.id)
-        )
-        await session.commit()
-        await session.refresh(video)
-    except Exception as e:
-        await session.rollback()
-        logging.error(f"Failed to update privacy: {e}")
-        raise HTTPException(500, "Database error during privacy update")
-
     return PrivacyResponse(
         video_id=video_id,
         old_privacy=old_privacy,
-        updated_privacy=updated_privacy,
+        updated_privacy=new_privacy,
     )

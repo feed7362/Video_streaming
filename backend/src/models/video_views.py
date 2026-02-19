@@ -37,7 +37,13 @@ class VideoView(Base):
     __table_args__ = (
         Index("ix_video_views_video_id", "video_id"),
         Index("ix_video_views_user_id", "user_id"),
-        Index("uq_video_views_unique", "video_id", "user_id", unique=True),
+        Index(
+            "uq_video_views_video_user",
+            "video_id",
+            "user_id",
+            unique=True,
+            postgresql_where="user_id IS NOT NULL",
+        ),
     )
 
     def __repr__(self) -> str:

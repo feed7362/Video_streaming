@@ -1,14 +1,13 @@
 from typing import List, Optional
 
-from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 
-from ..infrastructure.elasticsearch import get_es_client
 from ..schemas.endpoint import ErrorResponse
 from ..schemas.search import VideoHintsResponse, VideoResult, VideoSearchResponse
 from ..services.search import SearchService
 from .dependencies.metrics import video_search_metrics
+from .dependencies.services import get_search_service
 
 router_search = APIRouter(
     prefix="/api/search",
@@ -43,13 +42,12 @@ async def get_hints(
         min_length=1,
         description="Partial query string for video title suggestions.",
     ),
-    es: AsyncElasticsearch = Depends(get_es_client),
+    service: SearchService = Depends(get_search_service),
 ) -> VideoHintsResponse:
     """
     Returns autocomplete hints for the user's partial query.
     Uses Elasticsearch completion suggester.
     """
-    service = SearchService(es)
     hints = await service.get_video_hints(q)
     return VideoHintsResponse(hints=hints)
 
@@ -96,7 +94,7 @@ async def video_search(
     has_description: bool = Query(
         False, description="Filter to only include videos that have a description."
     ),
-    es: AsyncElasticsearch = Depends(get_es_client),
+    service: SearchService = Depends(get_search_service),
     _metrics=Depends(video_search_metrics),
 ) -> VideoSearchResponse:
     """
@@ -105,7 +103,6 @@ async def video_search(
     - Hybrid text + vector search if `smart_search=True` and `query_vector` is provided
     """
 
-    service = SearchService(es)
     result = await service.search_video(
         query,
         query_vector,

@@ -107,7 +107,7 @@ class Video(Base):
     )
 
     __table_args__ = (
-        Index("ix_videos_user_id", "channel_id"),
+        Index("ix_videos_channel_id", "channel_id"),
         Index("ix_videos_created_at", "created_at"),
         Index("ix_videos_privacy", "privacy_id"),
     )
@@ -118,7 +118,7 @@ class Video(Base):
         return value.strip()
 
     def __repr__(self) -> str:
-        return f"<Video name='{self.name}' status={self.status.value}>"
+        return f"<Video id={self.id} name='{self.name}'>"
 
     def __str__(self) -> str:
         return f"{self.name} — {self.status.value}, {self.privacy}"

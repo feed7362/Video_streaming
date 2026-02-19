@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Annotated, Literal, Optional
+from typing import Annotated, Literal, Optional
 from uuid import UUID
 
 from elasticsearch import AsyncElasticsearch
@@ -11,10 +11,8 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.background_tasks import deindex_video_in_es
-from ..infrastructure import get_async_session, get_rabbit_broker, get_s3_client
 from ..infrastructure.elasticsearch import get_es_client
 from ..schemas.endpoint import (
     ErrorResponse,
@@ -27,11 +25,7 @@ from ..services.auth import get_current_user_id
 from ..services.file_signing import FileSigningService
 from ..services.files import FileService
 from .dependencies.rate_limit import limit_requests
-
-if TYPE_CHECKING:
-    from faststream.rabbit import RabbitBroker
-
-    from ..infrastructure.s3_client import S3Client
+from .dependencies.services import get_file_service, get_file_signing_service
 
 router_files = APIRouter(
     prefix="/api/files",
@@ -105,16 +99,12 @@ async def upload_files(
         "shorts",
     ] = Query(default="entertainment", description="Category of the uploaded files."),
     user_id: UUID = Depends(get_current_user_id),
-    s3_client: "S3Client" = Depends(get_s3_client),
-    session: AsyncSession = Depends(get_async_session),
-    broker: "RabbitBroker" = Depends(get_rabbit_broker),
+    service: FileService = Depends(get_file_service),
 ) -> FileResponse:
     """
     Upload multiple files to S3 asynchronously and trigger encoding tasks in RabbitMQ.
     Returns metadata about uploaded files.
     """
-    service = FileService(session, s3_client, broker)
-
     return await service.upload_video(
         video=video,
         thumbnail=thumbnail,
@@ -158,8 +148,7 @@ async def get_file(
         " If omitted, original file is returned.",
     ),
     user_id: UUID = Depends(get_current_user_id),
-    s3_client: "S3Client" = Depends(get_s3_client),
-    session: AsyncSession = Depends(get_async_session),
+    service: FileService = Depends(get_file_service),
 ) -> StreamingResponse:
     """
     Downloads and streams a stored video file.
@@ -168,7 +157,6 @@ async def get_file(
     may be requested in its original resolution or a specific resolution as
     available. The response is streamed as a binary file.
     """
-    service = FileService(session, s3_client)
     object_key, filename, media_type = await service.get_video_file(
         video_id, user_id, resolution
     )
@@ -203,14 +191,12 @@ async def delete_files(
     background_tasks: BackgroundTasks,
     video_id: UUID = Query(..., description="UUID of the video to delete."),
     user_id: UUID = Depends(get_current_user_id),
-    s3_client: "S3Client" = Depends(get_s3_client),
-    session: AsyncSession = Depends(get_async_session),
+    service: FileService = Depends(get_file_service),
     es: "AsyncElasticsearch" = Depends(get_es_client),
 ) -> FileResponse:
     """
     Delete a video, its database record, and all associated storage files.
     """
-    service = FileService(session, s3_client)
     video = await service.delete_video(video_id, user_id)
     background_tasks.add_task(deindex_video_in_es, str(video_id), es)
 
@@ -252,9 +238,8 @@ async def delete_files(
 )
 async def sign_object(
     file_path: str = Query(..., description="Path to the file to sign"),
-    s3_client: "S3Client" = Depends(get_s3_client),
+    service: FileSigningService = Depends(get_file_signing_service),
 ) -> JSONResponse:
-    service = FileSigningService(s3_client)
     result = await service.create_signed_url(file_path)
 
     headers = {"X-Signed-Url": result["signed_url"]}

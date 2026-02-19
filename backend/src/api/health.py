@@ -2,14 +2,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from faststream.rabbit import RabbitBroker
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..infrastructure.database import get_async_session
-from ..infrastructure.messaging.client import get_rabbit_broker
-from ..infrastructure.s3_client import S3Client, get_s3_client
 from ..schemas.endpoint import HealthStatus
 from ..services.health import HealthService
+from .dependencies.services import get_health_service
 
 router_health = APIRouter(
     prefix="/api/health",
@@ -60,10 +56,7 @@ async def perform_liveness_checks() -> HealthStatus:
     },
 )
 async def readiness_check(
-    session: AsyncSession = Depends(get_async_session),
-    s3_client: S3Client = Depends(get_s3_client),
-    broker: RabbitBroker = Depends(get_rabbit_broker),
+    service: HealthService = Depends(get_health_service),
 ) -> JSONResponse:
-    service = HealthService(session, s3_client, broker)
     payload = await service.check_health()
     return JSONResponse(status_code=service.status_code, content=payload.model_dump())
