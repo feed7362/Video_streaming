@@ -7,6 +7,7 @@ from fastapi import (
     BackgroundTasks,
     Depends,
     File,
+    Path,
     Query,
     UploadFile,
 )
@@ -39,11 +40,9 @@ router_files = APIRouter(
 
 
 @router_files.post(
-    "/upload_video",
+    "/videos",
     response_model=FileResponse,
-    dependencies=[
-        Depends(limit_requests("upload_video", max_requests=5, window_seconds=60))
-    ],
+    dependencies=[Depends(limit_requests("videos", max_requests=5, window_seconds=60))],
     summary="Upload video files",
     description="Uploads one or more video files to object storage and schedules encoding jobs.",
     response_description="Metadata describing the uploaded files.",
@@ -117,7 +116,7 @@ async def upload_files(
 
 
 @router_files.get(
-    "/download_video",
+    "/videos/{video_id}/download",
     response_model=FileStreamResponse,
     dependencies=[
         Depends(limit_requests("download_video", max_requests=5, window_seconds=60))
@@ -141,7 +140,7 @@ async def upload_files(
     },
 )
 async def get_file(
-    video_id: UUID = Query(..., description="UUID of the video to delete."),
+    video_id: UUID = Path(..., description="UUID of the video to delete."),
     resolution: Optional[str] = Query(
         None,
         description="Specific resolution to download (e.g., '360p', '720p', '1080p')."

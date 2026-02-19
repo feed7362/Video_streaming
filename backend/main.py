@@ -4,6 +4,12 @@ from app import add_middlewares, include_routers, lifespan, register_exception_h
 
 
 def create_app(use_lifespan: bool = True) -> FastAPI:
+    """
+    Application factory.
+
+    use_lifespan: Disable during certain tests to avoid starting external
+    resources (DB, message brokers, etc.).
+    """
     lifespan_ctx = lifespan if use_lifespan else None
     main_app = FastAPI(
         title="Video Streaming BFF",
@@ -31,6 +37,22 @@ def create_app(use_lifespan: bool = True) -> FastAPI:
             {
                 "name": "monitoring",
                 "description": "Prometheus metrics endpoints for operational monitoring.",
+            },
+            {
+                "name": "videos",
+                "description": "Endpoints for managing video metadata and playback.",
+            },
+            {
+                "name": "comments",
+                "description": "Endpoints for creating and retrieving video comments.",
+            },
+            {
+                "name": "search",
+                "description": "Endpoints for searching videos and related content.",
+            },
+            {
+                "name": "auth",
+                "description": "Authentication and authorization endpoints.",
             },
         ],
         swagger_ui_parameters={
