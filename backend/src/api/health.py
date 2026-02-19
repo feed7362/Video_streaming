@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
-from ..schemas.endpoint import HealthStatus
-from ..services.health import HealthService
-from .dependencies.services import get_health_service
+from src.api.dependencies.services import get_health_service
+from src.schemas.endpoint import HealthStatus
+from src.services.health import HealthService
 
 router_health = APIRouter(
     prefix="/api/health",

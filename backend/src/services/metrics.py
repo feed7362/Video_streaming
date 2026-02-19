@@ -4,7 +4,7 @@ from typing import Callable, List
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from ..schemas.metric import (
+from src.schemas.metric import (
     EXCEPTIONS_TOTAL,
     REQUEST_DURATION_HIST,
     REQUESTS_IN_PROGRESS,

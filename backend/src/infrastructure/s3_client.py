@@ -5,7 +5,7 @@ from typing import AsyncGenerator, BinaryIO, Dict, List, Optional
 from aiobotocore.session import AioBaseClient, get_session
 from botocore.exceptions import ClientError
 
-from ..config import get_s3_settings
+from src.config import get_s3_settings
 
 PART_SIZE = 1024 * 1024 * 10
 

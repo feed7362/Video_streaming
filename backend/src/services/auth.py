@@ -4,8 +4,8 @@ from fastapi import Depends
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..infrastructure.database import get_async_session
-from ..models import Channel, User
+from src.infrastructure.database import get_async_session
+from src.models import Channel, User
 
 
 async def get_current_user_id(

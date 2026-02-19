@@ -3,11 +3,11 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 
-from ..schemas.endpoint import ErrorResponse
-from ..schemas.search import VideoHintsResponse, VideoResult, VideoSearchResponse
-from ..services.search import SearchService
-from .dependencies.metrics import video_search_metrics
-from .dependencies.services import get_search_service
+from src.api.dependencies.metrics import video_search_metrics
+from src.api.dependencies.services import get_search_service
+from src.schemas.endpoint import ErrorResponse
+from src.schemas.search import VideoHintsResponse, VideoResult, VideoSearchResponse
+from src.services.search import SearchService
 
 router_search = APIRouter(
     prefix="/api/search",

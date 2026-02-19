@@ -30,7 +30,7 @@ def import_all_models(package_name: str) -> None:
 
 def verify_relationship_pairs(base: type[DeclarativeBase]) -> None:
     """Check that every relationship(back_populates=X) is mirrored correctly on the other side."""
-    print("🔍 Verifying SQLAlchemy relationships...")
+    print("Verifying SQLAlchemy relationships...")
 
     errors = []
 

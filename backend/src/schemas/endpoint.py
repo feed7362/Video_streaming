@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ..schemas.video import ResolutionMeta
+from src.schemas.video import ResolutionMeta
 
 
 class FileMeta(BaseModel):
@@ -32,7 +32,8 @@ class FileStreamResponse(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    status: str = "error"
+    status: Literal["error"] = "error"
+    code: str
     message: str
 
 
@@ -64,30 +65,6 @@ class HealthStatus(BaseModel):
                         "database": "error: OperationalError",
                         "object_storage": "ok",
                     },
-                },
-            ]
-        }
-    }
-
-
-class APIError(BaseModel):
-    detail: str
-    status_code: int
-    type: str
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "detail": "Invalid request parameters",
-                    "status_code": 400,
-                    "type": "BadRequest",
-                },
-                {"detail": "Unauthorized", "status_code": 401, "type": "Unauthorized"},
-                {
-                    "detail": "Internal server error",
-                    "status_code": 500,
-                    "type": "ServerError",
                 },
             ]
         }

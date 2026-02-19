@@ -10,7 +10,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..errors.files import (
+from src.errors.files import (
     ChannelNotFoundError,
     DuplicateVideoError,
     InvalidThumbnailFormatError,
@@ -21,15 +21,15 @@ from ..errors.files import (
     S3DownloadError,
     VideoNotFoundError,
 )
-from ..models.channel import Channel
-from ..models.video import Video
-from ..models.video_resolutions import VideoResolution
-from ..schemas.endpoint import FileMeta, FileResponse
+from src.models.channel import Channel
+from src.models.video import Video
+from src.models.video_resolutions import VideoResolution
+from src.schemas.endpoint import FileMeta, FileResponse
 
 if TYPE_CHECKING:
     from faststream.rabbit import RabbitBroker
 
-    from ..infrastructure.s3_client import S3Client
+    from src.infrastructure.s3_client import S3Client
 
 
 async def _hash_and_size(uploaded_file):

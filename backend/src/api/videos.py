@@ -4,15 +4,15 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Query
 from fastapi.responses import JSONResponse
 
-from ..schemas.comments import CommentCreate, CommentPage, CommentRead
-from ..schemas.endpoint import ErrorResponse
-from ..schemas.privacy import PrivacyLevel, PrivacyResponse
-from ..schemas.reaction import ReactionRequest, ReactionResponse
-from ..schemas.video import VideoPage, VideoPlayback, VideoPreviewPage
-from ..services.auth import get_current_user_id
-from ..services.comments import CommentService
-from ..services.videos import VideoService
-from .dependencies.services import get_comment_service, get_video_service
+from src.api.dependencies.services import get_comment_service, get_video_service
+from src.schemas.comments import CommentCreate, CommentPage, CommentRead
+from src.schemas.endpoint import ErrorResponse
+from src.schemas.privacy import PrivacyLevel, PrivacyResponse
+from src.schemas.reaction import ReactionRequest, ReactionResponse
+from src.schemas.video import VideoPage, VideoPlayback, VideoPreviewPage
+from src.services.auth import get_current_user_id
+from src.services.comments import CommentService
+from src.services.videos import VideoService
 
 router_videos = APIRouter(
     prefix="/api/video",

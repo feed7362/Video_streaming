@@ -5,17 +5,17 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..core.pagination import paginate_query
-from ..errors.comments import (
+from src.core.pagination import paginate_query
+from src.errors.comments import (
     CommentDeleteForbiddenError,
     CommentNotFoundError,
     ParentCommentNotFoundError,
     ParentCommentVideoMismatchError,
 )
-from ..errors.files import VideoNotFoundError
-from ..models import Comment, CommentReaction, Video
-from ..schemas.comments import to_comment_read
-from ..services.reactions import toggle_reaction
+from src.errors.files import VideoNotFoundError
+from src.models import Comment, CommentReaction, Video
+from src.schemas.comments import to_comment_read
+from src.services.reactions import toggle_reaction
 
 
 class CommentService:

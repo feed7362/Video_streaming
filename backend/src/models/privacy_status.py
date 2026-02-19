@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING, List
 from sqlalchemy import UUID, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..infrastructure import Base
+from src.infrastructure import Base
 
 if TYPE_CHECKING:
-    from .video import Video
+    from video import Video
 
 
 class PrivacyStatus(Base):

@@ -6,7 +6,7 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql.base import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..infrastructure.database import Base
+from src.infrastructure.database import Base
 
 if TYPE_CHECKING:
     from .subscription import Subscription

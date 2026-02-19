@@ -6,11 +6,11 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql.base import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..infrastructure import Base
+from src.infrastructure import Base
 
 if TYPE_CHECKING:
-    from .channel import Channel
-    from .user import User
+    from channel import Channel
+    from user import User
 
 
 class Subscription(Base):

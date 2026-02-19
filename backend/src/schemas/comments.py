@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from ..models import Comment
+from src.models import Comment
 
 T = TypeVar("T")
 

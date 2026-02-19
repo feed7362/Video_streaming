@@ -1,6 +1,6 @@
 from elasticsearch import AsyncElasticsearch
 
-from ..config import get_elastic_settings
+from src.config import get_elastic_settings
 
 settings = get_elastic_settings()
 

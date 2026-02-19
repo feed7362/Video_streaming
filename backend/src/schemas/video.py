@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..models import Video
+from src.models import Video
 
 # Generic type for reusable pagination
 T = TypeVar("T")

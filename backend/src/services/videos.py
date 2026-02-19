@@ -5,15 +5,15 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..core.pagination import paginate_query
-from ..errors.videos import (
+from src.core.pagination import paginate_query
+from src.errors.videos import (
     InvalidPrivacyError,
     VideoNotFoundError,
     VideoPrivacyUpdateForbidden,
 )
-from ..models import Category, Channel, PrivacyStatus, Video, VideoReaction, VideoView
-from ..schemas.video import map_video_to_playback, to_video_preview
-from ..services.reactions import toggle_reaction
+from src.models import Category, Channel, PrivacyStatus, Video, VideoReaction, VideoView
+from src.schemas.video import map_video_to_playback, to_video_preview
+from src.services.reactions import toggle_reaction
 
 
 class VideoService:

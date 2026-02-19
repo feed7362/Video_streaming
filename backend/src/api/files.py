@@ -12,20 +12,20 @@ from fastapi import (
 )
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from ..core.background_tasks import deindex_video_in_es
-from ..infrastructure.elasticsearch import get_es_client
-from ..schemas.endpoint import (
+from src.api.dependencies.rate_limit import limit_requests
+from src.api.dependencies.services import get_file_service, get_file_signing_service
+from src.core.background_tasks import deindex_video_in_es
+from src.infrastructure.elasticsearch import get_es_client
+from src.schemas.endpoint import (
     ErrorResponse,
     FileMeta,
     FileResponse,
     FileStreamResponse,
 )
-from ..schemas.files import SignedUrlResponse
-from ..services.auth import get_current_user_id
-from ..services.file_signing import FileSigningService
-from ..services.files import FileService
-from .dependencies.rate_limit import limit_requests
-from .dependencies.services import get_file_service, get_file_signing_service
+from src.schemas.files import SignedUrlResponse
+from src.services.auth import get_current_user_id
+from src.services.file_signing import FileSigningService
+from src.services.files import FileService
 
 router_files = APIRouter(
     prefix="/api/files",

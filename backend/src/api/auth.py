@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
-from ..infrastructure.keycloak_client import get_current_user, require_role
-from ..schemas.user import CurrentUser
+from src.infrastructure.keycloak_client import get_current_user, require_role
+from src.schemas.user import CurrentUser
 
 router_auth = APIRouter(
     prefix="/api/auth",

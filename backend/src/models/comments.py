@@ -6,12 +6,12 @@ from sqlalchemy import DateTime, ForeignKey, Index, Integer, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
-from ..infrastructure.database import Base
+from src.infrastructure.database import Base
 
 if TYPE_CHECKING:
-    from .comment_reactions import CommentReaction
-    from .user import User
-    from .video import Video
+    from comment_reactions import CommentReaction
+    from user import User
+    from video import Video
 
 
 class Comment(Base):

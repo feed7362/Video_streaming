@@ -5,10 +5,10 @@ from fastapi.security import HTTPBearer
 from keycloak import KeycloakOpenID
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..config import get_keycloak_settings
-from ..models import User
-from ..schemas.user import CurrentUser, to_current_user
-from .database import get_async_session
+from src.config import get_keycloak_settings
+from src.infrastructure.database import get_async_session
+from src.models import User
+from src.schemas.user import CurrentUser, to_current_user
 
 bearer = HTTPBearer()
 setting = get_keycloak_settings()

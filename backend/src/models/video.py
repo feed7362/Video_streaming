@@ -15,20 +15,20 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
-from ..infrastructure.database import Base
+from src.infrastructure.database import Base
 
 if TYPE_CHECKING:
-    from .category import Category
-    from .channel import Channel
-    from .comments import Comment
-    from .playlist import Playlist
-    from .privacy_status import PrivacyStatus
-    from .video_reactions import VideoReaction
-    from .video_resolutions import VideoResolution
-    from .video_status import VideoStatus
-    from .video_views import VideoView
-    from .watch_history import WatchHistory
-    from .watch_later import WatchLater
+    from category import Category
+    from channel import Channel
+    from comments import Comment
+    from playlist import Playlist
+    from privacy_status import PrivacyStatus
+    from video_reactions import VideoReaction
+    from video_resolutions import VideoResolution
+    from video_status import VideoStatus
+    from video_views import VideoView
+    from watch_history import WatchHistory
+    from watch_later import WatchLater
 
 
 class Video(Base):

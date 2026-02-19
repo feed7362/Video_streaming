@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import Mapper, declarative_base
 
-from ..config import get_database_settings
+from src.config import get_database_settings
 
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)

@@ -10,12 +10,12 @@ from src.infrastructure import (
     get_rabbit_broker,
     get_s3_client,
 )
-from src.services import VideoService
 from src.services.comments import CommentService
 from src.services.file_signing import FileSigningService
 from src.services.files import FileService
 from src.services.health import HealthService
 from src.services.search import SearchService
+from src.services.videos import VideoService
 
 if TYPE_CHECKING:
     from faststream.rabbit import RabbitBroker

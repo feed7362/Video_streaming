@@ -6,17 +6,17 @@ from fastapi import status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..errors.health import (
+from src.errors.health import (
     DatabaseUnavailableError,
     MessageBrokerUnavailableError,
     ObjectStorageUnavailableError,
 )
-from ..schemas.endpoint import HealthStatus
+from src.schemas.endpoint import HealthStatus
 
 if TYPE_CHECKING:
     from faststream.rabbit import RabbitBroker
 
-    from ..infrastructure.s3_client import S3Client
+    from src.infrastructure.s3_client import S3Client
 
 
 class HealthService:
