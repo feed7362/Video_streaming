@@ -19,12 +19,6 @@ class SignedUrlGenerationError(AppError):
     status_code = 500
 
 
-class VideoNotFoundError(AppError):
-    code = "VIDEO_NOT_FOUND"
-    message = "Video not found or not owned by the user"
-    status_code = 404
-
-
 class S3DeletionError(AppError):
     code = "S3_DELETION_FAILED"
     message = "Failed to delete files from storage"

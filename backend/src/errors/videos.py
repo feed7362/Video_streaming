@@ -1,30 +1,22 @@
-from uuid import UUID
-
 from src.core.base_error import AppError
 
 
 class VideoNotFoundError(AppError):
     code = "VIDEO_NOT_FOUND"
+    message = "Video not found or not owned by the user"
     status_code = 404
-
-    def __init__(self, video_id: UUID):
-        super().__init__(f"Video '{video_id}' not found")
 
 
 class VideoPrivacyUpdateForbidden(AppError):
     code = "VIDEO_PRIVACY_FORBIDDEN"
     status_code = 403
-
-    def __init__(self):
-        super().__init__("You do not own this video")
+    message = "You do not own this video"
 
 
 class VideoViewRecordError(AppError):
     code = "VIDEO_VIEW_RECORD_FAILED"
     status_code = 500
-
-    def __init__(self):
-        super().__init__("Failed to record video view")
+    message = "Failed to record video view"
 
 
 class InvalidPrivacyError(AppError):
