@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
+from src.errors.reactions import InvalidReactionTypeError
 from src.models import CommentReaction, ReactionType
 from src.models.video_reactions import VideoReaction
 
@@ -26,7 +27,7 @@ async def toggle_reaction(
         select(ReactionType.id).where(ReactionType.name == reaction_name)
     )
     if not reaction_type_id:
-        raise ValueError(f"Unknown reaction type '{reaction_name}'")
+        raise InvalidReactionTypeError(reaction_name)
 
     # Check if the user already reacted
     stmt = select(target_model).where(
