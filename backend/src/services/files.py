@@ -19,8 +19,8 @@ from src.errors.files import (
     ResolutionNotFoundError,
     S3DeletionError,
     S3DownloadError,
-    VideoNotFoundError,
 )
+from src.errors.videos import VideoNotFoundError
 from src.models.channel import Channel
 from src.models.video import Video
 from src.models.video_resolutions import VideoResolution

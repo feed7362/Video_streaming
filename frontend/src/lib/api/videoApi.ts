@@ -64,7 +64,7 @@ export const getVideos = async ({
     channel_name,
   });
 
-  const res = await clientApi.get<VideosResponse>("/api/video/get_videos", {
+  const res = await clientApi.get<VideosResponse>("/api/videos/", {
     params: { page, size, category, channel_name },
   });
 
@@ -74,7 +74,7 @@ export const getVideos = async ({
 };
 
 export const getVideo = async (id: string): Promise<Video> => {
-  const res = await clientApi.get<Video>(`/api/video/info/${id}`);
+  const res = await clientApi.get<Video>(`/api/videos/${id}`);
   console.log(res.data.thumbnail_url);
   return {
     ...res.data,
@@ -92,7 +92,7 @@ export const getVideoPreviewsByCategory = async (
   page = 1,
   size = 9,
 ): Promise<VideoPreview[]> => {
-  const res = await clientApi.get<VideosResponse>("/api/video/get_videos", {
+  const res = await clientApi.get<VideosResponse>("/api/videos/", {
     params: { category, page, size },
   });
   return (res.data.items || []).map(mapToPreview);
@@ -146,7 +146,7 @@ export const addVideo = async (data: {
 }): Promise<Video> => clientApi.post("/videos", data).then((res) => res.data);
 
 export const deleteVideo = async (id: string): Promise<void> =>
-  clientApi.delete(`/api/files/delete_video/${id}`).then(() => {});
+  clientApi.delete(`/api/files/${id}`).then(() => {});
 
 export const updateVideo = async (
   id: string,
@@ -175,7 +175,7 @@ export const getVideoDownloadInfo = async (
   videoId: string,
 ): Promise<DownloadResponse> => {
   const res = await clientApi.get<DownloadResponse>(
-    `/api/files/download_video/${videoId}`,
+    `/api/files/videos/${videoId}/download`,
   );
   return res.data;
 };

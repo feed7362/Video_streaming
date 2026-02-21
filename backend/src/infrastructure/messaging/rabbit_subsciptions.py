@@ -1,18 +1,28 @@
 import logging
+from typing import TYPE_CHECKING
 from uuid import NAMESPACE_DNS, uuid4, uuid5
 
-from elasticsearch import AsyncElasticsearch
 from fastapi import BackgroundTasks, Depends
 from faststream.rabbit.fastapi import RabbitRouter
 from sqlalchemy import insert, update
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.background_tasks import index_video_in_es
+from src.errors.rabbit_broker import (
+    ResolutionInsertError,
+    UnknownEncoderStatusError,
+    VideoEncodingPersistenceError,
+)
+from src.errors.videos import VideoNotFoundError
 from src.infrastructure.database import get_async_session
 from src.infrastructure.elasticsearch import get_es_client
 from src.models import Video, VideoResolution
-from src.schemas.endpoint import StatusMessage
 from src.schemas.search import VideoIndexDocument
+
+if TYPE_CHECKING:
+    from elasticsearch import AsyncElasticsearch
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from src.events.endpoint import StatusMessage
 
 rabbit_router = RabbitRouter(
     url="amqp://guest:guest@rabbitmq:5672/", include_in_schema=False
@@ -22,8 +32,8 @@ rabbit_router = RabbitRouter(
 @rabbit_router.subscriber("video.encode.status")
 async def status_handler(
     background_tasks: BackgroundTasks,
-    msg: StatusMessage,
-    session: AsyncSession = Depends(get_async_session),
+    msg: "StatusMessage",
+    session: "AsyncSession" = Depends(get_async_session),
     es: "AsyncElasticsearch" = Depends(get_es_client),
 ) -> None:
     try:
@@ -34,8 +44,7 @@ async def status_handler(
 
         status_id = uuid5(NAMESPACE_DNS, f"video_status:{msg.status}")
         if not status_id:
-            logging.warning(f"Unknown encoder status: {msg.status}")
-            return
+            raise UnknownEncoderStatusError(msg.status)
         result = await session.execute(
             update(Video)
             .where(Video.id == msg.video_id)
@@ -52,7 +61,7 @@ async def status_handler(
                 f"Video.id {msg.video_id} not found in database. "
                 "No status update was performed."
             )
-            return
+            raise VideoNotFoundError()
 
         if msg.status == "ready" and msg.resolutions:
             resolution_entries = []
@@ -86,6 +95,7 @@ async def status_handler(
             logging.info(
                 f"[Encoder] Added {len(resolution_entries)} resolution entries for video {msg.video_id}"
             )
+            raise ResolutionInsertError()
 
         await session.commit()
 
@@ -105,4 +115,4 @@ async def status_handler(
             f"Error in status_handler for video {msg.video_id}: {e}", exc_info=True
         )
         await session.rollback()
-        raise
+        raise VideoEncodingPersistenceError()

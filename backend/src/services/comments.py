@@ -12,7 +12,7 @@ from src.errors.comments import (
     ParentCommentNotFoundError,
     ParentCommentVideoMismatchError,
 )
-from src.errors.files import VideoNotFoundError
+from src.errors.videos import VideoNotFoundError
 from src.models import Comment, CommentReaction, Video
 from src.schemas.comments import to_comment_read
 from src.services.reactions import toggle_reaction
