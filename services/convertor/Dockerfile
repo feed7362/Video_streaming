@@ -19,7 +19,7 @@ COPY . .
 RUN addgroup --system app && adduser --system --group app
 USER app
 
-ENTRYPOINT ["uvicorn", "rabbit_client:app"]
+ENTRYPOINT ["uvicorn", "main:app"]
 CMD ["--host", "0.0.0.0", \
     "--port", "9102", \
     "--loop", "uvloop", \

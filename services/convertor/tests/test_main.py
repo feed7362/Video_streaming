@@ -1,6 +1,6 @@
 import pytest
 
-from ..main import cleanup_dirs, prepare_dirs
+from src.services import cleanup_dirs, prepare_dirs
 
 
 @pytest.mark.asyncio
