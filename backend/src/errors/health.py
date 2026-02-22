@@ -1,28 +1,26 @@
 from src.core.base_error import AppError
+from src.i18n import _
 
 
 class DatabaseUnavailableError(AppError):
     code = "DATABASE_UNAVAILABLE"
     status_code = 503
-    message = "Database is unavailable"
 
     def __init__(self, cause: Exception | None = None):
-        super().__init__(cause=cause)
+        super().__init__(message=_("Database is unavailable"), cause=cause)
 
 
 class ObjectStorageUnavailableError(AppError):
     code = "OBJECT_STORAGE_UNAVAILABLE"
-    message = "Object storage is not reachable"
     status_code = 503
 
     def __init__(self, cause: Exception | None = None):
-        super().__init__(cause=cause)
+        super().__init__(message=_("Object storage is not reachable"), cause=cause)
 
 
 class MessageBrokerUnavailableError(AppError):
     code = "MESSAGE_BROKER_UNAVAILABLE"
-    message = "Message broker is not reachable"
     status_code = 503
 
     def __init__(self, cause: Exception | None = None):
-        super().__init__(cause=cause)
+        super().__init__(message=_("Message broker is not reachable"), cause=cause)

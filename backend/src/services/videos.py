@@ -120,7 +120,7 @@ class VideoService:
         )
         video = result.scalar_one_or_none()
         if not video:
-            raise VideoNotFoundError(video_id)
+            raise VideoNotFoundError()
         return video
 
     async def _record_view(self, video_id: UUID, user_id: UUID) -> None:
