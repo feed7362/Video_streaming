@@ -8,11 +8,9 @@ interface VideoCardProps {
     thumbnail?: string;
     channel_avatar?: string;
     channel_name?: string;
-    // ✅ ДОДАНО: Перегляди
     views?: number;
-    // ✅ ДОДАНО: Відносна дата (наприклад, "3 дні тому")
     timeAgo?: string;
-    loading?: boolean; // if true, render skeleton
+    loading?: boolean;
 }
 
 // Функція для форматування числа переглядів (наприклад, 12000 -> 12K)
@@ -29,8 +27,8 @@ export default function VideoCard({
     thumbnail,
     channel_avatar,
     channel_name,
-    views, // ✅ Прийняття нового пропсу
-    timeAgo, // ✅ Прийняття нового пропсу
+    views,
+    timeAgo,
     loading = false,
 }: VideoCardProps) {
     const { height, avatarSize, metaRatio } = CARD_CONFIG;
@@ -38,9 +36,7 @@ export default function VideoCard({
     const metaHeight = height * metaRatio;
     const thumbnailHeight = height * (1 - metaRatio);
 
-    // Форматуємо перегляди для відображення
     const formattedViews = formatViews(views);
-    // Створюємо рядок метаданих: "1.2K переглядів · 3 дні тому"
     const metaText = `${formattedViews} переглядів${timeAgo ? ` · ${timeAgo}` : ''}`;
 
 
@@ -88,7 +84,6 @@ export default function VideoCard({
                 <div className="flex flex-col flex-1 min-w-0">
                     <h2 className="font-semibold truncate">{title}</h2>
                     <h4 className="text-sm text-gray-500 truncate">{channel_name}</h4>
-                    {/* ✅ ВИПРАВЛЕНО: Використання обчисленого metaText */}
                     <h3 className="text-sm text-gray-500">
                         {metaText}
                     </h3>

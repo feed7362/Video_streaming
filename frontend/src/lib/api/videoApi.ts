@@ -8,93 +8,73 @@ import type {
 } from "./types";
 
 interface VideosResponse {
-  items: Video[];
+  items: VideoPreview[];
   page: number;
   size: number;
   total: number;
 }
 
-export const mapToPreview = (video: Video): VideoPreview => ({
-  id: video.id,
-  previewUrl: video.thumbnail_url || "/placeholder.jpg",
-  title: video.name || video.title || "Untitled",
-  name: video.name || video.title || "Untitled",
-  createdAt: video.created_at || new Date().toISOString(),
-  publishedAt:
-    video.publishedAt || video.created_at || new Date().toISOString(),
-  channel: video.channel_name || "Unknown Channel",
-  channel_avatar: video.avatar_url || "",
-  views: video.views_count ?? 0,
-  likesCount: video.likes_count ?? 0,
-  dislikesCount: video.dislikes_count ?? 0,
-  privacy: video.privacy === "public" ? "Public" : "Private",
+export const mapToPreview = (data: any): VideoPreview => ({
+  id: data.id,
+  previewUrl: data.thumbnail || "/placeholder.jpg",
+  title: data.title || "Untitled",
+  name: data.title || "Untitled",
+  createdAt: data.created_at || new Date().toISOString(),
+  publishedAt: data.created_at || new Date().toISOString(),
+  channel: data.channel_name || "Unknown Channel",
+  channel_name: data.channel_name || "Unknown Channel",
+  channel_avatar: data.channel_avatar || "",
+  views: data.views_count ?? 0,
+  likesCount: data.likes_count ?? 0,
+  dislikesCount: data.dislikes_count ?? 0,
+  privacy: data.privacy === "public" ? "Public" : "Private",
 });
 
-export const mapToDetail = (video: Video): Video => ({
-  ...video,
-  preview_url: video.thumbnail_url || video.preview_url || "/placeholder.jpg",
-  master_hls_url: video.master_hls_url || "",
-  created_at: video.created_at || "",
-  timeAgo: timeAgo(video.created_at || new Date().toISOString()),
-  channel_avatar: video.avatar_url || video.channel_avatar || "",
-  comments: video.comments || [],
-  likes_count: video.likes_count ?? 0,
-  dislikes_count: video.dislikes_count ?? 0,
-  views_count: video.views_count ?? 0,
-  channel_name: video.channel_name || "Unknown Channel",
-  title: video.name || video.title || "Untitled",
-  privacy: video.privacy === "public" ? "Public" : "Private",
+export const mapToDetail = (data: any): Video => ({
+  ...data,
+  preview_url: data.thumbnail_url || "/placeholder.jpg",
+  master_hls_url: data.master_hls_url || "",
+  created_at: data.created_at || "",
+  timeAgo: timeAgo(data.created_at || new Date().toISOString()),
+  channel_avatar: data.avatar_url || "",
+  comments: data.comments || [],
+  likes_count: data.likes_count ?? 0,
+  dislikes_count: data.dislikes_count ?? 0,
+  views_count: data.views_count ?? 0,
+  channel_name: data.channel_name || "Unknown Channel",
+  title: data.name || "Untitled",
+  privacy: data.privacy === "public" ? "Public" : "Private",
 });
 
 export const getVideos = async ({
   page = 1,
-  size = 9,
-  category,
+  size = 10,
   channel_name,
 }: {
   page?: number;
   size?: number;
-  category?: string;
   channel_name?: string;
 }): Promise<VideoPreview[]> => {
-  console.log("Fetching videos with params:", {
-    page,
-    size,
-    category,
-    channel_name,
-  });
-
   const res = await clientApi.get<VideosResponse>("/api/videos/", {
-    params: { page, size, category, channel_name },
+    params: { page, size, channel_name },
   });
-
-  console.log("getVideos API response:", res.data);
-
   return (res.data.items || []).map(mapToPreview);
 };
 
 export const getVideo = async (id: string): Promise<Video> => {
-  const res = await clientApi.get<Video>(`/api/videos/${id}`);
-  console.log(res.data.thumbnail_url);
-  return {
-    ...res.data,
-    timeAgo: timeAgo(res.data.created_at),
-    thumbnail_url: res.data.thumbnail_url || "",
-    master_hls_url: res.data.master_hls_url,
-    channel_avatar: res.data.channel_avatar || "",
-    preview_url: res.data.preview_url || res.data.thumbnail_url || "",
-    comments: res.data.comments || [],
-  };
+  const res = await clientApi.get<any>(`/api/videos/${id}`);
+  return mapToDetail(res.data);
 };
 
 export const getVideoPreviewsByCategory = async (
   category: string,
   page = 1,
-  size = 9,
+  size = 10,
 ): Promise<VideoPreview[]> => {
-  const res = await clientApi.get<VideosResponse>("/api/videos/", {
-    params: { category, page, size },
-  });
+  const res = await clientApi.get<VideosResponse>(
+    `/api/videos/categories/${category}`,
+    { params: { page, size } },
+  );
   return (res.data.items || []).map(mapToPreview);
 };
 
@@ -113,63 +93,41 @@ export const uploadVideo = async (
     formData.append("video", file);
     if (options?.thumbnail) formData.append("thumbnail", options.thumbnail);
 
-    const params = new URLSearchParams({
-      name: options?.title || "",
-      description: options?.description || "",
-      privacy: options?.isPublic ? "public" : "private",
-      category: options?.category || "general",
-    });
-
     const res = await clientApi.post<UploadResponse>(
-      `/files/upload_video?${params}`,
+      `/api/files/videos`,
       formData,
-      { headers: { "Content-Type": "multipart/form-data" } },
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+        params: {
+          name: options?.title || "Untitled",
+          description: options?.description || "",
+          privacy: options?.isPublic ? "public" : "private",
+          category: options?.category || "entertainment",
+        },
+      },
     );
 
     return res.data;
-  } catch (err: unknown) {
-    if (typeof err === "object" && err && "response" in err) {
-      const axiosError = err as { response?: { data?: unknown } };
-      return Promise.reject(axiosError.response?.data);
-    }
-
-    return Promise.reject({ message: "Upload failed" });
+  } catch (err: any) {
+    return Promise.reject(err.response?.data || { message: "Upload failed" });
   }
 };
 
-export const addVideo = async (data: {
-  title: string;
-  description?: string;
-  videoUrl: string;
-  thumbnailUrl?: string;
-  isPublic: boolean;
-}): Promise<Video> => clientApi.post("/videos", data).then((res) => res.data);
+export const deleteVideo = async (id: string): Promise<void> => {
+  await clientApi.delete(`/api/files`, {
+    params: { video_id: id },
+  });
+};
 
-export const deleteVideo = async (id: string): Promise<void> =>
-  clientApi.delete(`/api/files/${id}`).then(() => {});
-
-export const updateVideo = async (
+export const updateVideoPrivacy = async (
   id: string,
-  data: {
-    title?: string;
-    description?: string;
-    thumbnailUrl?: string;
-    isPublic?: boolean;
-  },
-): Promise<Video> =>
-  clientApi.put(`/videos/${id}`, data).then((res) => res.data);
-
-//export const generateThumbnail = async (videoId: string): Promise<string> =>
-//    clientApi.post(`/videos/${videoId}/generate-thumbnail`)
-//        .then(res => res.data.thumbnailUrl);
-
-//export const getThumbnail = async (videoId: string): Promise<string> =>
-//    clientApi.get(`/videos/${videoId}/thumbnail`)
-//        .then(res => res.data.thumbnailUrl);
-
-//export const checkVideoStatus = async (videoId: string): Promise<string> =>
-//    clientApi.get(`/videos/${videoId}/status`)
-//        .then(res => res.data.status);
+  isPublic: boolean,
+): Promise<any> => {
+  const res = await clientApi.patch(`/api/videos/${id}/privacy`, null, {
+    params: { updated_privacy: isPublic ? "public" : "private" },
+  });
+  return res.data;
+};
 
 export const getVideoDownloadInfo = async (
   videoId: string,
@@ -185,8 +143,8 @@ export const downloadVideo = async (
   resolution = "720p",
 ): Promise<Blob> => {
   try {
-    const res = await clientApi.get(`/api/files/download_video`, {
-      params: { video_id: videoId, resolution },
+    const res = await clientApi.get(`/api/files/videos/${videoId}/download`, {
+      params: { resolution },
       responseType: "blob",
     });
     return res.data;
@@ -196,26 +154,11 @@ export const downloadVideo = async (
   }
 };
 
-//для використання в іншому файлі
-//const handleDownload = async () => {
-//    try {
-//        const blob = await downloadVideo(videoId);
-//        const url = window.URL.createObjectURL(blob);
-//        const a = document.createElement("a");
-//        a.href = url;
-//        a.download = `video_${videoId}.mp4`; // or use filename from API
-//        a.click();
-//    } catch (e) {
-//        toast({ title: "Download failed", variant: "destructive" });
-//    }
-//};
-
 export default {
   getVideos,
   getVideo,
   uploadVideo,
-  addVideo,
-  updateVideo,
+  updateVideoPrivacy,
   deleteVideo,
   downloadVideo,
   getVideoDownloadInfo,
