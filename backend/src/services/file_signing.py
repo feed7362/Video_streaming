@@ -1,10 +1,15 @@
+import logging
 import re
+from typing import TYPE_CHECKING
 
 from src.errors.files import (
     FileNotFoundS3Error,
     InvalidFilePathError,
     SignedUrlGenerationError,
 )
+
+if TYPE_CHECKING:
+    from src.infrastructure.s3_client import S3Client
 
 
 def parse_minio_path(file_path: str):
@@ -15,7 +20,7 @@ def parse_minio_path(file_path: str):
 
 
 class FileSigningService:
-    def __init__(self, s3_client, expires_in=3600):
+    def __init__(self, s3_client: "S3Client", expires_in=3600):
         self.s3_client = s3_client
         self.expires_in = expires_in
 
@@ -30,10 +35,11 @@ class FileSigningService:
                 bucket_name=bucket,
             )
         except Exception as e:
-            raise SignedUrlGenerationError(str(e))
+            logging.error("Error generating presigned URL: %s", e, stack_info=True)
+            raise SignedUrlGenerationError()
 
         if not signed_url:
-            raise FileNotFoundS3Error(f"{key} not found in {bucket}")
+            raise FileNotFoundS3Error()
 
         return {
             "path": key,

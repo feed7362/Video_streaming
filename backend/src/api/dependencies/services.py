@@ -44,9 +44,9 @@ def get_file_service(
 
 
 def get_file_signing_service(
-    session: "AsyncSession" = Depends(get_async_session),
+    s3_client: "S3Client" = Depends(get_s3_client),
 ) -> FileSigningService:
-    return FileSigningService(session)
+    return FileSigningService(s3_client)
 
 
 def get_health_service(

@@ -24,6 +24,59 @@ router_videos = APIRouter(
 
 
 @router_videos.get(
+    "/",
+    response_model=VideoPreviewPage,
+    summary="List all videos",
+    description="Returns a paginated list of videos with metadata such as title, duration, and status.",
+    response_description="A paginated list of videos.",
+    responses={
+        200: {
+            "model": VideoPreviewPage,
+            "description": "List of videos successfully retrieved.",
+        },
+        400: {
+            "model": ErrorResponse,
+            "description": "Invalid query parameters (e.g., invalid page/size).",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Internal server error.",
+        },
+    },
+)
+async def get_videos(
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(20, ge=1, le=100, description="Page size"),
+    service: VideoService = Depends(get_video_service),
+) -> VideoPreviewPage:
+    videos, total = await service.list_videos(page=page, size=size)
+    return VideoPreviewPage(items=videos, page=page, size=size, total=total)
+
+
+@router_videos.get(
+    "/categories",
+    response_model=List[str],
+    summary="List all videos of categories",
+    description="Returns a list of distinct video category Name.",
+    response_description="List of unique category Name.",
+    responses={
+        200: {
+            "model": List[str],
+            "description": "List of categories successfully retrieved.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Internal server error.",
+        },
+    },
+)
+async def get_categories(
+    service: VideoService = Depends(get_video_service),
+) -> List[str]:
+    return await service.list_categories()
+
+
+@router_videos.get(
     "/{video_id}",
     response_model=VideoPlayback,
     summary="Get video playback information",
@@ -52,36 +105,6 @@ async def get_video_info(
     service: VideoService = Depends(get_video_service),
 ) -> VideoPlayback:
     return await service.get_playback(video_id=video_id, user_id=user_id)
-
-
-@router_videos.get(
-    "/",
-    response_model=VideoPreviewPage,
-    summary="List all videos",
-    description="Returns a paginated list of videos with metadata such as title, duration, and status.",
-    response_description="A paginated list of videos.",
-    responses={
-        200: {
-            "model": VideoPreviewPage,
-            "description": "List of videos successfully retrieved.",
-        },
-        400: {
-            "model": ErrorResponse,
-            "description": "Invalid query parameters (e.g., invalid page/size).",
-        },
-        500: {
-            "model": ErrorResponse,
-            "description": "Internal server error.",
-        },
-    },
-)
-async def get_videos(
-    page: int = Query(1, ge=1, description="Page number"),
-    size: int = Query(20, ge=1, le=100, description="Page size"),
-    service: VideoService = Depends(get_video_service),
-) -> VideoPreviewPage:
-    videos, total = await service.list_videos(page=page, size=size)
-    return VideoPreviewPage(items=videos, page=page, size=size, total=total)
 
 
 @router_videos.get(
@@ -137,29 +160,6 @@ async def get_videos_category(
 ) -> VideoPreviewPage:
     videos, total = await service.list_videos(page=page, size=size, category=category)
     return VideoPreviewPage(items=videos, page=page, size=size, total=total)
-
-
-@router_videos.get(
-    "/categories",
-    response_model=List[str],
-    summary="List all videos of categories",
-    description="Returns a list of distinct video category Name.",
-    response_description="List of unique category Name.",
-    responses={
-        200: {
-            "model": List[str],
-            "description": "List of categories successfully retrieved.",
-        },
-        500: {
-            "model": ErrorResponse,
-            "description": "Internal server error.",
-        },
-    },
-)
-async def get_categories(
-    service: VideoService = Depends(get_video_service),
-) -> List[str]:
-    return await service.list_categories()
 
 
 @router_videos.post(
