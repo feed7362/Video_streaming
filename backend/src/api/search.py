@@ -72,6 +72,7 @@ async def get_hints(
         400: {"model": ErrorResponse, "description": "Invalid request or parameters."},
         500: {"model": ErrorResponse, "description": "Unexpected error occurred."},
     },
+    dependencies=[Depends(video_search_metrics)],
 )
 async def video_search(
     query: str = Query(
@@ -95,7 +96,6 @@ async def video_search(
         False, description="Filter to only include videos that have a description."
     ),
     service: SearchService = Depends(get_search_service),
-    _metrics=Depends(video_search_metrics),
 ) -> VideoSearchResponse:
     """
     Hybrid search endpoint:

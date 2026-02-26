@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
+from prometheus_client import Info
 
 from src.infrastructure.database import engine
 from src.infrastructure.elasticsearch import es_client
@@ -11,12 +12,18 @@ from src.infrastructure.messaging.client import get_rabbit_broker
 from src.infrastructure.redis.client import get_redis
 from src.infrastructure.s3_client import get_s3_client
 from src.schemas.search import VideoIndexMapping
+from src.services.metrics import APP_NAME
 from utils.db_seeder import seed_initial_data
 from utils.es_reindexer import reindex_videos_from_db
+
+APP_INFO = Info("fastapi_app", "FastAPI Application Information")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
+    # Prometheus metrics
+    APP_INFO.info({"app_name": APP_NAME})
+
     # Start RabbitMQ
     rabbit_broker = await get_rabbit_broker()
     await rabbit_broker.start()

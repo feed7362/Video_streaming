@@ -29,7 +29,7 @@
       "type": "grafana",
       "id": "grafana",
       "name": "Grafana",
-      "version": "12.0.0"
+      "version": "12.1.1"
     },
     {
       "type": "panel",
@@ -41,7 +41,7 @@
       "type": "datasource",
       "id": "loki",
       "name": "Loki",
-      "version": "1.0.0"
+      "version": "12.1.1"
     },
     {
       "type": "datasource",
@@ -102,7 +102,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -124,7 +125,9 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -132,7 +135,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.0",
+      "pluginVersion": "12.1.1",
       "targets": [
         {
           "datasource": {
@@ -182,7 +185,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -204,7 +208,9 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -212,7 +218,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.0",
+      "pluginVersion": "12.1.1",
       "targets": [
         {
           "datasource": {
@@ -250,7 +256,9 @@
         {
           "id": "partitionByValues",
           "options": {
-            "fields": ["Metric"]
+            "fields": [
+              "Metric"
+            ]
           }
         }
       ],
@@ -271,7 +279,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "red",
@@ -304,7 +313,9 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -312,7 +323,7 @@
         "sizing": "auto",
         "valueMode": "color"
       },
-      "pluginVersion": "12.0.0",
+      "pluginVersion": "12.1.1",
       "targets": [
         {
           "datasource": {
@@ -344,7 +355,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "red",
@@ -369,7 +381,9 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -377,7 +391,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.0",
+      "pluginVersion": "12.1.1",
       "targets": [
         {
           "datasource": {
@@ -447,7 +461,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red"
+                "color": "red",
+                "value": 0
               },
               {
                 "color": "green",
@@ -479,7 +494,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.0",
+      "pluginVersion": "12.1.1",
       "targets": [
         {
           "datasource": {
@@ -545,7 +560,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "red",
@@ -577,7 +593,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.0",
+      "pluginVersion": "12.1.1",
       "targets": [
         {
           "datasource": {
@@ -642,7 +658,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "red",
@@ -674,7 +691,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.0",
+      "pluginVersion": "12.1.1",
       "targets": [
         {
           "datasource": {
@@ -739,7 +756,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "red",
@@ -770,7 +788,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.0",
+      "pluginVersion": "12.1.1",
       "targets": [
         {
           "datasource": {
@@ -835,7 +853,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "red",
@@ -867,7 +886,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.0",
+      "pluginVersion": "12.1.1",
       "targets": [
         {
           "datasource": {
@@ -932,7 +951,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "red",
@@ -1009,15 +1029,18 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.0",
+      "pluginVersion": "12.1.1",
       "targets": [
         {
           "datasource": {
             "type": "loki",
             "uid": "${DS_LOKI}"
           },
-          "expr": "sum by(type) (rate({compose_service=~\"app-.*\"} | pattern `<date> <time> <type> <logger> <code> [<_>=<trace_id> <_>=<span_id> <_>=<service_name>] - <msg>` | type != \"\" |= \"$log_keyword\" [1m]))",
+          "direction": "backward",
+          "editorMode": "code",
+          "expr": "sum by(level) (rate({container_name=~\".*(bff_service|ffmpeg_service).*\"} |~ \"$log_keyword\" | regexp ` - (?P<level>INFO|WARNING|ERROR|DEBUG|CRITICAL) - ` [1m]))",
           "legendFormat": "{{type}}",
+          "queryType": "range",
           "refId": "A"
         }
       ],
@@ -1047,15 +1070,18 @@
         "sortOrder": "Descending",
         "wrapLogMessage": true
       },
-      "pluginVersion": "12.0.0",
+      "pluginVersion": "12.1.1",
       "targets": [
         {
           "datasource": {
             "type": "loki",
             "uid": "${DS_LOKI}"
           },
-          "expr": "{compose_service=~\"app-.*\"} | pattern `<date> <time> <type> <logger> <code> [<_>=<trace_id> <_>=<span_id> <_>=<service_name>] - <msg>` | line_format \"{{.compose_service}}\\t{{.type}}\\t trace_id={{.trace_id}}\\t {{.msg}}\" |= \"$log_keyword\"",
+          "direction": "backward",
+          "editorMode": "code",
+          "expr": "{container_name=~\".*(bff_service|ffmpeg_service).*\"} |~ \"$log_keyword\"",
           "hide": false,
+          "queryType": "range",
           "refId": "A"
         }
       ],
@@ -1115,7 +1141,6 @@
   "timezone": "",
   "title": "FastAPI Observability",
   "uid": "fastapi-observability",
-  "version": 2,
-  "weekStart": "",
-  "gnetId": 16110
+  "version": 3,
+  "weekStart": ""
 }
