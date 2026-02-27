@@ -13,7 +13,6 @@ services:
       - rabbitmq
       - elasticsearch
       - keycloak
-      - elasticsearch
     volumes:
       - ../backend/alembic/versions:/app/alembic/versions
     environment:
