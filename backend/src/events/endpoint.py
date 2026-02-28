@@ -11,3 +11,4 @@ class StatusMessage(BaseModel):
     status: str
     resolutions: Optional[List[ResolutionMeta]] = None
     video_path: Optional[str] = None
+    retries: int = 0

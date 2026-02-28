@@ -26,13 +26,12 @@ async def encode_video(filename: str) -> None:
     video_id = Path(filename).stem
 
     try:
-        # 1. Now safely inside the try block.
-        # (Assuming services.py already raises DirectoryPrepareError on failure)
         base_dir = await prepare_dirs(video_id)
 
         await broker.publish(
             {"video_id": video_id, "status": "processing"},
-            queue="video.encode.status",
+            exchange="video.events",
+            routing_key="video.encode.status",
         )
 
         probe_stream = s3_client.download_file_by_range(
@@ -95,18 +94,19 @@ async def encode_video(filename: str) -> None:
                 "resolutions": resolutions,
                 "video_path": f"minio/videos/{video_id}/master.m3u8",
             },
-            queue="video.encode.status",
+            exchange="video.events",
+            routing_key="video.encode.status",
         )
 
         logging.info("Video encoding completed", extra={"video_id": video_id})
 
-        # 2. Moved deletion here so it ONLY happens if everything above succeeds.
         await s3_client.delete_file(filename, bucket_name="videos")
 
     except AppError:
         await broker.publish(
             {"video_id": video_id, "status": "failed"},
-            queue="video.encode.status",
+            exchange="video.events",
+            routing_key="video.encode.status",
         )
 
         logging.exception(

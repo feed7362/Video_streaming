@@ -159,7 +159,7 @@ class FileService:
         )
 
         if not inserted:
-            raise DuplicateVideoError(inserted)
+            raise DuplicateVideoError()
 
         if thumbnail:
             await self._upload_thumbnail(video_id, thumbnail)

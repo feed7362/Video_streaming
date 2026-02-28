@@ -3,38 +3,85 @@ from typing import TYPE_CHECKING
 from uuid import NAMESPACE_DNS, uuid4, uuid5
 
 from fastapi import BackgroundTasks, Depends
+from faststream.rabbit import RabbitExchange, RabbitQueue
 from faststream.rabbit.fastapi import RabbitRouter
-from sqlalchemy import insert, update
+from faststream.rabbit.schemas.constants import ExchangeType
+from faststream.rabbit.schemas.queue import ClassicQueueArgs
+from sqlalchemy import insert, select, update
+from sqlalchemy.orm import joinedload
 
 from src.core.background_tasks import index_video_in_es
 from src.errors.rabbit_broker import (
-    ResolutionInsertError,
     UnknownEncoderStatusError,
     VideoEncodingPersistenceError,
 )
 from src.errors.videos import VideoNotFoundError
+from src.events.endpoint import StatusMessage
 from src.infrastructure.database import get_async_session
 from src.infrastructure.elasticsearch import get_es_client
 from src.models import Video, VideoResolution
 from src.schemas.search import VideoIndexDocument
 
+from .client import get_rabbit_broker
+
 if TYPE_CHECKING:
     from elasticsearch import AsyncElasticsearch
+    from faststream.rabbit import RabbitBroker
     from sqlalchemy.ext.asyncio import AsyncSession
-
-    from src.events.endpoint import StatusMessage
 
 rabbit_router = RabbitRouter(
     url="amqp://guest:guest@rabbitmq:5672/", include_in_schema=False
 )
 
+video_exchange = RabbitExchange(
+    name="video.events",
+    type=ExchangeType.TOPIC,
+    durable=True,
+)
 
-@rabbit_router.subscriber("video.encode.status")
+video_status_queue = RabbitQueue(
+    name="video.encode.status.queue",
+    durable=True,
+    routing_key="video.encode.status",
+    arguments=ClassicQueueArgs(
+        {
+            "x-dead-letter-exchange": "video.dlq",
+            "x-dead-letter-routing-key": "video.encode.status.dlq",
+            "x-max-length": 1000,
+        }
+    ),
+)
+
+retry_queue = RabbitQueue(
+    name="video.encode.status.retry.queue",
+    durable=True,
+    routing_key="video.encode.status.retry",
+    arguments=ClassicQueueArgs(
+        {
+            "x-dead-letter-exchange": "video.events",
+            "x-dead-letter-routing-key": "video.encode.status",
+            "x-message-ttl": 60000,
+        }
+    ),
+)
+
+video_status_dlq_queue = RabbitQueue(
+    name="video.encode.status.dlq.queue",
+    durable=True,
+    routing_key="video.encode.status.dlq",
+)
+
+
+@rabbit_router.subscriber(
+    queue=video_status_queue,
+    exchange=video_exchange,
+)
 async def status_handler(
     background_tasks: BackgroundTasks,
-    msg: "StatusMessage",
+    msg: StatusMessage,
     session: "AsyncSession" = Depends(get_async_session),
     es: "AsyncElasticsearch" = Depends(get_es_client),
+    broker: "RabbitBroker" = Depends(get_rabbit_broker),
 ) -> None:
     try:
         logging.info(
@@ -45,16 +92,21 @@ async def status_handler(
         status_id = uuid5(NAMESPACE_DNS, f"video_status:{msg.status}")
         if not status_id:
             raise UnknownEncoderStatusError(msg.status)
-        result = await session.execute(
+
+        await session.execute(
             update(Video)
             .where(Video.id == msg.video_id)
             .values(
                 status_id=status_id,
                 video_path=msg.video_path if msg.status == "ready" else None,
             )
-            .returning(Video)
         )
-        verified_video = result.scalars().one_or_none()
+        fetch_result = await session.execute(
+            select(Video)
+            .options(joinedload(Video.category))
+            .where(Video.id == msg.video_id)
+        )
+        verified_video = fetch_result.scalars().one_or_none()
 
         if verified_video is None:
             logging.error(
@@ -95,7 +147,6 @@ async def status_handler(
             logging.info(
                 f"[Encoder] Added {len(resolution_entries)} resolution entries for video {msg.video_id}"
             )
-            raise ResolutionInsertError()
 
         await session.commit()
 
@@ -115,4 +166,16 @@ async def status_handler(
             f"Error in status_handler for video {msg.video_id}: {e}", exc_info=True
         )
         await session.rollback()
+
+        retries = getattr(msg, "retries", 0)
+
+        if retries < 3:
+            await broker.publish(
+                {**msg.model_dump(), "retries": retries + 1},
+                queue="video.encode.status.retry.queue",
+            )
+        else:
+            await broker.publish(
+                msg.model_dump(), queue="video.encode.status.dlq.queue"
+            )
         raise VideoEncodingPersistenceError()
