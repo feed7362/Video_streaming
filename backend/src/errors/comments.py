@@ -7,7 +7,7 @@ class CommentNotFoundError(AppError):
     status_code = 404
 
     def __init__(self):
-        super().__init__(message=_("Comment not found"))
+        super().__init__(_("Comment not found"))
 
 
 class ParentCommentNotFoundError(AppError):
@@ -15,7 +15,7 @@ class ParentCommentNotFoundError(AppError):
     status_code = 404
 
     def __init__(self):
-        super().__init__(message=_("Parent comment not found"))
+        super().__init__(_("Parent comment not found"))
 
 
 class CommentDeleteForbiddenError(AppError):
@@ -23,7 +23,7 @@ class CommentDeleteForbiddenError(AppError):
     status_code = 403
 
     def __init__(self):
-        super().__init__(message=_("Not allowed to delete this comment"))
+        super().__init__(_("Not allowed to delete this comment"))
 
 
 class ParentCommentVideoMismatchError(AppError):
@@ -31,4 +31,4 @@ class ParentCommentVideoMismatchError(AppError):
     status_code = 400
 
     def __init__(self):
-        super().__init__(message=_("Parent comment belongs to a different video"))
+        super().__init__(_("Parent comment belongs to a different video"))

@@ -13,6 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.errors.files import (
     ChannelNotFoundError,
     DuplicateVideoError,
+    EmptyFileError,
+    FileTooLargeError,
     InvalidThumbnailFormatError,
     InvalidVideoFormatError,
     JobPublishFailedError,
@@ -57,6 +59,7 @@ class FileService:
         self.session = session
         self.s3_client = s3_client
         self.broker = broker
+        self.MAX_VIDEO_BYTES = 500_000_000  # 500MB
 
     async def _get_channel_id(self, user_id: UUID) -> UUID:
         result = await self.session.execute(
@@ -88,6 +91,15 @@ class FileService:
         new_filename = f"{video_id}{video_suffix}"
         await self.s3_client.upload_file(new_filename, video.file, bucket_name="videos")
         return new_filename
+
+    async def _check_video_size(self, size):
+        if size <= 0:
+            logging.warning("Empty video file")
+            raise EmptyFileError()
+        if size > self.MAX_VIDEO_BYTES:
+            max_size_mb = self.MAX_VIDEO_BYTES // (1024 * 1024)
+            logging.warning(f"Video size {size} exceeds limit {self.MAX_VIDEO_BYTES}")
+            raise FileTooLargeError(max_size_mb)
 
     async def _insert_video(
         self,
@@ -141,6 +153,7 @@ class FileService:
             raise InvalidThumbnailFormatError()
 
         video_hash, video_size = await _hash_and_size(video)
+        await self._check_video_size(video_size)
         video_id = uuid.uuid4()
 
         channel_id = await self._get_channel_id(user_id)

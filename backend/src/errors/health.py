@@ -7,7 +7,7 @@ class DatabaseUnavailableError(AppError):
     status_code = 503
 
     def __init__(self, cause: Exception | None = None):
-        super().__init__(message=_("Database is unavailable"), cause=cause)
+        super().__init__(_("Database is unavailable"), cause=cause)
 
 
 class ObjectStorageUnavailableError(AppError):
@@ -15,7 +15,7 @@ class ObjectStorageUnavailableError(AppError):
     status_code = 503
 
     def __init__(self, cause: Exception | None = None):
-        super().__init__(message=_("Object storage is not reachable"), cause=cause)
+        super().__init__(_("Object storage is not reachable"), cause=cause)
 
 
 class MessageBrokerUnavailableError(AppError):
@@ -23,4 +23,4 @@ class MessageBrokerUnavailableError(AppError):
     status_code = 503
 
     def __init__(self, cause: Exception | None = None):
-        super().__init__(message=_("Message broker is not reachable"), cause=cause)
+        super().__init__(_("Message broker is not reachable"), cause=cause)

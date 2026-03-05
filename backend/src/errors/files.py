@@ -7,7 +7,7 @@ class InvalidFilePathError(AppError):
     status_code = 400
 
     def __init__(self):
-        super().__init__(message=_("Invalid file path format"))
+        super().__init__(_("Invalid file path format"))
 
 
 class FileNotFoundS3Error(AppError):
@@ -15,7 +15,7 @@ class FileNotFoundS3Error(AppError):
     status_code = 404
 
     def __init__(self):
-        super().__init__(message=_("File not found in storage"))
+        super().__init__(_("File not found in storage"))
 
 
 class SignedUrlGenerationError(AppError):
@@ -23,7 +23,7 @@ class SignedUrlGenerationError(AppError):
     status_code = 500
 
     def __init__(self):
-        super().__init__(message=_("Failed to generate signed URL"))
+        super().__init__(_("Failed to generate signed URL"))
 
 
 class S3DeletionError(AppError):
@@ -31,7 +31,7 @@ class S3DeletionError(AppError):
     status_code = 500
 
     def __init__(self):
-        super().__init__(message=_("Failed to delete files from storage"))
+        super().__init__(_("Failed to delete files from storage"))
 
 
 class ResolutionNotFoundError(AppError):
@@ -39,8 +39,9 @@ class ResolutionNotFoundError(AppError):
     status_code = 404
 
     def __init__(self, resolution: str):
-        message = _("Video resolution '%(res)s' not found") % {"res": resolution}
-        super().__init__(message=message)
+        super().__init__(
+            _("Video resolution '%(res)s' not found") % {"res": resolution}
+        )
 
 
 class S3DownloadError(AppError):
@@ -48,10 +49,9 @@ class S3DownloadError(AppError):
     status_code = 500
 
     def __init__(self, object_key: str):
-        message = _("Failed to download file '%(key)s' from storage") % {
-            "key": object_key
-        }
-        super().__init__(message=message)
+        super().__init__(
+            _("Failed to download file '%(key)s' from storage") % {"key": object_key}
+        )
 
 
 class InvalidVideoFormatError(AppError):
@@ -59,7 +59,7 @@ class InvalidVideoFormatError(AppError):
     status_code = 400
 
     def __init__(self):
-        super().__init__(message=_("Invalid video format"))
+        super().__init__(_("Invalid video format"))
 
 
 class InvalidThumbnailFormatError(AppError):
@@ -67,7 +67,7 @@ class InvalidThumbnailFormatError(AppError):
     status_code = 400
 
     def __init__(self):
-        super().__init__(message=_("Invalid thumbnail format"))
+        super().__init__(_("Invalid thumbnail format"))
 
 
 class ChannelNotFoundError(AppError):
@@ -75,7 +75,7 @@ class ChannelNotFoundError(AppError):
     status_code = 404
 
     def __init__(self):
-        super().__init__(message=_("User does not have a channel"))
+        super().__init__(_("User does not have a channel"))
 
 
 class VideoUploadFailedError(AppError):
@@ -83,7 +83,7 @@ class VideoUploadFailedError(AppError):
     status_code = 500
 
     def __init__(self):
-        super().__init__(message=_("Failed to upload video to storage"))
+        super().__init__(_("Failed to upload video to storage"))
 
 
 class DuplicateVideoError(AppError):
@@ -91,7 +91,7 @@ class DuplicateVideoError(AppError):
     status_code = 409
 
     def __init__(self):
-        super().__init__(message=_("Video with the same hash already exists"))
+        super().__init__(_("Video with the same hash already exists"))
 
 
 class JobPublishFailedError(AppError):
@@ -99,4 +99,23 @@ class JobPublishFailedError(AppError):
     status_code = 500
 
     def __init__(self):
-        super().__init__(message=_("Failed to publish encoding job"))
+        super().__init__(_("Failed to publish encoding job"))
+
+
+class FileTooLargeError(AppError):
+    code = "FILE_TOO_LARGE"
+    status_code = 400
+
+    def __init__(self, file_size: int):
+        super().__init__(
+            _("The uploaded file exceeds " "the maximum allowed size of %(size)sMB")
+            % {"size": file_size}
+        )
+
+
+class EmptyFileError(AppError):
+    code = "EMPTY_FILE"
+    status_code = 400
+
+    def __init__(self):
+        super().__init__(_("The uploaded file is empty"))

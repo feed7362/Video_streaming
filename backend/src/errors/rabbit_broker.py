@@ -13,10 +13,14 @@ class UnknownEncoderStatusError(AppError):
 class VideoEncodingPersistenceError(AppError):
     code = "VIDEO_ENCODING_PERSISTENCE_FAILED"
     status_code = 500
-    message = _("Failed to persist video encoding results")
+
+    def __init__(self):
+        super().__init__(_("Failed to persist video encoding results"))
 
 
 class ResolutionInsertError(AppError):
     code = "RESOLUTION_INSERT_FAILED"
     status_code = 500
-    message = _("Failed to insert resolutions")
+
+    def __init__(self):
+        super().__init__(_("Failed to insert resolutions"))
