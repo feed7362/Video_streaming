@@ -119,7 +119,7 @@ def map_video_to_playback(video: Video, resolutions: list[str]) -> VideoPlayback
         master_hls_url=video.video_path,
         privacy=video.privacy.name,
         resolutions=resolutions,
-        channel_name=video.channel.channel_name,
+        channel_name=video.channel.name,
         likes_count=video.likes_count,
         dislikes_count=video.dislikes_count,
         views_count=video.views_count + 1,
