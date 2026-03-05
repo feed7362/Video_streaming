@@ -10,6 +10,7 @@ from faststream.rabbit.schemas.queue import ClassicQueueArgs
 from sqlalchemy import insert, select, update
 from sqlalchemy.orm import joinedload
 
+from src.config import get_rabbitmq_settings
 from src.core.background_tasks import index_video_in_es
 from src.errors.rabbit_broker import (
     UnknownEncoderStatusError,
@@ -29,9 +30,8 @@ if TYPE_CHECKING:
     from faststream.rabbit import RabbitBroker
     from sqlalchemy.ext.asyncio import AsyncSession
 
-rabbit_router = RabbitRouter(
-    url="amqp://guest:guest@rabbitmq:5672/", include_in_schema=False
-)
+settings = get_rabbitmq_settings()
+rabbit_router = RabbitRouter(url=settings.rabbitmq_url, include_in_schema=False)
 
 video_exchange = RabbitExchange(
     name="video.events",

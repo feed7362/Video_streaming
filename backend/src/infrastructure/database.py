@@ -18,12 +18,9 @@ metadata = MetaData()
 Base = declarative_base(metadata=metadata)
 
 settings = get_database_settings()
-DATABASE_URL = (
-    f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
-    f"@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"
-)
+
 engine = create_async_engine(
-    DATABASE_URL,
+    settings.database_url,
     echo=True,
     pool_size=10,
     max_overflow=20,

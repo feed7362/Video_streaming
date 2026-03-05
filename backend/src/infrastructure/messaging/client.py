@@ -1,6 +1,9 @@
 from faststream.rabbit.fastapi import RabbitBroker
 
-shared_broker = RabbitBroker(url="amqp://guest:guest@rabbitmq:5672/")
+from src.config import get_rabbitmq_settings
+
+settings = get_rabbitmq_settings()
+shared_broker = RabbitBroker(url=settings.rabbitmq_url)
 
 
 async def get_rabbit_broker() -> RabbitBroker:

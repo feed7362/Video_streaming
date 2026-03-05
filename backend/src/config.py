@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import List, Optional
 
-from pydantic import Field
+from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.infrastructure.vault import VaultClient
@@ -19,6 +19,13 @@ class DatabaseSettings(BaseAppSettings):
     POSTGRES_DB: Optional[str] = Field(default=None)
     POSTGRES_USER: Optional[str] = Field(default=None)
     POSTGRES_PASSWORD: Optional[str] = Field(default=None)
+
+    @computed_field
+    def database_url(self) -> str:
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
 
 
 class S3Settings(BaseAppSettings):
@@ -46,6 +53,20 @@ class RedisSettings(BaseAppSettings):
     REDIS_PORT: Optional[int] = Field(default=None)
 
 
+class RABBITMQSettings(BaseAppSettings):
+    RABBITMQ_HOST: Optional[str] = Field(default=None)
+    RABBITMQ_PORT: Optional[str] = Field(default=None)
+    RABBITMQ_USER: Optional[str] = Field(default=None)
+    RABBITMQ_PASSWORD: Optional[str] = Field(default=None)
+
+    @computed_field
+    def rabbitmq_url(self) -> str:
+        return (
+            f"amqp://{self.RABBITMQ_USER}:{self.RABBITMQ_PASSWORD}"
+            f"@{self.RABBITMQ_HOST}:{self.RABBITMQ_PORT}/"
+        )
+
+
 @lru_cache()
 def get_database_settings() -> DatabaseSettings:
     return DatabaseSettings(**vault.read_secret("database", mount_point="secret"))
@@ -71,3 +92,8 @@ def get_keycloak_settings() -> KeycloakSettings:
 @lru_cache()
 def get_redis_settings() -> RedisSettings:
     return RedisSettings(**vault.read_secret("redis", mount_point="secret"))
+
+
+@lru_cache()
+def get_rabbitmq_settings() -> RABBITMQSettings:
+    return RABBITMQSettings(**vault.read_secret("rabbitmq", mount_point="secret"))

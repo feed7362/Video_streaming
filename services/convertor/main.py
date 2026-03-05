@@ -6,6 +6,7 @@ from faststream.asgi import AsgiFastStream
 from faststream.rabbit import RabbitBroker
 from prometheus_client import CollectorRegistry, make_asgi_app
 
+from src.config import get_rabbitmq_settings
 from src.exceptions import AppError, InvalidMediaError
 from src.s3_client import get_s3_client
 from src.services import (
@@ -16,7 +17,8 @@ from src.services import (
     stream_ffmpeg,
 )
 
-broker = RabbitBroker("amqp://guest:guest@rabbitmq:5672/")
+settings = get_rabbitmq_settings()
+broker = RabbitBroker(settings.rabbitmq_url)
 registry = CollectorRegistry()
 app = AsgiFastStream(
     broker,
