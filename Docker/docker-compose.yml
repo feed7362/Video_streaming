@@ -7,12 +7,16 @@ services:
     expose:
       - "8000"
     depends_on:
-      - postgres
-      - ffmpeg
-      - minio
-      - rabbitmq
-      - elasticsearch
-      - keycloak
+      elasticsearch:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      ffmpeg:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     volumes:
       - ../backend/alembic/versions:/app/alembic/versions
     environment:
@@ -103,6 +107,11 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://127.0.0.1:9102/api/health/live" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
     logging:
       driver: "json-file"
       options:
@@ -169,7 +178,7 @@ services:
     healthcheck:
       test: [ "CMD-SHELL", "rabbitmqctl status" ]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 5
     logging:
       driver: "json-file"
@@ -228,6 +237,9 @@ services:
     expose:
       - "8080"
     environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/${KEYCLOAK_DB}
       KC_DB_SCHEMA: public
@@ -235,13 +247,13 @@ services:
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
       KC_HTTP_RELATIVE_PATH: /auth
       KC_PROXY: edge                          # if behind nginx/traefik proxy
-      KC_HEALTH_ENABLED: "true"
-      KC_METRICS_ENABLED: "true"
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:8080/health/ready || exit 1" ]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/health/ready >/dev/null || exit 1"]
       interval: 20s
       timeout: 10s
       retries: 10
@@ -302,7 +314,7 @@ services:
     expose:
       - "9200"  # Elasticsearch REST API
     healthcheck:
-      test: [ "CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1" ]
+      test: [ "CMD-SHELL", "curl -fs -u elastic:${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health >/dev/null || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 10

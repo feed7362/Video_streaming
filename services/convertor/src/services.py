@@ -325,3 +325,20 @@ async def get_video_properties(
         bitrate=bit_rate // 1000 if bit_rate else 0,
         has_audio=has_audio,
     )
+
+
+async def check_liveness(scope, receive, send):
+    if scope["type"] == "http":
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [(b"content-type", b"application/json")],
+            }
+        )
+        await send(
+            {
+                "type": "http.response.body",
+                "body": json.dumps({"status": "ok"}).encode("utf-8"),
+            }
+        )

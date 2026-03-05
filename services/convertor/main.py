@@ -8,7 +8,13 @@ from prometheus_client import CollectorRegistry, make_asgi_app
 
 from src.exceptions import AppError, InvalidMediaError
 from src.s3_client import get_s3_client
-from src.services import cleanup_dirs, get_video_properties, prepare_dirs, stream_ffmpeg
+from src.services import (
+    check_liveness,
+    cleanup_dirs,
+    get_video_properties,
+    prepare_dirs,
+    stream_ffmpeg,
+)
 
 broker = RabbitBroker("amqp://guest:guest@rabbitmq:5672/")
 registry = CollectorRegistry()
@@ -16,6 +22,7 @@ app = AsgiFastStream(
     broker,
     asgi_routes=[
         ("/api/metrics", make_asgi_app(registry)),
+        ("/api/health/live", check_liveness),
     ],
 )
 
