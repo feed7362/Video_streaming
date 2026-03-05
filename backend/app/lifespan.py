@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     await s3_client.check_bucket_exists()
     logging.info("S3 connected successfully and bucket exists.")
 
-    # Seed DB data
+    # Seed dummy data
     await seed_initial_data()
     logging.info("Created initial data in database.")
 

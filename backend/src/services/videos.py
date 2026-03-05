@@ -39,7 +39,7 @@ class VideoService:
         ]
 
         if category:
-            category_id = uuid5(NAMESPACE_DNS, f"video_category:{category}")
+            category_id = uuid5(NAMESPACE_DNS, f"video_category:{category.lower()}")
             filters.append(Video.category_id == category_id)
 
         preload = [

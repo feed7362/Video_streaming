@@ -111,8 +111,8 @@ class FileService:
                 hash=video_hash,
                 video_path=None,
                 thumbnail_path=None,
-                privacy_id=uuid5(NAMESPACE_DNS, f"privacy_status:{privacy}"),
-                category_id=uuid5(NAMESPACE_DNS, f"video_category:{category}"),
+                privacy_id=uuid5(NAMESPACE_DNS, f"privacy_status:{privacy.lower()}"),
+                category_id=uuid5(NAMESPACE_DNS, f"video_category:{category.lower()}"),
                 status_id=uuid5(NAMESPACE_DNS, "video_status:queued"),
             )
             .on_conflict_do_nothing(index_elements=["hash"])
@@ -277,6 +277,6 @@ class FileService:
             raise S3DeletionError()
 
         # Delete DB record
-        await self.session.execute(delete(Video).where(Video.id == video_id))
+        await self.session.delete(video)
         await self.session.commit()
         return video

@@ -20,6 +20,7 @@ RUN uv sync --no-dev --frozen
 COPY . .
 
 RUN addgroup --system app && adduser --system --group app
+RUN mkdir -p /app/assets && chown -R app:app /app/assets
 USER app
 
 ENTRYPOINT ["uvicorn", "main:app"]

@@ -89,7 +89,7 @@ async def status_handler(
             f"{msg.resolutions}, {msg.video_path} updating database"
         )
 
-        status_id = uuid5(NAMESPACE_DNS, f"video_status:{msg.status}")
+        status_id = uuid5(NAMESPACE_DNS, f"video_status:{msg.status.lower()}")
         if not status_id:
             raise UnknownEncoderStatusError(msg.status)
 
