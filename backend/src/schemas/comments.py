@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Generic, List, Optional, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.models import Comment
 
@@ -52,3 +52,23 @@ class CommentPage(Page[CommentRead]):
     """Paginated list of comments."""
 
     pass
+
+
+class CommentCreateRequest(BaseModel):
+    content: str = Field(
+        ...,
+        min_length=1,
+        max_length=5000,
+        description="The text content of the comment.",
+    )
+    parent_id: Optional[UUID] = Field(
+        default=None,
+        description="Optional ID of the parent comment if this is a reply.",
+    )
+
+    @field_validator("content")
+    @classmethod
+    def content_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Comment content cannot be empty or just whitespace.")
+        return v.strip()

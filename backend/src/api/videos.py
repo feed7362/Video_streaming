@@ -1,14 +1,14 @@
-from typing import List, Literal
+from typing import Annotated, List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies.services import get_video_service
-from src.schemas.endpoint import ErrorResponse
+from src.schemas.endpoint import ErrorResponse, PaginationQuery
 from src.schemas.privacy import PrivacyLevel, PrivacyResponse
 from src.schemas.reaction import ReactionRequest, ReactionResponse
-from src.schemas.video import VideoPage, VideoPlayback, VideoPreviewPage
+from src.schemas.video import VideoCategory, VideoPage, VideoPlayback, VideoPreviewPage
 from src.services.auth import get_current_user_id
 from src.services.videos import VideoService
 
@@ -45,12 +45,13 @@ router_videos = APIRouter(
     },
 )
 async def get_videos(
-    page: int = Query(1, ge=1, description="Page number"),
-    size: int = Query(20, ge=1, le=100, description="Page size"),
+    payload: Annotated[PaginationQuery, Depends()],
     service: VideoService = Depends(get_video_service),
 ) -> VideoPreviewPage:
-    videos, total = await service.list_videos(page=page, size=size)
-    return VideoPreviewPage(items=videos, page=page, size=size, total=total)
+    videos, total = await service.list_videos(page=payload.page, size=payload.size)
+    return VideoPreviewPage(
+        items=videos, page=payload.page, size=payload.size, total=total
+    )
 
 
 @router_videos.get(
@@ -129,37 +130,14 @@ async def get_video_info(
     },
 )
 async def get_videos_category(
-    page: int = Query(1, ge=1, description="Page number"),
-    size: int = Query(20, ge=1, le=100, description="Page size"),
-    category: Literal[
-        "education",
-        "entertainment",
-        "music",
-        "gaming",
-        "technology",
-        "science",
-        "movies",
-        "sports",
-        "news",
-        "travel",
-        "lifestyle",
-        "fashion",
-        "health & fitness",
-        "food & cooking",
-        "comedy",
-        "documentary",
-        "art & design",
-        "business & finance",
-        "animals & nature",
-        "automotive",
-        "history",
-        "podcasts",
-        "shorts",
-    ] = Path(description="Category of videos to filter by."),
+    query: Annotated[PaginationQuery, Depends()],
+    category: VideoCategory = Path(description="Category of videos to filter by."),
     service: VideoService = Depends(get_video_service),
 ) -> VideoPreviewPage:
-    videos, total = await service.list_videos(page=page, size=size, category=category)
-    return VideoPreviewPage(items=videos, page=page, size=size, total=total)
+    videos, total = await service.list_videos(
+        page=query.page, size=query.size, category=category
+    )
+    return VideoPreviewPage(items=videos, page=query.page, size=query.size, total=total)
 
 
 @router_videos.post(

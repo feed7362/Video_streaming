@@ -1,11 +1,12 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies.services import get_comment_service
-from src.schemas.comments import CommentCreate, CommentPage, CommentRead
-from src.schemas.endpoint import ErrorResponse
+from src.schemas.comments import CommentCreateRequest, CommentPage, CommentRead
+from src.schemas.endpoint import ErrorResponse, PaginationQuery
 from src.schemas.reaction import ReactionRequest, ReactionResponse
 from src.services import get_current_user_id
 from src.services.comments import CommentService
@@ -47,20 +48,14 @@ router_comments = APIRouter(
     },
 )
 async def get_comments(
+    query: Annotated[PaginationQuery, Depends()],
     video_id: UUID = Path(
         ..., description="UUID of the video whose comments are requested."
     ),
-    page: int = Query(1, ge=1, description="Page number for paginated results."),
-    size: int = Query(
-        20,
-        ge=1,
-        le=100,
-        description="Number of comments to include per page (1-100).",
-    ),
     service: CommentService = Depends(get_comment_service),
 ) -> CommentPage:
-    comments, total = await service.get_by_video(video_id, page, size)
-    return CommentPage(items=comments, page=page, size=size, total=total)
+    comments, total = await service.get_by_video(video_id, query.page, query.size)
+    return CommentPage(items=comments, page=query.page, size=query.size, total=total)
 
 
 @router_comments.post(
@@ -112,16 +107,16 @@ async def react_to_comment(
     status_code=201,
 )
 async def add_comment(
-    video_id: UUID,
-    payload: CommentCreate,
-    parent_id: UUID | None = Query(
-        None, description="Optional ID of the parent comment to reply to."
-    ),
+    payload: CommentCreateRequest,
+    video_id: UUID = Path(..., description="UUID of the video."),
     user_id: UUID = Depends(get_current_user_id),
     service: CommentService = Depends(get_comment_service),
 ) -> CommentRead:
     return await service.create(
-        video_id=video_id, user_id=user_id, content=payload.content, parent_id=parent_id
+        video_id=video_id,
+        user_id=user_id,
+        content=payload.content,
+        parent_id=payload.parent_id,
     )
 
 

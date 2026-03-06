@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class VideoIndexDocument(BaseModel):
@@ -87,3 +87,53 @@ class VideoResult(BaseModel):
 
 class VideoSearchResponse(BaseModel):
     results: list[VideoResult]
+
+
+class VideoHintQuery(BaseModel):
+    query: str = Field(
+        ...,
+        min_length=1,
+        description="Partial query string for video title suggestions.",
+    )
+
+    @field_validator("query")
+    @classmethod
+    def query_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Search query cannot be empty")
+        return v.strip()
+
+
+class VideoSearchRequest(BaseModel):
+    query: str = Field(
+        ..., min_length=1, description="Search text input (e.g. 'funny cats')."
+    )
+    limit: int = Field(10, ge=1, le=50, description="Number of results to return.")
+    smart_search: bool = Field(False, description="Enable hybrid vector + text search.")
+
+    query_vector: Optional[List[float]] = Field(
+        None, description="Vector embedding for semantic search."
+    )
+
+    category: Optional[str] = Field(None, description="Filter by category name.")
+    min_views: Optional[int] = Field(None, ge=0, description="Minimum number of views.")
+    max_views: Optional[int] = Field(None, ge=0, description="Maximum number of views.")
+    has_description: bool = Field(
+        False, description="Filter to only include videos that have a description."
+    )
+
+    @field_validator("query")
+    @classmethod
+    def query_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Search query cannot be empty")
+        return v.strip()
+
+    @model_validator(mode="after")
+    def check_views_range(self, values):
+        min_views = values.get("min_views")
+        max_views = values.get("max_views")
+        if min_views is not None and max_views is not None:
+            if min_views > max_views:
+                raise ValueError("min_views cannot be greater than max_views")
+        return values

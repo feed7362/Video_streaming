@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Optional
+from typing import Annotated
 from uuid import UUID
 
 from elasticsearch import AsyncElasticsearch
@@ -6,10 +6,7 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
-    File,
     Path,
-    Query,
-    UploadFile,
 )
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -23,7 +20,8 @@ from src.schemas.endpoint import (
     FileResponse,
     FileStreamResponse,
 )
-from src.schemas.files import SignedUrlResponse
+from src.schemas.files import SignedUrlResponse, SignUrlQuery
+from src.schemas.video import VideoDownloadQuery, VideoUploadParams
 from src.services.auth import get_current_user_id
 from src.services.file_signing import FileSigningService
 from src.services.files import FileService
@@ -62,41 +60,7 @@ router_files = APIRouter(
     },
 )
 async def upload_files(
-    video: Annotated[UploadFile, File(description="A video file to upload")],
-    thumbnail: Annotated[
-        Optional[UploadFile], File(description="Preview image for the video")
-    ],
-    name: str = Query(..., description="Name of the uploaded files."),
-    description: str = Query(..., description="Description of the uploaded files."),
-    privacy: Literal["public", "private"] = Query(
-        default="public",
-        description="Privacy level: `public` (visible to all) or `private` (owner only)",
-    ),
-    category: Literal[
-        "education",
-        "entertainment",
-        "music",
-        "gaming",
-        "technology",
-        "science",
-        "movies",
-        "sports",
-        "news",
-        "travel",
-        "lifestyle",
-        "fashion",
-        "health & fitness",
-        "food & cooking",
-        "comedy",
-        "documentary",
-        "art & design",
-        "business & finance",
-        "animals & nature",
-        "automotive",
-        "history",
-        "podcasts",
-        "shorts",
-    ] = Query(default="entertainment", description="Category of the uploaded files."),
+    payload: Annotated[VideoUploadParams, Depends()],
     user_id: UUID = Depends(get_current_user_id),
     service: FileService = Depends(get_file_service),
 ) -> FileResponse:
@@ -105,12 +69,12 @@ async def upload_files(
     Returns metadata about uploaded files.
     """
     return await service.upload_video(
-        video=video,
-        thumbnail=thumbnail,
-        name=name,
-        description=description,
-        privacy=privacy,
-        category=category,
+        video=payload.video,
+        thumbnail=payload.thumbnail,
+        name=payload.name,
+        description=payload.description,
+        privacy=payload.privacy,
+        category=payload.category,
         user_id=user_id,
     )
 
@@ -140,12 +104,8 @@ async def upload_files(
     },
 )
 async def get_file(
+    payload: Annotated[VideoDownloadQuery, Depends()],
     video_id: UUID = Path(..., description="UUID of the video to delete."),
-    resolution: Optional[str] = Query(
-        None,
-        description="Specific resolution to download (e.g., '360p', '720p', '1080p')."
-        " If omitted, original file is returned.",
-    ),
     user_id: UUID = Depends(get_current_user_id),
     service: FileService = Depends(get_file_service),
 ) -> StreamingResponse:
@@ -157,7 +117,7 @@ async def get_file(
     available. The response is streamed as a binary file.
     """
     object_key, filename, media_type = await service.get_video_file(
-        video_id, user_id, resolution
+        video_id, user_id, payload.resolution
     )
     chunk_gen = service.stream_file(object_key, bucket_name="videos")
 
@@ -166,7 +126,7 @@ async def get_file(
 
 
 @router_files.delete(
-    "/delete_video",
+    "/videos/{video_id}",
     response_model=FileResponse,
     dependencies=[
         Depends(limit_requests("delete_video", max_requests=5, window_seconds=60))
@@ -188,7 +148,7 @@ async def get_file(
 )
 async def delete_files(
     background_tasks: BackgroundTasks,
-    video_id: UUID = Query(..., description="UUID of the video to delete."),
+    video_id: UUID = Path(..., description="UUID of the video to delete."),
     user_id: UUID = Depends(get_current_user_id),
     service: FileService = Depends(get_file_service),
     es: "AsyncElasticsearch" = Depends(get_es_client),
@@ -236,10 +196,10 @@ async def delete_files(
     },
 )
 async def sign_object(
-    file_path: str = Query(..., description="Path to the file to sign"),
+    payload: Annotated[SignUrlQuery, Depends()],
     service: FileSigningService = Depends(get_file_signing_service),
 ) -> JSONResponse:
-    result = await service.create_signed_url(file_path)
+    result = await service.create_signed_url(payload.file_path)
 
     headers = {"X-Signed-Url": result["signed_url"]}
 

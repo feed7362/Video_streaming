@@ -1,12 +1,18 @@
-from typing import List, Optional
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies.metrics import video_search_metrics
 from src.api.dependencies.services import get_search_service
 from src.schemas.endpoint import ErrorResponse
-from src.schemas.search import VideoHintsResponse, VideoResult, VideoSearchResponse
+from src.schemas.search import (
+    VideoHintQuery,
+    VideoHintsResponse,
+    VideoResult,
+    VideoSearchRequest,
+    VideoSearchResponse,
+)
 from src.services.search import SearchService
 
 router_search = APIRouter(
@@ -37,18 +43,14 @@ router_search = APIRouter(
     },
 )
 async def get_hints(
-    q: str = Query(
-        ...,
-        min_length=1,
-        description="Partial query string for video title suggestions.",
-    ),
+    payload: Annotated[VideoHintQuery, Depends()],
     service: SearchService = Depends(get_search_service),
 ) -> VideoHintsResponse:
     """
     Returns autocomplete hints for the user's partial query.
     Uses Elasticsearch completion suggester.
     """
-    hints = await service.get_video_hints(q)
+    hints = await service.get_video_hints(payload.q)
     return VideoHintsResponse(hints=hints)
 
 
@@ -75,26 +77,7 @@ async def get_hints(
     dependencies=[Depends(video_search_metrics)],
 )
 async def video_search(
-    query: str = Query(
-        ..., min_length=1, description="Search text input (e.g. 'funny cats')."
-    ),
-    limit: int = Query(10, ge=1, le=50, description="Number of results to return."),
-    smart_search: bool = Query(
-        False, description="Enable hybrid vector + text search."
-    ),
-    query_vector: Optional[List[float]] = Query(
-        None, description="Vector embedding for semantic search."
-    ),
-    category: Optional[str] = Query(None, description="Filter by category name."),
-    min_views: Optional[int] = Query(
-        None, ge=0, description="Minimum number of views."
-    ),
-    max_views: Optional[int] = Query(
-        None, ge=0, description="Maximum number of views."
-    ),
-    has_description: bool = Query(
-        False, description="Filter to only include videos that have a description."
-    ),
+    payload: VideoSearchRequest,
     service: SearchService = Depends(get_search_service),
 ) -> VideoSearchResponse:
     """
@@ -104,14 +87,14 @@ async def video_search(
     """
 
     result = await service.search_video(
-        query,
-        query_vector,
-        category,
-        min_views,
-        max_views,
-        limit,
-        smart_search,
-        has_description,
+        payload.query,
+        payload.query_vector,
+        payload.category,
+        payload.min_views,
+        payload.max_views,
+        payload.limit,
+        payload.smart_search,
+        payload.has_description,
     )
 
     return VideoSearchResponse(results=[VideoResult(**hit) for hit in result["hits"]])

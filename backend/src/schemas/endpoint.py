@@ -1,7 +1,7 @@
 from typing import Dict, List, Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class FileMeta(BaseModel):
@@ -60,3 +60,8 @@ class HealthStatus(BaseModel):
             ]
         }
     }
+
+
+class PaginationQuery(BaseModel):
+    page: int = Field(1, ge=1, description="Page number")
+    size: int = Field(20, ge=1, le=100, description="Page size")
