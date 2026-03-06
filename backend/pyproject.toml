@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
+classifiers = ["Private :: Do Not Upload"]
 dependencies = [
     "aiobotocore>=2.24.2",
     "asyncpg>=0.30.0",
@@ -108,3 +109,19 @@ python = "babel.messages.extract:extract_python"
 extensions = ["py"]
 extractors = ["python"]
 keywords = ["_", "gettext", "ngettext"]
+
+[tool.uv]
+package = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["utils*"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+verify_relationships = "utils.verify_relationships:main"
+seed_db = "utils.seed:main"
+reindex_elasticsearch = "utils.reindex_elasticsearch:main"

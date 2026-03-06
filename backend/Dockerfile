@@ -10,17 +10,23 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV UV_PROJECT_ENVIRONMENT="/opt/venv" \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    PATH="/opt/venv/bin:$PATH"
+    PATH="/opt/venv/bin:$PATH" \
+    PYTHONPATH="/app"
 
 RUN uv venv /opt/venv
 
+COPY src ./src
+COPY app ./app
+COPY main.py .
+COPY log_conf.yaml .
+COPY alembic.ini .
+COPY alembic ./alembic
+COPY utils ./utils
 COPY pyproject.toml uv.lock ./
+
 RUN uv sync --no-dev --frozen
-
-COPY . .
-
-RUN addgroup --system app && adduser --system --group app
-RUN mkdir -p /app/assets && chown -R app:app /app/assets
+RUN addgroup --system app && adduser --system --group --home /app app
+RUN chown -R app:app /app /opt/venv
 USER app
 
 ENTRYPOINT ["uvicorn", "main:app"]

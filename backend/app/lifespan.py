@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -13,8 +12,6 @@ from src.infrastructure.redis.client import get_redis
 from src.infrastructure.s3_client import get_s3_client
 from src.schemas.search import VideoIndexMapping
 from src.services.metrics import APP_NAME
-from utils.db_seeder import seed_initial_data
-from utils.es_reindexer import reindex_videos_from_db
 
 APP_INFO = Info("fastapi_app", "FastAPI Application Information")
 
@@ -34,10 +31,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     await s3_client.check_bucket_exists()
     logging.info("S3 connected successfully and bucket exists.")
 
-    # Seed dummy data
-    await seed_initial_data()
-    logging.info("Created initial data in database.")
-
     # Ensure the Elasticsearch index exists
     exists = await es_client.indices.exists(index=VideoIndexMapping.index_name)
     if not exists:
@@ -53,9 +46,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     await redis.ping()
     print("Redis connected successfully.")
 
-    # ─────────────── BACKGROUND TASKS ───────────────
-    reindex_task = asyncio.create_task(reindex_videos_from_db(interval_minutes=15))
-
     logging.info("🚀 Startup complete. Background tasks running.")
     yield
 
@@ -65,11 +55,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     logging.info("Rabbit broker connection disposed gracefully.")
     await engine.dispose()
     logging.info("Database engine disposed gracefully.")
-    reindex_task.cancel()
-    try:
-        await reindex_task
-    except asyncio.CancelledError:
-        logging.info("Reindex task cancelled cleanly.")
     await es_client.close()
 
     await redis.aclose()

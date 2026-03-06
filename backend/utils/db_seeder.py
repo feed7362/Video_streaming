@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -267,3 +268,11 @@ async def seed_initial_data() -> None:
 
         await seed_videos_via_service(session, USER_ID)
         logging.info("Videos seeded successfully.")
+
+
+def main() -> None:
+    asyncio.run(seed_initial_data())
+
+
+if __name__ == "__main__":
+    main()
