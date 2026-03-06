@@ -15,6 +15,10 @@ ENV UV_PROJECT_ENVIRONMENT="/opt/venv" \
 
 RUN uv venv /opt/venv
 
+COPY pyproject.toml uv.lock ./
+
+RUN uv sync --no-dev --frozen
+
 COPY src ./src
 COPY app ./app
 COPY main.py .
@@ -22,9 +26,7 @@ COPY log_conf.yaml .
 COPY alembic.ini .
 COPY alembic ./alembic
 COPY utils ./utils
-COPY pyproject.toml uv.lock ./
 
-RUN uv sync --no-dev --frozen
 RUN addgroup --system app && adduser --system --group --home /app app
 RUN chown -R app:app /app /opt/venv
 USER app

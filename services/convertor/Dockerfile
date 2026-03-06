@@ -15,12 +15,14 @@ ENV UV_PROJECT_ENVIRONMENT="/opt/venv" \
 
 RUN uv venv /opt/venv
 
-COPY src ./src
-COPY main.py .
-COPY log_conf.yaml .
 COPY pyproject.toml uv.lock ./
 
 RUN uv sync --no-dev --frozen
+
+COPY src ./src
+COPY main.py .
+COPY log_conf.yaml .
+
 RUN addgroup --system app && adduser --system --group app
 USER app
 

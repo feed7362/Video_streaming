@@ -69,7 +69,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   redis:
-    image: redis:latest
+    image: redis:7-alpine
     container_name: redis_service
     expose:
       - "6379"
@@ -169,7 +169,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   rabbitmq:
-    image: rabbitmq:3.8-management-alpine
+    image: rabbitmq:3.13-management-alpine
     container_name: rabbit_broker
     restart: always
     expose:
