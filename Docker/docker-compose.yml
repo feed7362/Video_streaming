@@ -48,7 +48,7 @@ services:
       dockerfile: Dockerfile
     container_name: postgres_service
     environment:
-      POSTGRES_MULTIPLE_DATABASES: "${VIDEO_DB},${KEYCLOAK_DB}"
+      POSTGRES_MULTIPLE_DATABASES: "${VIDEO_DB}"
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
@@ -231,38 +231,6 @@ services:
       - ../monitoring/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - grafana_data:/var/lib/grafana
 
-  keycloak:
-    image: keycloak/keycloak:latest
-    command: start-dev
-    expose:
-      - "8080"
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/${KEYCLOAK_DB}
-      KC_DB_SCHEMA: public
-      KC_DB_USERNAME: ${POSTGRES_USER}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      KC_HTTP_RELATIVE_PATH: /auth
-      KC_PROXY: edge                          # if behind nginx/traefik proxy
-      KC_HEALTH_ENABLED: true
-      KC_METRICS_ENABLED: true
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/health/ready >/dev/null || exit 1"]
-      interval: 20s
-      timeout: 10s
-      retries: 10
-      start_period: 40s
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   vault:
     image: hashicorp/vault:latest
@@ -282,8 +250,6 @@ services:
       - vault_data:/opt/vault/data
       - ../vault/config:/etc/vault
       - ../vault/tls:/etc/vault/tls
-    depends_on:
-      - keycloak
     healthcheck:
       test: [ "CMD", "vault", "status", "-address=http://localhost:8200" ]
       interval: 10s

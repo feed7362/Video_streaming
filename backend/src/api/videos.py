@@ -9,7 +9,7 @@ from src.schemas.endpoint import ErrorResponse, PaginationQuery
 from src.schemas.privacy import PrivacyLevel, PrivacyResponse
 from src.schemas.reaction import ReactionRequest, ReactionResponse
 from src.schemas.video import VideoCategory, VideoPage, VideoPlayback, VideoPreviewPage
-from src.services.auth import get_current_user_id
+from src.services.auth import get_current_user_id, get_optional_user_id
 from src.services.videos import VideoService
 
 router_videos = APIRouter(
@@ -102,7 +102,7 @@ async def get_video_info(
     video_id: UUID = Path(
         ..., description="UUID of the video to retrieve playback info for."
     ),
-    user_id: UUID = Depends(get_current_user_id),
+    user_id: UUID | None = Depends(get_optional_user_id),
     service: VideoService = Depends(get_video_service),
 ) -> VideoPlayback:
     return await service.get_playback(video_id=video_id, user_id=user_id)

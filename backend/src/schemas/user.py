@@ -1,36 +1,58 @@
 from datetime import datetime
-from typing import Dict, List
+from typing import Optional
 from uuid import UUID
 
+from fastapi_users import schemas
 from pydantic import BaseModel, ConfigDict
 
-from src.models import User
+
+class UserRead(schemas.BaseUser[UUID]):
+    username: str
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
-class UserRead(BaseModel):
+class UserCreate(schemas.BaseUserCreate):
+    username: str
+
+
+class UserUpdate(schemas.BaseUserUpdate):
+    username: Optional[str] = None
+
+
+class UserPublic(BaseModel):
     id: UUID
     username: str
     email: str
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class CurrentUser(BaseModel):
-    user_id: UUID
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    token: str
+
+
+class CheckUserRequest(BaseModel):
     username: str
     email: str
-    roles: List[str]
-    token: Dict
-
-    model_config = ConfigDict(from_attributes=True)
 
 
-def to_current_user(user: User, roles: list[str], token: dict) -> CurrentUser:
-    return CurrentUser(
-        user_id=user.id,
-        username=user.username,
-        email=user.email,
-        roles=roles,
-        token=token,
-    )
+class CheckUserResponse(BaseModel):
+    usernameExists: bool
+    emailExists: bool
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str

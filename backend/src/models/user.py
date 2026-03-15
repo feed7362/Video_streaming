@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, List
 
+from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
 from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
     from comment_reactions import CommentReaction
     from comments import Comment
     from notification import Notification
+    from oauth_account import OAuthAccount
     from playlist import Playlist
     from subscription import Subscription
     from user_roles import Role
@@ -23,15 +25,10 @@ if TYPE_CHECKING:
     from watch_later import WatchLater
 
 
-class User(Base):
+class User(SQLAlchemyBaseUserTableUUID, Base):
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
     username: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    email: Mapped[str] = mapped_column(String, unique=True, index=True)
-    hash_password: Mapped[str] = mapped_column(String, nullable=False)
     status_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("user_statuses.id", ondelete="SET NULL"),
@@ -60,6 +57,9 @@ class User(Base):
     )
     notifications: Mapped[List["Notification"]] = relationship(back_populates="user")
     watch_history: Mapped[List["WatchHistory"]] = relationship(back_populates="user")
-    watch_later: Mapped[list["WatchLater"]] = relationship(
+    watch_later: Mapped[List["WatchLater"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
+    )
+    oauth_accounts: Mapped[List["OAuthAccount"]] = relationship(
+        "OAuthAccount", lazy="joined"
     )

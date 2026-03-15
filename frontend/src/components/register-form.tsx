@@ -11,20 +11,34 @@ import {Input} from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { registerUser, checkUserExists } from "@api/authApi";
+import { checkUserExists, getGithubAuthUrl } from "@api/authApi";
 import { useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function RegisterForm({
                                  className,
                                  ...props
 }: React.ComponentProps<"div">) {
     const navigate = useNavigate();
+    const { register } = useAuth();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [passwordRepeat, setPasswordRepeat] = useState("");
     const [loading, setLoading] = useState(false);
+    const [githubLoading, setGithubLoading] = useState(false);
+
+    const handleGithubRegister = async () => {
+        try {
+            setGithubLoading(true);
+            const url = await getGithubAuthUrl();
+            window.location.href = url;
+        } catch {
+            toast.error("Failed to connect to GitHub");
+            setGithubLoading(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -56,7 +70,7 @@ export function RegisterForm({
 
         try {
             setLoading(true);
-            await registerUser(email, password);
+            await register(email, password);
             toast.success("Registration successful");
             navigate("/");
         } catch (err: unknown) {
@@ -123,7 +137,13 @@ export function RegisterForm({
                                   Or continue with
                                 </span>
                                 </div>
-                                <Button type="button" variant="outline" className="w-full">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={handleGithubRegister}
+                                    disabled={githubLoading}
+                                >
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                                         <path
                                             fillRule="evenodd"
@@ -131,7 +151,7 @@ export function RegisterForm({
                                             clipRule="evenodd"
                                         />
                                     </svg>
-                                    Github
+                                    {githubLoading ? "Redirecting..." : "Register with Github"}
                                 </Button>
                                 <Button type="button" variant="outline" className="w-full">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

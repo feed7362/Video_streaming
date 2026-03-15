@@ -68,18 +68,6 @@ rabbitmq:
     port: 5672
     managerPort: 15672
 
-keycloak:
-  auth:
-    adminUser: admin
-    adminPassword: admin
-  postgresql:
-    enabled: false
-  externalDatabase:
-    host: postgresql
-    user: video_user
-    password: video_pass
-    database: keycloak
-
 vault:
   server:
     dataStorage:

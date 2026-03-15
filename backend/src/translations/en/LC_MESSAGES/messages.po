@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-02-22 11:54+0200\n"
-"PO-Revision-Date: 2026-02-22 11:54+0200\n"
+"POT-Creation-Date: 2026-03-15 12:26+0200\n"
+"PO-Revision-Date: 2026-03-15 12:27+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
 "Language-Team: en <LL@li.org>\n"
@@ -50,39 +50,48 @@ msgstr "Failed to generate signed URL"
 msgid "Failed to delete files from storage"
 msgstr "Failed to delete files from storage"
 
-#: errors/files.py:42
+#: errors/files.py:43
 #, python-format
 msgid "Video resolution '%(res)s' not found"
 msgstr "Video resolution '%(res)s' not found"
 
-#: errors/files.py:51
+#: errors/files.py:53
 #, python-format
 msgid "Failed to download file '%(key)s' from storage"
 msgstr "Failed to download file '%(key)s' from storage"
 
-#: errors/files.py:60
+#: errors/files.py:62
 msgid "Invalid video format"
 msgstr "Invalid video format"
 
-#: errors/files.py:68
+#: errors/files.py:70
 msgid "Invalid thumbnail format"
 msgstr "Invalid thumbnail format"
 
-#: errors/files.py:76
+#: errors/files.py:78
 msgid "User does not have a channel"
 msgstr "User does not have a channel"
 
-#: errors/files.py:84
+#: errors/files.py:86
 msgid "Failed to upload video to storage"
 msgstr "Failed to upload video to storage"
 
-#: errors/files.py:92
+#: errors/files.py:94
 msgid "Video with the same hash already exists"
 msgstr "Video with the same hash already exists"
 
-#: errors/files.py:100
+#: errors/files.py:102
 msgid "Failed to publish encoding job"
 msgstr "Failed to publish encoding job"
+
+#: errors/files.py:111
+#, python-format
+msgid "The uploaded file exceeds the maximum allowed size of %(size)sMB"
+msgstr "The uploaded file exceeds the maximum allowed size of %(size)sMB"
+
+#: errors/files.py:121
+msgid "The uploaded file is empty"
+msgstr "The uploaded file is empty"
 
 #: errors/health.py:10
 msgid "Database is unavailable"
@@ -101,15 +110,15 @@ msgstr "Message broker is not reachable"
 msgid "Unknown encoder status: '%(status)s'"
 msgstr "Unknown encoder status: '%(status)s'"
 
-#: errors/rabbit_broker.py:16
+#: errors/rabbit_broker.py:18
 msgid "Failed to persist video encoding results"
 msgstr "Failed to persist video encoding results"
 
-#: errors/rabbit_broker.py:22
+#: errors/rabbit_broker.py:26
 msgid "Failed to insert resolutions"
 msgstr "Failed to insert resolutions"
 
-#: errors/reactions.py:10
+#: errors/reactions.py:11
 #, python-format
 msgid "Unknown reaction type '%(reaction_name)s'"
 msgstr "Unknown reaction type '%(reaction_name)s'"
@@ -119,7 +128,7 @@ msgstr "Unknown reaction type '%(reaction_name)s'"
 msgid "Failed to perform search for query: '%(query)s'"
 msgstr "Failed to perform search for query: '%(query)s'"
 
-#: errors/search.py:19
+#: errors/search.py:21
 #, python-format
 msgid "Failed to perform search hints for query: '%(query)s'"
 msgstr "Failed to perform search hints for query: '%(query)s'"
@@ -136,7 +145,7 @@ msgstr "You do not own this video"
 msgid "Failed to record video view"
 msgstr "Failed to record video view"
 
-#: errors/videos.py:34
+#: errors/videos.py:35
 #, python-format
 msgid "Invalid privacy level: %(level)s"
 msgstr "Invalid privacy level: %(level)s"

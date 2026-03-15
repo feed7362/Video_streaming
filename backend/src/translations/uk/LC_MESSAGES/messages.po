@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-02-22 11:54+0200\n"
-"PO-Revision-Date: 2026-02-22 11:54+0200\n"
+"POT-Creation-Date: 2026-03-15 12:26+0200\n"
+"PO-Revision-Date: 2026-03-15 12:27+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: uk\n"
 "Language-Team: uk <LL@li.org>\n"
@@ -29,7 +29,7 @@ msgstr "Батьківський коментар не знайдено"
 
 #: errors/comments.py:26
 msgid "Not allowed to delete this comment"
-msgstr "Видаляти цей коментар заборонено"
+msgstr "Видалення цього коментаря заборонено"
 
 #: errors/comments.py:34
 msgid "Parent comment belongs to a different video"
@@ -37,7 +37,7 @@ msgstr "Батьківський коментар належить до іншо
 
 #: errors/files.py:10
 msgid "Invalid file path format"
-msgstr "Неправильний формат шляху до файлу"
+msgstr "Невірний формат шляху до файлу"
 
 #: errors/files.py:18
 msgid "File not found in storage"
@@ -51,39 +51,48 @@ msgstr "Не вдалося згенерувати підписаний URL"
 msgid "Failed to delete files from storage"
 msgstr "Не вдалося видалити файли зі сховища"
 
-#: errors/files.py:42
+#: errors/files.py:43
 #, python-format
 msgid "Video resolution '%(res)s' not found"
-msgstr "Роздільна здатність відео '%(res)s' не знайдена"
+msgstr "Роздільну здатність відео '%(res)s' не знайдено"
 
-#: errors/files.py:51
+#: errors/files.py:53
 #, python-format
 msgid "Failed to download file '%(key)s' from storage"
 msgstr "Не вдалося завантажити файл '%(key)s' зі сховища"
 
-#: errors/files.py:60
+#: errors/files.py:62
 msgid "Invalid video format"
-msgstr "Неправильний формат відео"
+msgstr "Невірний формат відео"
 
-#: errors/files.py:68
+#: errors/files.py:70
 msgid "Invalid thumbnail format"
-msgstr "Неправильний формат мініатюри"
+msgstr "Невірний формат мініатюри"
 
-#: errors/files.py:76
+#: errors/files.py:78
 msgid "User does not have a channel"
 msgstr "Користувач не має каналу"
 
-#: errors/files.py:84
+#: errors/files.py:86
 msgid "Failed to upload video to storage"
-msgstr "Не вдалося завантажити відео у сховище"
+msgstr "Не вдалося завантажити відео до сховища"
 
-#: errors/files.py:92
+#: errors/files.py:94
 msgid "Video with the same hash already exists"
 msgstr "Відео з таким самим хешем уже існує"
 
-#: errors/files.py:100
+#: errors/files.py:102
 msgid "Failed to publish encoding job"
-msgstr "Не вдалося опублікувати задачу кодування"
+msgstr "Не вдалося опублікувати завдання кодування"
+
+#: errors/files.py:111
+#, python-format
+msgid "The uploaded file exceeds the maximum allowed size of %(size)sMB"
+msgstr "Завантажений файл перевищує максимально дозволений розмір %(size)s МБ"
+
+#: errors/files.py:121
+msgid "The uploaded file is empty"
+msgstr "Завантажений файл порожній"
 
 #: errors/health.py:10
 msgid "Database is unavailable"
@@ -91,26 +100,26 @@ msgstr "База даних недоступна"
 
 #: errors/health.py:18
 msgid "Object storage is not reachable"
-msgstr "Сховище об’єктів недоступне"
+msgstr "Сховище об'єктів недоступне"
 
 #: errors/health.py:26
 msgid "Message broker is not reachable"
-msgstr "Сервіс обміну повідомленнями недоступний"
+msgstr "Брокер повідомлень недоступний"
 
 #: errors/rabbit_broker.py:10
 #, python-format
 msgid "Unknown encoder status: '%(status)s'"
-msgstr "Невідомий статус енкодера: '%(status)s'"
+msgstr "Невідомий статус кодувальника: '%(status)s'"
 
-#: errors/rabbit_broker.py:16
+#: errors/rabbit_broker.py:18
 msgid "Failed to persist video encoding results"
 msgstr "Не вдалося зберегти результати кодування відео"
 
-#: errors/rabbit_broker.py:22
+#: errors/rabbit_broker.py:26
 msgid "Failed to insert resolutions"
 msgstr "Не вдалося додати роздільні здатності"
 
-#: errors/reactions.py:10
+#: errors/reactions.py:11
 #, python-format
 msgid "Unknown reaction type '%(reaction_name)s'"
 msgstr "Невідомий тип реакції '%(reaction_name)s'"
@@ -120,10 +129,10 @@ msgstr "Невідомий тип реакції '%(reaction_name)s'"
 msgid "Failed to perform search for query: '%(query)s'"
 msgstr "Не вдалося виконати пошук для запиту: '%(query)s'"
 
-#: errors/search.py:19
+#: errors/search.py:21
 #, python-format
 msgid "Failed to perform search hints for query: '%(query)s'"
-msgstr "Не вдалося отримати підказки пошуку для запиту: '%(query)s'"
+msgstr "Не вдалося виконати підказки пошуку для запиту: '%(query)s'"
 
 #: errors/videos.py:10
 msgid "Video not found or not owned by the user"
@@ -137,7 +146,7 @@ msgstr "Ви не є власником цього відео"
 msgid "Failed to record video view"
 msgstr "Не вдалося зафіксувати перегляд відео"
 
-#: errors/videos.py:34
+#: errors/videos.py:35
 #, python-format
 msgid "Invalid privacy level: %(level)s"
-msgstr "Неправильний рівень приватності: %(level)s"
+msgstr "Невірний рівень приватності: %(level)s"

@@ -3,6 +3,7 @@ from .channel import Channel
 from .comment_reactions import CommentReaction
 from .comments import Comment
 from .notification import Notification
+from .oauth_account import OAuthAccount
 from .playlist import Playlist
 from .privacy_status import PrivacyStatus
 from .reaction_type import ReactionType
@@ -38,4 +39,5 @@ __all__ = [
     "VideoResolution",
     "ReactionType",
     "VideoStatus",
+    "OAuthAccount",
 ]

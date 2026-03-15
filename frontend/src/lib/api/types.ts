@@ -79,11 +79,11 @@ export interface Comment {
 export interface UserInfo {
   id: string;
   username: string;
-  status: "active" | "banned" | "deleted";
-  email?: string;
-  createdAt: string;
-  roleId: number;
-  hashedPassword?: string;
+  email: string;
+  created_at?: string;
+  is_active?: boolean;
+  is_superuser?: boolean;
+  is_verified?: boolean;
 }
 
 export interface ChannelPreview {
