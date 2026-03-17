@@ -28,6 +28,7 @@ export function RegisterForm({
     const [passwordRepeat, setPasswordRepeat] = useState("");
     const [loading, setLoading] = useState(false);
     const [githubLoading, setGithubLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleGithubRegister = async () => {
         try {
@@ -42,29 +43,30 @@ export function RegisterForm({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
 
         if (!email || !password) {
-            toast.error("All fields are required!");
+            setError("All fields are required.");
             return;
         }
 
         if (password !== passwordRepeat) {
-            toast.error("Passwords do not match!");
-            return;
-        }
-
-        const { usernameExists, emailExists } = await checkUserExists(email, email);
-        if (usernameExists) {
-            toast.error("Username already exists");
-            return;
-        }
-        if (emailExists) {
-            toast.error("Email already registered");
+            setError("Passwords do not match.");
             return;
         }
 
         if (password.length < 8) {
-            toast.error("Password must be at least 8 characters long");
+            setError("Password must be at least 8 characters long.");
+            return;
+        }
+
+        const { usernameExists, emailExists } = await checkUserExists(email.split("@")[0], email);
+        if (emailExists) {
+            setError("This email is already registered.");
+            return;
+        }
+        if (usernameExists) {
+            setError("This username is already taken. Try a different email.");
             return;
         }
 
@@ -75,9 +77,10 @@ export function RegisterForm({
             navigate("/");
         } catch (err: unknown) {
             if (err instanceof AxiosError && err.response?.data) {
-                toast.error((err.response.data as { message?: string }).message || "Registration failed");
+                const data = err.response.data as { detail?: string; message?: string };
+                setError(data.detail || data.message || "Registration failed.");
             } else {
-                toast.error("Registration failed");
+                setError("Registration failed. Please try again.");
             }
         } finally {
             setLoading(false);
@@ -127,6 +130,9 @@ export function RegisterForm({
                                             required
                                         />
                                     </div>
+                                    {error && (
+                                        <p className="text-sm text-destructive text-center">{error}</p>
+                                    )}
                                     <Button type="submit" className="w-full" disabled={loading}>
                                         {loading ? "Registering..." : "Register"}
                                     </Button>

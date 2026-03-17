@@ -22,6 +22,7 @@ const WatchLater = lazy(() => import("@/pages/WatchLater"));
 const Subscriptions = lazy(() => import("@/pages/Subscriptions"));
 const SearchResults = lazy(() => import("@/pages/SearchResults"));
 const GitHubCallback = lazy(() => import("@/pages/GitHubCallback"));
+const Studio = lazy(() => import("@/pages/Studio"));
 
 export default function AppRouter() {
     return (
@@ -39,6 +40,7 @@ export default function AppRouter() {
                     <Route path="/watch-later" element={<ProtectedRoute><WatchLater /></ProtectedRoute>} />
                     <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
                     <Route path="/search-results" element={<SearchResults />} />
+                    <Route path="/studio" element={<ProtectedRoute><Studio /></ProtectedRoute>} />
                 </Route>
 
                 <Route path="/reset-password" element={<ResetPass />} />

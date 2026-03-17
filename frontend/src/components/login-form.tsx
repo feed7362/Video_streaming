@@ -27,6 +27,7 @@ export function LoginForm({
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [githubLoading, setGithubLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleGithubLogin = async () => {
         try {
@@ -41,9 +42,10 @@ export function LoginForm({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
 
         if (!email || !password) {
-            toast.error("All fields are required!");
+            setError("All fields are required.");
             return;
         }
 
@@ -54,9 +56,9 @@ export function LoginForm({
             navigate("/");
         } catch (err: unknown) {
             if (err instanceof AxiosError && err.response?.data) {
-                toast.error((err.response.data as { detail?: string }).detail || "Login failed");
+                setError((err.response.data as { detail?: string }).detail || "Login failed.");
             } else {
-                toast.error("Login failed");
+                setError("Login failed. Please try again.");
             }
         } finally {
             setLoading(false);
@@ -135,6 +137,9 @@ export function LoginForm({
                                         required
                                     />
                                 </div>
+                                {error && (
+                                    <p className="text-sm text-destructive text-center -mt-2">{error}</p>
+                                )}
                                 <Button type="submit" className="w-full" disabled={loading}>
                                     {loading ? "Logging in..." : "Login"}
                                 </Button>

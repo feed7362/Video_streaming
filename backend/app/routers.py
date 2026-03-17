@@ -1,3 +1,4 @@
+from src.api.analytics import router_analytics
 from src.api.auth import router_auth
 from src.api.comments import router_comments
 from src.api.files import router_files
@@ -17,3 +18,4 @@ def include_routers(app):
     app.include_router(rabbit_router)
     app.include_router(router_search)
     app.include_router(router_auth)
+    app.include_router(router_analytics)

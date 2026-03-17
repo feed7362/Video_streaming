@@ -23,8 +23,11 @@ class CommentService:
         self.session = session
 
     async def get_by_video(self, video_id: UUID, page: int, size: int):
-        filters = [Comment.video_id == video_id]
-        preload = [selectinload(Comment.user)]
+        filters = [Comment.video_id == video_id, Comment.parent_id.is_(None)]
+        preload = [
+            selectinload(Comment.user),
+            selectinload(Comment.replies).selectinload(Comment.user),
+        ]
 
         return await paginate_query(
             session=self.session,

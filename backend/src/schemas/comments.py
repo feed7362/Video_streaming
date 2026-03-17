@@ -3,6 +3,7 @@ from typing import Generic, List, Optional, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from sqlalchemy import inspect as sa_inspect
 
 from src.models import Comment
 
@@ -23,11 +24,23 @@ class CommentRead(BaseModel):
     parent_id: Optional[UUID] = None
     user_name: str
     user_avatar: Optional[str]
+    replies: List["CommentRead"] = []
 
     model_config = ConfigDict(from_attributes=True)
 
 
+CommentRead.model_rebuild()
+
+
 def to_comment_read(c: Comment) -> CommentRead:
+    # Only iterate replies if already eagerly loaded — accessing an unloaded
+    # lazy relationship inside an async session raises MissingGreenlet.
+    state = sa_inspect(c)
+    loaded_replies = (
+        [to_comment_read(r) for r in c.replies]
+        if "replies" not in state.unloaded
+        else []
+    )
     return CommentRead(
         id=c.id,
         user_id=c.user_id,
@@ -38,6 +51,7 @@ def to_comment_read(c: Comment) -> CommentRead:
         user_name=getattr(c.user, "name", "Anonymous"),
         user_avatar=getattr(c.user, "avatar_url", None),
         parent_id=c.parent_id,
+        replies=loaded_replies,
     )
 
 

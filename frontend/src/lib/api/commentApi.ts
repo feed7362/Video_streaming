@@ -41,11 +41,20 @@ export const addReply = async (
   commentId: string,
   content: string,
 ): Promise<Comment> => {
-  const res = await apiClient.post<Comment>(
-    `/api/comments/${videoId}`,
-    { content },
-    { params: { parent_id: commentId } },
-  );
+  const res = await apiClient.post<Comment>(`/api/comments/${videoId}`, {
+    content,
+    parent_id: commentId,
+  });
+  return res.data;
+};
+
+export const reactToComment = async (
+  commentId: string,
+  reactionName: "like" | "dislike",
+): Promise<{ reactions: Record<string, number> }> => {
+  const res = await apiClient.post(`/api/comments/${commentId}/reaction`, {
+    reaction_name: reactionName,
+  });
   return res.data;
 };
 
@@ -55,4 +64,5 @@ export default {
   // updateComment,
   deleteComment,
   addReply,
+  reactToComment,
 };

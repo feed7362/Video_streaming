@@ -64,6 +64,9 @@ export interface VideoComment {
   parentId?: string;
   likesCount: number;
   dislikesCount: number;
+  user_name?: string;
+  user_avatar?: string;
+  replies?: VideoComment[];
 }
 
 export interface Comment {
@@ -75,6 +78,10 @@ export interface Comment {
   updatedAt?: string;
   likesCount: number;
   dislikesCount: number;
+  user_name?: string;
+  user_avatar?: string;
+  parent_id?: string;
+  replies?: Comment[];
 }
 export interface UserInfo {
   id: string;
