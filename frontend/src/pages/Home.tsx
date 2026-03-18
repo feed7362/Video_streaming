@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import VideoCard from "@/components/cards/VideoCard";
 import InfiniteScroll from "@/components/misc/infinite-scroll";
 import { useHome } from "@/hooks/home/useHome";
+import { useDraggableScroll } from "@/hooks/category/useDraggableScroll";
 export default function Home() {
    
     const {
@@ -16,29 +17,13 @@ export default function Home() {
         hasMore,
     } = useHome();
 
+    const { onMouseDown } = useDraggableScroll();
+
     return (
         <div className="my-4 mx-auto max-w-[1400px] px-4 sm:px-6">
             <div
                 className="mb-6 flex overflow-x-auto overflow-y-hidden no-scrollbar cursor-grab active:cursor-grabbing select-none pb-2 sticky top-0 bg-white z-10 pt-2"
-                onMouseDown={(e: React.MouseEvent<HTMLDivElement>) => {
-                    const container = e.currentTarget;
-                    const startX = e.pageX - container.offsetLeft;
-                    const scrollLeft = container.scrollLeft;
-
-                    const mouseMoveHandler = (eMove: MouseEvent) => {
-                        eMove.preventDefault();
-                        const x = eMove.pageX - container.offsetLeft;
-                        const walk = (x - startX) * 1.5;
-                        container.scrollLeft = scrollLeft - walk;
-                    };
-                    const mouseUpHandler = () => {
-                        document.removeEventListener("mousemove", mouseMoveHandler);
-                        document.removeEventListener("mouseup", mouseUpHandler);
-                    };
-
-                    document.addEventListener("mousemove", mouseMoveHandler);
-                    document.addEventListener("mouseup", mouseUpHandler);
-                }}
+                onMouseDown={onMouseDown}
             >
                 {categories.map((cat) => (
                     <Button
@@ -66,16 +51,7 @@ export default function Home() {
                     <div className="grid gap-x-6 gap-y-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                         {videos.map((video) => (
                             <Link key={video.id} to={`/watch?v=${video.id}`} className="w-full">
-                                <VideoCard
-                                    id={video.id}
-                                    title={video.title}
-                                    thumbnail={video.previewUrl || video.thumbnail_url}
-                                    channel_avatar={video.channel_avatar}
-                                    channel_name={video.channel_name}
-                                    views={video.views}
-                                    timeAgo={video.timeAgo}
-                                    privacy={video.privacy}
-                                />
+                                <VideoCard {...video}/>
                             </Link>
                         ))}
 

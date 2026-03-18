@@ -53,6 +53,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres/postgres_entrypoint.sh:/docker-entrypoint-initdb.d/postgres_entrypoint.sh
     expose:
       - "5432"
     healthcheck:

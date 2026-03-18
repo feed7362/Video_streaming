@@ -29,4 +29,3 @@ import type { UseFetchCategoriesResult } from "../../types/category";
 
     return { categories, active, setActive };
 }
-

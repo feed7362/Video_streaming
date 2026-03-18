@@ -26,6 +26,18 @@ export function useVideo() {
         return `${viewCountText} views ${video.timeAgo ? '' + video.timeAgo : ''}`;
     }, [video]);
 
+    const transformVideoData = (apiVideos: any[]): VideoPreviewWithTime[] => {
+        return apiVideos.map(v => ({
+            ...v,
+            timeAgo: timeAgo(v.createdAt || new Date().toISOString()),
+            thumbnail: v.thumbnail_url || v.previewUrl || "",
+            thumbnail_url: v.thumbnail_url || v.previewUrl || "",
+            description: v.description || "",
+            publishedAt: v.publishedAt || v.createdAt || new Date().toISOString(),
+            channel_name: v.channel_name || v.channel || "Unknown Channel",
+        }));
+    }
+
     const fetchVideo = useCallback(async () => {
         if (!videoId) return;
         try {
@@ -69,17 +81,9 @@ export function useVideo() {
             const nextPage = page + 1;
             const newVideos = await getVideos({ page: nextPage });
 
-            const videosWithTime: VideoPreviewWithTime[] = newVideos.map(v => ({
-                ...v,
-                timeAgo: timeAgo(v.createdAt || new Date().toISOString()),
-                thumbnail: v.thumbnail_url || v.previewUrl || "",
-                thumbnail_url: v.thumbnail_url || v.previewUrl || "",
-                description: v.description || "",
-                publishedAt: v.publishedAt || v.createdAt || new Date().toISOString(),
-                channel_name: v.channel_name || v.channel || "Unknown Channel",
-            }));
+            const mappedVideo = transformVideoData(newVideos);
 
-            setVideos((prev) => [...prev, ...videosWithTime]);
+            setVideos((prev) => [...prev, ...mappedVideo]);
             setPage(nextPage);
             setHasMore(newVideos.length > 0);
         } catch (err) {
@@ -90,21 +94,12 @@ export function useVideo() {
     const fetchInitialVideos = useCallback(async () => {
         try {
             setLoading(true);
-            const firstVideos = await getVideos({ page: 1 });
+            const response = await getVideos({ page: 1 });
 
-            const initialVideosWithTime: VideoPreviewWithTime[] = firstVideos.map(v => ({
-                ...v,
-                timeAgo: timeAgo(v.createdAt || new Date().toISOString()),
-                thumbnail: v.thumbnail_url || v.previewUrl || "",
-                thumbnail_url: v.thumbnail_url || v.previewUrl || "",
-                description: v.description || "",
-                publishedAt: v.publishedAt || v.createdAt || new Date().toISOString(),
-                channel_name: v.channel_name || v.channel || "Unknown Channel",
-            }));
+            setVideos(transformVideoData(response));
 
-            setVideos(initialVideosWithTime);
             setPage(1);
-            setHasMore(firstVideos.length > 0);
+            setHasMore(response.length > 0);
         } catch (err) {
             console.error(err);
         } finally {

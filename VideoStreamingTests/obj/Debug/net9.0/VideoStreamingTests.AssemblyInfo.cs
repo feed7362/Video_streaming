@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VideoStreamingTests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b2e86819928ba3cd8019c3ac10581364a80b924b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7d02b8d5596a9aea74f3939c3cfa943af3c72022")]
 [assembly: System.Reflection.AssemblyProductAttribute("VideoStreamingTests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VideoStreamingTests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
