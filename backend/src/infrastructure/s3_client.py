@@ -5,7 +5,7 @@ from typing import AsyncGenerator, BinaryIO, Dict, List, Optional
 from aiobotocore.session import AioBaseClient, get_session
 from botocore.exceptions import ClientError
 
-from ..config import get_s3_settings
+from src.config import get_s3_settings
 
 PART_SIZE = 1024 * 1024 * 10
 
@@ -263,7 +263,7 @@ class S3Client:
 
     async def generate_presigned_url(
         self,
-        object_name: str,
+        object_key: str,
         client_method: str,
         expires_in: int = 100,
         bucket_name: Optional[str] = None,
@@ -275,16 +275,17 @@ class S3Client:
 
         try:
             async with self._get_client() as client:
+                await client.head_object(Bucket=bucket_name, Key=object_key)
                 url = await client.generate_presigned_url(
                     ClientMethod=client_method,
-                    Params={"Bucket": bucket_name, "Key": object_name},
+                    Params={"Bucket": bucket_name, "Key": object_key},
                     ExpiresIn=expires_in,
                 )
-                logging.info(f"Presigned URL generated for file '{object_name}'.")
+                logging.info(f"Presigned URL generated for file '{object_key}'.")
                 return url
         except ClientError:
             logging.error(
-                f"Couldn't get a presigned URL for client method '{client_method}'."
+                f"Couldn't get a presigned URL for client method '{client_method}' or file does not exist."
             )
             return None
 

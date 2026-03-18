@@ -11,59 +11,76 @@ import {Input} from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { registerUser, checkUserExists } from "@api/authApi";
+import { checkUserExists, getGithubAuthUrl } from "@api/authApi";
 import { useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function RegisterForm({
                                  className,
                                  ...props
 }: React.ComponentProps<"div">) {
     const navigate = useNavigate();
+    const { register } = useAuth();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [passwordRepeat, setPasswordRepeat] = useState("");
     const [loading, setLoading] = useState(false);
+    const [githubLoading, setGithubLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleGithubRegister = async () => {
+        try {
+            setGithubLoading(true);
+            const url = await getGithubAuthUrl();
+            window.location.href = url;
+        } catch {
+            toast.error("Failed to connect to GitHub");
+            setGithubLoading(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
 
         if (!email || !password) {
-            toast.error("All fields are required!");
+            setError("All fields are required.");
             return;
         }
 
         if (password !== passwordRepeat) {
-            toast.error("Passwords do not match!");
-            return;
-        }
-
-        const { usernameExists, emailExists } = await checkUserExists(email, email);
-        if (usernameExists) {
-            toast.error("Username already exists");
-            return;
-        }
-        if (emailExists) {
-            toast.error("Email already registered");
+            setError("Passwords do not match.");
             return;
         }
 
         if (password.length < 8) {
-            toast.error("Password must be at least 8 characters long");
+            setError("Password must be at least 8 characters long.");
+            return;
+        }
+
+        const { usernameExists, emailExists } = await checkUserExists(email.split("@")[0], email);
+        if (emailExists) {
+            setError("This email is already registered.");
+            return;
+        }
+        if (usernameExists) {
+            setError("This username is already taken. Try a different email.");
             return;
         }
 
         try {
             setLoading(true);
-            await registerUser(email, password);
+            await register(email, password);
             toast.success("Registration successful");
             navigate("/");
         } catch (err: unknown) {
             if (err instanceof AxiosError && err.response?.data) {
-                toast.error((err.response.data as { message?: string }).message || "Registration failed");
+                const data = err.response.data as { detail?: string; message?: string };
+                setError(data.detail || data.message || "Registration failed.");
             } else {
-                toast.error("Registration failed");
+                setError("Registration failed. Please try again.");
             }
         } finally {
             setLoading(false);
@@ -113,6 +130,9 @@ export function RegisterForm({
                                             required
                                         />
                                     </div>
+                                    {error && (
+                                        <p className="text-sm text-destructive text-center">{error}</p>
+                                    )}
                                     <Button type="submit" className="w-full" disabled={loading}>
                                         {loading ? "Registering..." : "Register"}
                                     </Button>
@@ -123,7 +143,13 @@ export function RegisterForm({
                                   Or continue with
                                 </span>
                                 </div>
-                                <Button type="button" variant="outline" className="w-full">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={handleGithubRegister}
+                                    disabled={githubLoading}
+                                >
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                                         <path
                                             fillRule="evenodd"
@@ -131,7 +157,7 @@ export function RegisterForm({
                                             clipRule="evenodd"
                                         />
                                     </svg>
-                                    Github
+                                    {githubLoading ? "Redirecting..." : "Register with Github"}
                                 </Button>
                                 <Button type="button" variant="outline" className="w-full">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

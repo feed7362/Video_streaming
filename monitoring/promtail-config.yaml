@@ -23,6 +23,7 @@ scrape_configs:
             stream: stream
             attrs: attrs
             tag: attrs.tag
+            message: log
 
       - regex:
           expression: (?P<image_name>(?:[^|]*[^|])).(?P<container_name>(?:[^|]*[^|])).(?P<image_id>(?:[^|]*[^|])).(?P<container_id>(?:[^|]*[^|]))
@@ -32,3 +33,6 @@ scrape_configs:
           tag:
           image_name:
           container_name:
+
+      - output:
+          source: message

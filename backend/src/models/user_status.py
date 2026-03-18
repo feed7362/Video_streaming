@@ -5,10 +5,10 @@ from sqlalchemy import String
 from sqlalchemy.dialects.postgresql.base import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..infrastructure.database import Base
+from src.infrastructure.database import Base
 
 if TYPE_CHECKING:
-    from .user import User
+    from user import User
 
 
 class UserStatus(Base):

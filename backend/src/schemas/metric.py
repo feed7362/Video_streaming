@@ -3,22 +3,36 @@ from prometheus_client import Counter, Gauge, Histogram
 REQUEST_DURATION_HIST = Histogram(
     "fastapi_requests_duration_seconds",
     "Request duration in seconds",
-    ["method", "path"],
+    ["method", "path", "app_name"],
     buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10),
 )
 
 REQUESTS_IN_PROGRESS = Gauge(
-    "fastapi_requests_in_progress", "Number of in-progress requests", ["method", "path"]
+    "fastapi_requests_in_progress",
+    "Number of in-progress requests",
+    ["method", "path", "app_name"],
+)
+
+REQUESTS_TOTAL = Counter(
+    "fastapi_requests_total",
+    "Total Requests",
+    ["method", "path", "app_name"],
 )
 
 EXCEPTIONS_TOTAL = Counter(
     "fastapi_exceptions_total",
     "Total number of unhandled exceptions",
-    ["exception_type", "method", "path"],
+    ["exception_type", "method", "path", "app_name"],
 )
 
 RESPONSES_TOTAL = Counter(
     "fastapi_responses_total",
     "Total number of responses",
-    ["status_code", "method", "path"],
+    ["status_code", "method", "path", "app_name"],
+)
+
+VIDEO_SEARCH_TOTAL = Counter(
+    "video_search_requests_total",
+    "Total video search requests",
+    ["smart_search", "category"],  #  "app_name"
 )

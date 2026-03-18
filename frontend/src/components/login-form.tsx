@@ -9,12 +9,62 @@ import {
 } from "@/components/ui/card"
 import {Input} from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { useState } from "react";
+import { toast } from "react-hot-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { AxiosError } from "axios";
+import { getGithubAuthUrl } from "@api/authApi";
 
 export function LoginForm({
                               className,
                               ...props
                           }: React.ComponentProps<"div">) {
+    const navigate = useNavigate();
+    const { login } = useAuth();
+
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [githubLoading, setGithubLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleGithubLogin = async () => {
+        try {
+            setGithubLoading(true);
+            const url = await getGithubAuthUrl();
+            window.location.href = url;
+        } catch {
+            toast.error("Failed to connect to GitHub");
+            setGithubLoading(false);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError(null);
+
+        if (!email || !password) {
+            setError("All fields are required.");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await login(email, password);
+            toast.success("Login successful");
+            navigate("/");
+        } catch (err: unknown) {
+            if (err instanceof AxiosError && err.response?.data) {
+                setError((err.response.data as { detail?: string }).detail || "Login failed.");
+            } else {
+                setError("Login failed. Please try again.");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
             <Card>
@@ -25,10 +75,16 @@ export function LoginForm({
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form>
+                    <form onSubmit={handleSubmit}>
                         <div className="grid gap-6">
                             <div className="flex flex-col gap-4">
-                                <Button type="button" variant="outline" className="w-full">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={handleGithubLogin}
+                                    disabled={githubLoading}
+                                >
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                                         <path
                                             fillRule="evenodd"
@@ -36,7 +92,7 @@ export function LoginForm({
                                             clipRule="evenodd"
                                         />
                                     </svg>
-                                    Login with Github
+                                    {githubLoading ? "Redirecting..." : "Login with Github"}
                                 </Button>
                                 <Button type="button" variant="outline" className="w-full">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -61,6 +117,8 @@ export function LoginForm({
                                         id="email"
                                         type="email"
                                         placeholder="m@example.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
                                         required
                                     />
                                 </div>
@@ -71,10 +129,19 @@ export function LoginForm({
                                             Forgot your password?
                                         </Link>
                                     </div>
-                                    <Input id="password" type="password" required />
+                                    <Input
+                                        id="password"
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
                                 </div>
-                                <Button type="submit" className="w-full">
-                                    Login
+                                {error && (
+                                    <p className="text-sm text-destructive text-center -mt-2">{error}</p>
+                                )}
+                                <Button type="submit" className="w-full" disabled={loading}>
+                                    {loading ? "Logging in..." : "Login"}
                                 </Button>
                             </div>
                             <div className="text-center text-sm">

@@ -82,10 +82,12 @@ export function useVideo() {
       const nextPage = page + 1;
       const newVideos = await getVideos({ page: nextPage });
 
-      const videosWithTime: VideoPreviewWithTime[] = newVideos.map((v) => ({
-        ...v,
-        timeAgo: timeAgo(v.createdAt || new Date().toISOString()),
-      }));
+      const videosWithTime: VideoPreviewWithTime[] = newVideos
+        .filter((v) => v.id !== videoId)
+        .map((v) => ({
+          ...v,
+          timeAgo: timeAgo(v.createdAt || new Date().toISOString()),
+        }));
 
       setVideos((prev) => [...prev, ...videosWithTime]);
       setPage(nextPage);
@@ -93,7 +95,7 @@ export function useVideo() {
     } catch (err) {
       console.error(err);
     }
-  }, [page, hasMore, loading, setVideos, setPage, setHasMore]);
+  }, [page, hasMore, loading, videoId, setVideos, setPage, setHasMore]);
 
   const loadMoreSearchResults = useCallback(async () => {
     if (!hasMore || loading) return;
@@ -135,12 +137,12 @@ export function useVideo() {
       setLoading(true);
       const firstVideos = await getVideos({ page: 1 });
 
-      const initialVideosWithTime: VideoPreviewWithTime[] = firstVideos.map(
-        (v) => ({
+      const initialVideosWithTime: VideoPreviewWithTime[] = firstVideos
+        .filter((v) => v.id !== videoId)
+        .map((v) => ({
           ...v,
           timeAgo: timeAgo(v.createdAt || new Date().toISOString()),
-        }),
-      );
+        }));
 
       setVideos(initialVideosWithTime);
       setPage(1);
@@ -150,7 +152,7 @@ export function useVideo() {
     } finally {
       setLoading(false);
     }
-  }, [setLoading, setVideos, setPage, setHasMore]);
+  }, [videoId, setLoading, setVideos, setPage, setHasMore]);
 
   useEffect(() => {
     fetchVideo();

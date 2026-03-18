@@ -7,13 +7,16 @@ services:
     expose:
       - "8000"
     depends_on:
-      - postgres
-      - ffmpeg
-      - minio
-      - rabbitmq
-      - elasticsearch
-      - keycloak
-      - redis
+      elasticsearch:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      ffmpeg:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     volumes:
       - ../backend/alembic/versions:/app/alembic/versions
     environment:
@@ -45,7 +48,7 @@ services:
       dockerfile: Dockerfile
     container_name: postgres_service
     environment:
-      POSTGRES_MULTIPLE_DATABASES: "${VIDEO_DB},${KEYCLOAK_DB}"
+      POSTGRES_MULTIPLE_DATABASES: "${VIDEO_DB}"
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
@@ -66,13 +69,18 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   redis:
-    image: redis:latest
+    image: redis:7-alpine
     container_name: redis_service
     expose:
       - "6379"
     volumes:
       - redis-data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     logging:
       driver: "json-file"
       options:
@@ -95,10 +103,15 @@ services:
       - VAULT_TOKEN=${VAULT_TOKEN}
       - NVIDIA_VISIBLE_DEVICES=all
     expose:
-      - "8002"
+      - "9102"   # metrics ONLY
     depends_on:
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://127.0.0.1:9102/api/health/live" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
     logging:
       driver: "json-file"
       options:
@@ -156,7 +169,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   rabbitmq:
-    image: rabbitmq:3.8-management-alpine
+    image: rabbitmq:3.13-management-alpine
     container_name: rabbit_broker
     restart: always
     expose:
@@ -165,7 +178,7 @@ services:
     healthcheck:
       test: [ "CMD-SHELL", "rabbitmqctl status" ]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 5
     logging:
       driver: "json-file"
@@ -218,34 +231,6 @@ services:
       - ../monitoring/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - grafana_data:/var/lib/grafana
 
-  keycloak:
-    image: keycloak/keycloak:latest
-    command: start-dev
-    expose:
-      - "8080"
-    environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/${KEYCLOAK_DB}
-      KC_DB_SCHEMA: public
-      KC_DB_USERNAME: ${POSTGRES_USER}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      KC_HTTP_RELATIVE_PATH: /auth
-      KC_PROXY: edge                          # if behind nginx/traefik proxy
-      KC_HEALTH_ENABLED: "true"
-      KC_METRICS_ENABLED: "true"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:8080/health/ready || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   vault:
     image: hashicorp/vault:latest
@@ -265,8 +250,6 @@ services:
       - vault_data:/opt/vault/data
       - ../vault/config:/etc/vault
       - ../vault/tls:/etc/vault/tls
-    depends_on:
-      - keycloak
     healthcheck:
       test: [ "CMD", "vault", "status", "-address=http://localhost:8200" ]
       interval: 10s
@@ -297,14 +280,15 @@ services:
     expose:
       - "9200"  # Elasticsearch REST API
     healthcheck:
-      test: [ "CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      test: [ "CMD-SHELL", "curl -fs -u elastic:${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health >/dev/null || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 networks:
   default:
     name: video_streaming_network
+    external: true
 
 volumes:
   minio_data:

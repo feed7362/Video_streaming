@@ -2,9 +2,10 @@ from datetime import datetime
 from typing import Generic, List, Optional, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from sqlalchemy import inspect as sa_inspect
 
-from ..models import Comment
+from src.models import Comment
 
 T = TypeVar("T")
 
@@ -23,11 +24,23 @@ class CommentRead(BaseModel):
     parent_id: Optional[UUID] = None
     user_name: str
     user_avatar: Optional[str]
+    replies: List["CommentRead"] = []
 
     model_config = ConfigDict(from_attributes=True)
 
 
+CommentRead.model_rebuild()
+
+
 def to_comment_read(c: Comment) -> CommentRead:
+    # Only iterate replies if already eagerly loaded — accessing an unloaded
+    # lazy relationship inside an async session raises MissingGreenlet.
+    state = sa_inspect(c)
+    loaded_replies = (
+        [to_comment_read(r) for r in c.replies]
+        if "replies" not in state.unloaded
+        else []
+    )
     return CommentRead(
         id=c.id,
         user_id=c.user_id,
@@ -38,6 +51,7 @@ def to_comment_read(c: Comment) -> CommentRead:
         user_name=getattr(c.user, "name", "Anonymous"),
         user_avatar=getattr(c.user, "avatar_url", None),
         parent_id=c.parent_id,
+        replies=loaded_replies,
     )
 
 
@@ -52,3 +66,23 @@ class CommentPage(Page[CommentRead]):
     """Paginated list of comments."""
 
     pass
+
+
+class CommentCreateRequest(BaseModel):
+    content: str = Field(
+        ...,
+        min_length=1,
+        max_length=5000,
+        description="The text content of the comment.",
+    )
+    parent_id: Optional[UUID] = Field(
+        default=None,
+        description="Optional ID of the parent comment if this is a reply.",
+    )
+
+    @field_validator("content")
+    @classmethod
+    def content_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Comment content cannot be empty or just whitespace.")
+        return v.strip()

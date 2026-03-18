@@ -44,6 +44,10 @@ const data = {
                     url: "/watch-later",
                 },
                 {
+                    title: "Creator Studio",
+                    url: "/studio",
+                },
+                {
                     title: "Settings",
                     url: "#",
                 },

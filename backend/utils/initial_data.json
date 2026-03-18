@@ -1,50 +1,208 @@
 {
   "roles": [
-    { "id": "NONE", "name": "admin", "description": "Administrator role" },
-    { "id": "NONE", "name": "user", "description": "View, comment, react, create videos" }
+    {
+      "id": "NONE",
+      "name": "admin",
+      "description": "Administrator role"
+    },
+    {
+      "id": "NONE",
+      "name": "user",
+      "description": "View, comment, react, create videos"
+    }
   ],
   "reaction_types": [
-    { "id": "NONE", "name": "like", "path": "/icons/like.png" },
-    { "id": "NONE", "name": "dislike", "path": "/icons/dislike.png" }
+    {
+      "id": "NONE",
+      "name": "like",
+      "path": "/icons/like.png"
+    },
+    {
+      "id": "NONE",
+      "name": "dislike",
+      "path": "/icons/dislike.png"
+    }
   ],
   "categories": [
-    { "id": "NONE", "name": "Education" },
-    { "id": "NONE", "name": "Entertainment" },
-    { "id": "NONE", "name": "Music" },
-    { "id": "NONE", "name": "Gaming" },
-    { "id": "NONE", "name": "Technology" },
-    { "id": "NONE", "name": "Science" },
-    { "id": "NONE", "name": "Movies" },
-    { "id": "NONE", "name": "Sports" },
-    { "id": "NONE", "name": "News" },
-    { "id": "NONE", "name": "Travel" },
-    { "id": "NONE", "name": "Lifestyle" },
-    { "id": "NONE", "name": "Fashion" },
-    { "id": "NONE", "name": "Health & Fitness" },
-    { "id": "NONE", "name": "Food & Cooking" },
-    { "id": "NONE", "name": "Comedy" },
-    { "id": "NONE", "name": "Documentary" },
-    { "id": "NONE", "name": "Art & Design" },
-    { "id": "NONE", "name": "Business & Finance" },
-    { "id": "NONE", "name": "Animals & Nature" },
-    { "id": "NONE", "name": "Automotive" },
-    { "id": "NONE", "name": "History" },
-    { "id": "NONE", "name": "Podcasts" },
-    { "id": "NONE", "name": "Shorts" }
+    {
+      "id": "NONE",
+      "name": "Education"
+    },
+    {
+      "id": "NONE",
+      "name": "Entertainment"
+    },
+    {
+      "id": "NONE",
+      "name": "Music"
+    },
+    {
+      "id": "NONE",
+      "name": "Gaming"
+    },
+    {
+      "id": "NONE",
+      "name": "Technology"
+    },
+    {
+      "id": "NONE",
+      "name": "Science"
+    },
+    {
+      "id": "NONE",
+      "name": "Movies"
+    },
+    {
+      "id": "NONE",
+      "name": "Sports"
+    },
+    {
+      "id": "NONE",
+      "name": "News"
+    },
+    {
+      "id": "NONE",
+      "name": "Travel"
+    },
+    {
+      "id": "NONE",
+      "name": "Lifestyle"
+    },
+    {
+      "id": "NONE",
+      "name": "Fashion"
+    },
+    {
+      "id": "NONE",
+      "name": "Health & Fitness"
+    },
+    {
+      "id": "NONE",
+      "name": "Food & Cooking"
+    },
+    {
+      "id": "NONE",
+      "name": "Comedy"
+    },
+    {
+      "id": "NONE",
+      "name": "Documentary"
+    },
+    {
+      "id": "NONE",
+      "name": "Art & Design"
+    },
+    {
+      "id": "NONE",
+      "name": "Business & Finance"
+    },
+    {
+      "id": "NONE",
+      "name": "Animals & Nature"
+    },
+    {
+      "id": "NONE",
+      "name": "Automotive"
+    },
+    {
+      "id": "NONE",
+      "name": "History"
+    },
+    {
+      "id": "NONE",
+      "name": "Podcasts"
+    },
+    {
+      "id": "NONE",
+      "name": "Shorts"
+    }
   ],
   "privacy_statuses": [
-    { "id": "NONE", "name": "public" },
-    { "id": "NONE", "name": "private" }
+    {
+      "id": "NONE",
+      "name": "public"
+    },
+    {
+      "id": "NONE",
+      "name": "private"
+    }
   ],
   "user_statuses": [
-    { "id": "NONE", "value": "active" },
-    { "id": "NONE", "value": "banned" },
-    { "id": "NONE", "value": "deleted" }
+    {
+      "id": "NONE",
+      "value": "active"
+    },
+    {
+      "id": "NONE",
+      "value": "banned"
+    },
+    {
+      "id": "NONE",
+      "value": "deleted"
+    }
   ],
   "video_statuses": [
-    { "id": "NONE", "value": "queued" },
-    { "id": "NONE", "value": "processing" },
-    { "id": "NONE", "value": "ready" },
-    { "id": "NONE", "value": "failed" }
+    {
+      "id": "NONE",
+      "value": "queued"
+    },
+    {
+      "id": "NONE",
+      "value": "processing"
+    },
+    {
+      "id": "NONE",
+      "value": "ready"
+    },
+    {
+      "id": "NONE",
+      "value": "failed"
+    }
+  ],
+  "video_resolutions": [
+    {
+      "id": "NONE",
+      "video_id": "NONE",
+      "height": 0,
+      "width": 0,
+      "bitrate": 0,
+      "playlist_path": "/minio/videos/NONE/master.m3u8"
+    }
+  ],
+  "video_reactions": [
+    {
+      "id": "NONE",
+      "user_id": "NONE",
+      "video_id": "NONE",
+      "reaction_type_id": "NONE",
+      "created_at": "2023-01-01T00:00:00+00:00"
+    }
+  ],
+  "channels": [
+    {
+      "id": "NONE",
+      "name": "test_channel_name",
+      "user_id": "NONE",
+      "subscribers_count": 0,
+      "description": "test_channel_description",
+      "views_count": 0,
+      "avatar_path": "/minio/avatars/NONE",
+      "background_path": "/minio/backgrounds/NONE",
+      "created_at": "2023-01-01T00:00:00+00:00"
+    }
+  ],
+  "users": [
+    {
+      "id": "NONE",
+      "username": "test_username",
+      "email": "",
+      "hashed_password": "",
+      "is_active": true,
+      "is_superuser": false,
+      "is_verified": false,
+      "status_id": "NONE",
+      "created_at": "2023-01-01T00:00:00+00:00",
+      "role_id": "NONE"
+    }
   ]
 }

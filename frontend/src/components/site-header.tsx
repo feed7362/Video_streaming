@@ -4,17 +4,16 @@ import {Button} from "@/components/ui/button"
 import {useSidebar} from "@/components/ui/sidebar"
 import {NavUser} from "@/components/nav-user";
 import {ModeToggle} from "@/components/mode-toggle";
-
-const data = {
-    user: {
-        name: "shadcn",
-        email: "m@example.com",
-        avatar: "/avatars/shadcn.jpg",
-    }
-}
+import {useAuth} from "@/contexts/AuthContext";
+import {Link} from "react-router-dom";
 
 export function SiteHeader() {
     const {toggleSidebar} = useSidebar()
+    const {user, isAuthenticated, isLoading} = useAuth()
+
+    const userData = isAuthenticated && user
+        ? { name: user.username, email: user.email, avatar: "" }
+        : null;
 
     return (
         <header className="bg-background sticky top-0 z-50 border-b">
@@ -49,10 +48,16 @@ export function SiteHeader() {
                     <SearchForm className="w-full max-w-[500px] mx-auto"/>
                 </div>
 
-                {/* RIGHT: ModeToggle, NavUser, Sidebar Toggler */}
+                {/* RIGHT: ModeToggle, NavUser/Login, Sidebar Toggler */}
                 <div className="flex items-center gap-2 flex-shrink-0 order-2 sm:oder-3">
                     <ModeToggle/>
-                    <NavUser user={data.user}/>
+                    {isLoading ? null : userData ? (
+                        <NavUser user={userData}/>
+                    ) : (
+                        <Button variant="outline" size="sm" asChild>
+                            <Link to="/login">Sign in</Link>
+                        </Button>
+                    )}
                 </div>
             </div>
         </header>

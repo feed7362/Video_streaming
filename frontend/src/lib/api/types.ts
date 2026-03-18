@@ -64,6 +64,9 @@ export interface VideoComment {
   parentId?: string;
   likesCount: number;
   dislikesCount: number;
+  user_name?: string;
+  user_avatar?: string;
+  replies?: VideoComment[];
 }
 
 export interface Comment {
@@ -75,15 +78,19 @@ export interface Comment {
   updatedAt?: string;
   likesCount: number;
   dislikesCount: number;
+  user_name?: string;
+  user_avatar?: string;
+  parent_id?: string;
+  replies?: Comment[];
 }
 export interface UserInfo {
   id: string;
   username: string;
-  status: "active" | "banned" | "deleted";
-  email?: string;
-  createdAt: string;
-  roleId: number;
-  hashedPassword?: string;
+  email: string;
+  created_at?: string;
+  is_active?: boolean;
+  is_superuser?: boolean;
+  is_verified?: boolean;
 }
 
 export interface ChannelPreview {

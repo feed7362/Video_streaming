@@ -31,7 +31,7 @@ convertor:
     tag: "latest"
     pullPolicy: IfNotPresent
   service:
-    port: 8002
+    port: 9102
 
 # -------------------
 # Dependency overrides
@@ -67,18 +67,6 @@ rabbitmq:
   service:
     port: 5672
     managerPort: 15672
-
-keycloak:
-  auth:
-    adminUser: admin
-    adminPassword: admin
-  postgresql:
-    enabled: false
-  externalDatabase:
-    host: postgresql
-    user: video_user
-    password: video_pass
-    database: keycloak
 
 vault:
   server:

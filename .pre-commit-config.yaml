@@ -46,7 +46,8 @@ repos:
         exclude: '(^|/|\\)\.venv($|/)'
         additional_dependencies:
           - types-cachetools
-
+          - types-pytz
+          - types-aiofiles
   # ----------------- Node / JS / TS -----------------
   - repo: https://github.com/pre-commit/mirrors-eslint
     rev: v9.39.1

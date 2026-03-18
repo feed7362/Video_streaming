@@ -3,7 +3,7 @@ from functools import lru_cache
 from typing import List, Optional
 
 import hvac
-from pydantic import Field
+from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -39,8 +39,27 @@ class S3Settings(BaseAppSettings):
     BUCKET_NAMES: Optional[List[str]] = Field(default=None)
 
 
+class RabbitmqSettings(BaseAppSettings):
+    RABBITMQ_HOST: Optional[str] = Field(default=None)
+    RABBITMQ_PORT: Optional[str] = Field(default=None)
+    RABBITMQ_USER: Optional[str] = Field(default=None)
+    RABBITMQ_PASSWORD: Optional[str] = Field(default=None)
+
+    @computed_field
+    def rabbitmq_url(self) -> str:
+        return (
+            f"amqp://{self.RABBITMQ_USER}:{self.RABBITMQ_PASSWORD}"
+            f"@{self.RABBITMQ_HOST}:{self.RABBITMQ_PORT}/"
+        )
+
+
 @lru_cache()
 def get_s3_settings() -> S3Settings:
     data = vault.read_secret("s3", mount_point="secret")
     data["BUCKET_NAMES"] = [b.strip() for b in data["BUCKET_NAMES"].split(",")]
     return S3Settings(**data)
+
+
+@lru_cache()
+def get_rabbitmq_settings() -> RabbitmqSettings:
+    return RabbitmqSettings(**vault.read_secret("rabbitmq", mount_point="secret"))

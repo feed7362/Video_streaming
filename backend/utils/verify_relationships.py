@@ -6,7 +6,6 @@ are correctly paired via back_populates.
 
 import importlib
 import pkgutil
-import sys
 
 from sqlalchemy.orm import DeclarativeBase, RelationshipProperty, configure_mappers
 
@@ -30,7 +29,7 @@ def import_all_models(package_name: str) -> None:
 
 def verify_relationship_pairs(base: type[DeclarativeBase]) -> None:
     """Check that every relationship(back_populates=X) is mirrored correctly on the other side."""
-    print("🔍 Verifying SQLAlchemy relationships...")
+    print("Verifying SQLAlchemy relationships...")
 
     errors = []
 
@@ -72,13 +71,17 @@ def verify_relationship_pairs(base: type[DeclarativeBase]) -> None:
     if errors:
         print("\n".join(errors))
         print(f"\n Found {len(errors)} relationship definition issue(s).")
-        sys.exit(1)
+        raise SystemExit(1)
     else:
         print(" All back_populates relationships are correctly paired!")
 
 
-if __name__ == "__main__":
+def main() -> None:
     import_all_models("src.models")
     from src.infrastructure.database import Base
 
     verify_relationship_pairs(Base)
+
+
+if __name__ == "__main__":
+    main()

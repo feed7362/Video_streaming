@@ -1,9 +1,7 @@
 from typing import Dict, List, Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel
-
-from ..schemas.video import ResolutionMeta
+from pydantic import BaseModel, Field
 
 
 class FileMeta(BaseModel):
@@ -19,19 +17,22 @@ class FileResponse(BaseModel):
 
 class FileStreamResponse(BaseModel):
     filename: str
-    media_type: str = "application/octet-stream"
+    media_type: str
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "filename": "video_720p.mp4",
+                "media_type": "application/vnd.apple.mpegurl",
+            }
+        }
+    }
 
 
 class ErrorResponse(BaseModel):
-    status: str = "error"
+    status: Literal["error"] = "error"
+    code: str
     message: str
-
-
-class StatusMessage(BaseModel):
-    video_id: UUID
-    status: str
-    resolutions: Optional[List[ResolutionMeta]] = None
-    video_path: Optional[str] = None
 
 
 class HealthStatus(BaseModel):
@@ -61,43 +62,6 @@ class HealthStatus(BaseModel):
     }
 
 
-class SignedUrlResponse(BaseModel):
-    path: str
-    signed_url: str
-    expires_in: int
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "path": "123e4567-e89b-12d3-a456-426614174000/master.m3u8",
-                    "signed_url": "https://example.com/presigned-url",
-                    "expires_in": 3600,
-                }
-            ]
-        }
-    }
-
-
-class APIError(BaseModel):
-    detail: str
-    status_code: int
-    type: str
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "detail": "Invalid request parameters",
-                    "status_code": 400,
-                    "type": "BadRequest",
-                },
-                {"detail": "Unauthorized", "status_code": 401, "type": "Unauthorized"},
-                {
-                    "detail": "Internal server error",
-                    "status_code": 500,
-                    "type": "ServerError",
-                },
-            ]
-        }
-    }
+class PaginationQuery(BaseModel):
+    page: int = Field(1, ge=1, description="Page number")
+    size: int = Field(20, ge=1, le=100, description="Page size")

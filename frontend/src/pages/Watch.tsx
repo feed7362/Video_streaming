@@ -1,26 +1,29 @@
-﻿import { useState } from "react";
+﻿import React, { useState, useEffect } from "react";
 import VideoPlayer from "@/components/VideoPlayer";
 import VideoCard from "@/components/VideoCard";
 import { Button } from "@/components/ui/button";
 import InfiniteScroll from "@/components/infinite-scroll";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { useFetchCategories } from "@/hooks/useCategories";
 import { useVideo } from "@/hooks/useVideos";
 import { useReactions } from "@/hooks/useReactions";
 import { useDownload } from "@/hooks/useDownload";
+import { useAuth } from "@/contexts/AuthContext";
+import { getComments, addComment, deleteComment, addReply, reactToComment } from "@api/commentApi";
 import type { VideoDetail, VideoComment, VideoPreviewWithTime } from "@api/types";
-
-/*import type { getComments, addComment, deleteComment, addReply, updateComment } from "@api/commentApi";*/
-/*import { useFetchCategories } from "@/hooks/useCategories";*/
+import { timeAgo } from "@/utils/timeAgo";
 
 export default function Watch() {
+    const [searchParams] = useSearchParams();
+    const videoId = searchParams.get("v") ?? "";
+
     const { categories, active, setActive } = useFetchCategories();
+    const { user } = useAuth();
 
     const {
         video,
         videos,
-        comments,
         error,
         loading,
         hasMore,
@@ -28,6 +31,120 @@ export default function Watch() {
         metaDataText,
         setVideo,
     } = useVideo();
+
+    // Each entry is a top-level comment; replies are nested inside comment.replies
+    const [comments, setComments] = useState<VideoComment[]>([]);
+    const [commentText, setCommentText] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [commentError, setCommentError] = useState<string | null>(null);
+    const [replyingTo, setReplyingTo] = useState<string | null>(null);
+    const [replyText, setReplyText] = useState("");
+    const [replySubmitting, setReplySubmitting] = useState(false);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fromApi = (c: any): VideoComment => ({
+        id: String(c.id),
+        userId: String(c.user_id ?? c.userId ?? ""),
+        content: c.content,
+        createdAt: c.created_at ?? c.createdAt ?? "",
+        videoId: videoId,
+        likesCount: c.likes_count ?? c.likesCount ?? 0,
+        dislikesCount: c.dislikes_count ?? c.dislikesCount ?? 0,
+        user_name: c.user_name,
+        user_avatar: c.user_avatar,
+        // replies come nested from the API for top-level comments
+        ...(Array.isArray(c.replies) ? { replies: c.replies.map(fromApi) } : {}),
+    });
+
+    useEffect(() => {
+        if (!videoId) return;
+        setComments([]);
+        getComments(videoId, 1, 100)
+            .then((page) => setComments(page.items.map(fromApi)))
+            .catch(() => {/* non-critical */});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [videoId]);
+
+    const handleAddComment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const text = commentText.trim();
+        if (!text || !videoId) return;
+        setSubmitting(true);
+        setCommentError(null);
+        try {
+            const newComment = await addComment(videoId, text);
+            setComments((prev) => [{ ...fromApi(newComment), replies: [] }, ...prev]);
+            setCommentText("");
+        } catch {
+            setCommentError("Failed to post comment. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleAddReply = async (e: React.FormEvent, parentId: string) => {
+        e.preventDefault();
+        const text = replyText.trim();
+        if (!text || !videoId) return;
+        setReplySubmitting(true);
+        try {
+            const newReply = await addReply(videoId, parentId, text);
+            const replyComment = fromApi(newReply);
+            setComments((prev) => prev.map((c) =>
+                c.id === parentId
+                    ? { ...c, replies: [...(c.replies ?? []), replyComment] }
+                    : c
+            ));
+            setReplyText("");
+            setReplyingTo(null);
+        } catch {
+            // ignore
+        } finally {
+            setReplySubmitting(false);
+        }
+    };
+
+    const handleDeleteComment = async (commentId: string, parentId?: string) => {
+        try {
+            await deleteComment(commentId);
+            if (parentId) {
+                // remove a reply
+                setComments((prev) => prev.map((c) =>
+                    c.id === parentId
+                        ? { ...c, replies: (c.replies ?? []).filter((r) => r.id !== commentId) }
+                        : c
+                ));
+            } else {
+                // remove a top-level comment (cascade deletes its replies in DB)
+                setComments((prev) => prev.filter((c) => c.id !== commentId));
+            }
+        } catch {
+            // ignore
+        }
+    };
+
+    const handleCommentReaction = async (
+        commentId: string,
+        reaction: "like" | "dislike",
+        parentId?: string,
+    ) => {
+        try {
+            const data = await reactToComment(commentId, reaction);
+            const likes = data.reactions["like"] ?? 0;
+            const dislikes = data.reactions["dislike"] ?? 0;
+            const update = (c: VideoComment) =>
+                c.id === commentId ? { ...c, likesCount: likes, dislikesCount: dislikes } : c;
+            if (parentId) {
+                setComments((prev) => prev.map((c) =>
+                    c.id === parentId ? { ...c, replies: (c.replies ?? []).map(update) } : c
+                ));
+            } else {
+                setComments((prev) => prev.map(update));
+            }
+        } catch {
+            // ignore
+        }
+    };
 
     const [resolution, setResolution] = useState("720p");
 
@@ -102,14 +219,187 @@ export default function Watch() {
                     </Button>
                 </div>
                 <div className="mt-6">
-                    <h2 className="text-lg sm:text-xl font-semibold mb-3">{comments.length} Comments</h2>
-                    <div className="space-y-4">
-                        {comments.map((comment: VideoComment) => (
-                            <div key={comment.id} className="border-b pb-2">
-                                <p className="font-medium">{comment.userId}</p>
-                                <p className="text-gray-600 text-sm sm:text-base">{comment.content}</p>
+                    <h2 className="text-lg sm:text-xl font-semibold mb-4">{comments.length} Comments</h2>
+
+                    {/* Comment form */}
+                    {user ? (
+                        <form onSubmit={handleAddComment} className="mb-6 flex flex-col gap-2">
+                            <textarea
+                                value={commentText}
+                                onChange={(e) => setCommentText(e.target.value)}
+                                placeholder="Add a comment..."
+                                rows={3}
+                                className="w-full rounded border border-gray-300 p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-gray-300 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                            />
+                            {commentError && (
+                                <p className="text-sm text-red-500">{commentError}</p>
+                            )}
+                            <div className="flex justify-end">
+                                <Button type="submit" disabled={submitting || !commentText.trim()} size="sm">
+                                    {submitting ? "Posting..." : "Comment"}
+                                </Button>
                             </div>
-                        ))}
+                        </form>
+                    ) : (
+                        <p className="text-sm text-gray-500 mb-4">
+                            <Link to="/login" className="underline">Sign in</Link> to leave a comment.
+                        </p>
+                    )}
+
+                    {/* Comment list */}
+                    <div className="space-y-5">
+                        {comments.map((comment: VideoComment) => {
+                            const replies = comment.replies ?? [];
+                            const displayName = comment.user_name || comment.userId;
+                            const initial = displayName.charAt(0).toUpperCase();
+                            const isOwn = user && (user.id === comment.userId);
+
+                            return (
+                                <div key={comment.id}>
+                                    {/* Top-level comment */}
+                                    <div className="flex gap-3">
+                                        {/* Avatar */}
+                                        {comment.user_avatar ? (
+                                            <img
+                                                src={comment.user_avatar}
+                                                alt={displayName}
+                                                className="w-8 h-8 rounded-full object-cover shrink-0"
+                                            />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center shrink-0 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                                {initial}
+                                            </div>
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <span className="font-medium text-sm">{displayName}</span>
+                                                <span className="text-xs text-gray-400">{timeAgo(comment.createdAt)}</span>
+                                            </div>
+                                            <p className="text-gray-700 dark:text-gray-300 text-sm">{comment.content}</p>
+                                            <div className="flex items-center gap-3 mt-1">
+                                                <button
+                                                    onClick={() => handleCommentReaction(comment.id, "like")}
+                                                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                                >
+                                                    <img src="/thumbs_up.svg" alt="Like" className="w-3.5 h-3.5" />
+                                                    <span>{comment.likesCount}</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleCommentReaction(comment.id, "dislike")}
+                                                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                                >
+                                                    <img src="/thumbs-down.svg" alt="Dislike" className="w-3.5 h-3.5" />
+                                                    <span>{comment.dislikesCount}</span>
+                                                </button>
+                                                {user && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setReplyingTo(replyingTo === comment.id ? null : comment.id);
+                                                            setReplyText("");
+                                                        }}
+                                                        className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                                    >
+                                                        Reply
+                                                    </button>
+                                                )}
+                                                {isOwn && (
+                                                    <button
+                                                        onClick={() => handleDeleteComment(comment.id)}
+                                                        className="text-xs text-red-400 hover:text-red-600"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Reply form */}
+                                            {replyingTo === comment.id && (
+                                                <form
+                                                    onSubmit={(e) => handleAddReply(e, comment.id)}
+                                                    className="mt-2 flex gap-2"
+                                                >
+                                                    <textarea
+                                                        value={replyText}
+                                                        onChange={(e) => setReplyText(e.target.value)}
+                                                        placeholder={`Reply to ${displayName}...`}
+                                                        rows={2}
+                                                        className="flex-1 rounded border border-gray-300 p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-gray-300 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                                                    />
+                                                    <div className="flex flex-col gap-1">
+                                                        <Button type="submit" size="sm" disabled={replySubmitting || !replyText.trim()}>
+                                                            {replySubmitting ? "..." : "Reply"}
+                                                        </Button>
+                                                        <Button type="button" size="sm" variant="ghost" onClick={() => setReplyingTo(null)}>
+                                                            Cancel
+                                                        </Button>
+                                                    </div>
+                                                </form>
+                                            )}
+
+                                            {/* Replies */}
+                                            {replies.length > 0 && (
+                                                <div className="mt-3 space-y-3 pl-4 border-l border-gray-200 dark:border-gray-700">
+                                                    {replies.map((reply) => {
+                                                        const rName = reply.user_name || reply.userId;
+                                                        const rInitial = rName.charAt(0).toUpperCase();
+                                                        const rIsOwn = user && user.id === reply.userId;
+                                                        return (
+                                                            <div key={reply.id} className="flex gap-2">
+                                                                {reply.user_avatar ? (
+                                                                    <img
+                                                                        src={reply.user_avatar}
+                                                                        alt={rName}
+                                                                        className="w-6 h-6 rounded-full object-cover shrink-0"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-6 h-6 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center shrink-0 text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                                        {rInitial}
+                                                                    </div>
+                                                                )}
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2 mb-0.5">
+                                                                        <span className="font-medium text-xs">{rName}</span>
+                                                                        <span className="text-xs text-gray-400">{timeAgo(reply.createdAt)}</span>
+                                                                        {rIsOwn && (
+                                                                            <button
+                                                                                onClick={() => handleDeleteComment(reply.id, comment.id)}
+                                                                                className="text-xs text-red-400 hover:text-red-600"
+                                                                            >
+                                                                                Delete
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">{reply.content}</p>
+                                                                    <div className="flex items-center gap-3 mt-1">
+                                                                        <button
+                                                                            onClick={() => handleCommentReaction(reply.id, "like", comment.id)}
+                                                                            className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                                                        >
+                                                                            <img src="/thumbs_up.svg" alt="Like" className="w-3 h-3" />
+                                                                            <span>{reply.likesCount}</span>
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleCommentReaction(reply.id, "dislike", comment.id)}
+                                                                            className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                                                        >
+                                                                            <img src="/thumbs-down.svg" alt="Dislike" className="w-3 h-3" />
+                                                                            <span>{reply.dislikesCount}</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {comments.length === 0 && !loading && (
+                            <p className="text-sm text-gray-400">No comments yet. Be the first!</p>
+                        )}
                     </div>
                 </div>
             </div>

@@ -3,23 +3,37 @@ FROM python:3.12-slim
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-ENV PATH="/opt/venv/bin:${PATH}" \
+ENV UV_PROJECT_ENVIRONMENT="/opt/venv" \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_PROJECT_ENVIRONMENT="/opt/venv"
+    PATH="/opt/venv/bin:$PATH" \
+    PYTHONPATH="/app"
 
 RUN uv venv /opt/venv
 
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock ./
 
-RUN uv sync --no-dev
+RUN uv sync --no-dev --frozen
 
-COPY . .
+COPY src ./src
+COPY app ./app
+COPY main.py .
+COPY log_conf.yaml .
+COPY alembic.ini .
+COPY alembic ./alembic
+COPY utils ./utils
 
-ENTRYPOINT ["python3", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000","--loop", "uvloop", "--http", "httptools", "--workers", "4", "--log-config", "log_conf.yaml"]
+RUN addgroup --system app && adduser --system --group --home /app app
+RUN chown -R app:app /app /opt/venv
+USER app
+
+ENTRYPOINT ["uvicorn", "main:app"]
+CMD ["--host", "0.0.0.0", \
+    "--port", "8000", \
+    "--loop", "uvloop", \
+    "--http", "httptools", \
+    "--log-config", "log_conf.yaml"]

@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Optional, Tuple, Type, TypeVar, cast
+from typing import Any, Callable, List, Optional, Tuple, Type, TypeVar
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,5 +42,5 @@ async def paginate_query(
     if mapper is not None:
         items: List[U] = [mapper(v) for v in raw_items]
     else:
-        items = cast(List[U], raw_items)
+        items = raw_items
     return items, total

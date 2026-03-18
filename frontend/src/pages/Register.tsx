@@ -5,7 +5,6 @@ import { Link } from "react-router-dom";
 export default function Register() {
     return (
         <div className="flex flex-col lg:flex-row min-h-screen w-full overflow-hidden">
-            {/* Ћ≥ва частина / фон */}
             <div
                 className="relative w-full lg:w-1/2 bg-cover bg-center"
                 style={{ backgroundImage: "url(/authentication-bg.png)" }}
@@ -28,16 +27,10 @@ export default function Register() {
                         </svg>
                         Acme Inc
                     </div>
-                    <blockquote className="max-w-md text-white/80 leading-relaxed">
-                        УThis library has saved me countless hours of work and helped me deliver
-                        stunning designs to my clients faster than ever before.Ф Ч Sofia Davis
-                    </blockquote>
                 </div>
             </div>
 
-            {/* ѕрава частина / форма */}
             <div className="relative flex flex-col justify-center items-center w-full lg:w-1/2 p-6">
-                {/*  нопки у верхньому правому кут≥ */}
                 <div className="absolute top-4 right-4 flex flex-wrap gap-2 z-50">
                     <Link to="/login">
                         <Button
@@ -59,7 +52,6 @@ export default function Register() {
                     </Link>
                 </div>
 
-                {/* ‘орма */}
                 <div className="w-full max-w-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-6 rounded-xl shadow-md z-20">
                     <RegisterForm />
                 </div>

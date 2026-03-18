@@ -10,7 +10,7 @@ dependencies = [
 
 [tool.black]
 line-length = 88
-target-version = ["py312"]  # Измените под свою версию Python
+target-version = ["py312"]
 include = '\.pyi?$'
 exclude = '''
 /(

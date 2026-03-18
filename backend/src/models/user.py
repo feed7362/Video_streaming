@@ -2,42 +2,41 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, List
 
+from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
 from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..infrastructure.database import Base
+from src.infrastructure.database import Base
 
 if TYPE_CHECKING:
-    from .channel import Channel
-    from .comment_reactions import CommentReaction
-    from .comments import Comment
-    from .notification import Notification
-    from .playlist import Playlist
-    from .subscription import Subscription
-    from .user_roles import Role
-    from .user_status import UserStatus
-    from .video_reactions import VideoReaction
-    from .video_views import VideoView
-    from .watch_history import WatchHistory
-    from .watch_later import WatchLater
+    from channel import Channel
+    from comment_reactions import CommentReaction
+    from comments import Comment
+    from notification import Notification
+    from oauth_account import OAuthAccount
+    from playlist import Playlist
+    from subscription import Subscription
+    from user_roles import Role
+    from user_status import UserStatus
+    from video_reactions import VideoReaction
+    from video_views import VideoView
+    from watch_history import WatchHistory
+    from watch_later import WatchLater
 
 
-class User(Base):
+class User(SQLAlchemyBaseUserTableUUID, Base):
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
     username: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    email: Mapped[str] = mapped_column(String, unique=True, index=True)
-    hash_password: Mapped[str] = mapped_column(String, nullable=False)
     status_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("user_statuses.id", ondelete="SET NULL"),
         nullable=True,
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=func.now()
+    )
     role_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("roles.id", ondelete="SET NULL"), nullable=True
     )
@@ -58,6 +57,9 @@ class User(Base):
     )
     notifications: Mapped[List["Notification"]] = relationship(back_populates="user")
     watch_history: Mapped[List["WatchHistory"]] = relationship(back_populates="user")
-    watch_later: Mapped[list["WatchLater"]] = relationship(
+    watch_later: Mapped[List["WatchLater"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
+    )
+    oauth_accounts: Mapped[List["OAuthAccount"]] = relationship(
+        "OAuthAccount", lazy="joined"
     )

@@ -1,47 +1,68 @@
 import type { Comment, CommentPage } from "./types";
 import apiClient from "./clientApi";
 
-export const getComments = (
+export const getComments = async (
   videoId: string,
-  page: number = 0,
+  page: number = 1,
   size: number = 20,
-): Promise<CommentPage> =>
-  apiClient
-    .get<CommentPage>(`/videos/${videoId}/comments?page=${page}&size=${size}`)
-    .then((res) => res.data);
+): Promise<CommentPage> => {
+  const res = await apiClient.get<CommentPage>(`/api/comments/${videoId}`, {
+    params: { page, size },
+  });
+  return res.data;
+};
 
-export const addComment = (
+export const addComment = async (
   videoId: string,
   content: string,
-): Promise<Comment> =>
-  apiClient
-    .post<Comment>(`/videos/${videoId}/comments`, { content })
-    .then((res) => res.data);
+): Promise<Comment> => {
+  const res = await apiClient.post<Comment>(`/api/comments/${videoId}`, {
+    content,
+  });
+  return res.data;
+};
 
-export const updateComment = (
+/*
+export const updateComment = async (
   commentId: string,
   content: string,
-): Promise<Comment> =>
-  apiClient
-    .put<Comment>(`/comments/${commentId}`, { content })
-    .then((res) => res.data);
+): Promise<Comment> => {
+  const res = await apiClient.put<Comment>(`/api/comments/${commentId}`, { content });
+  return res.data;
+};
+*/
 
-export const deleteComment = (commentId: string): Promise<void> =>
-  apiClient.delete(`/comments/${commentId}`).then(() => {});
+export const deleteComment = async (commentId: string): Promise<void> => {
+  await apiClient.delete(`/api/comments/${commentId}`);
+};
 
-//code addReply const
-export const addReply = (
+export const addReply = async (
+  videoId: string,
   commentId: string,
   content: string,
-): Promise<Comment> =>
-  apiClient
-    .post<Comment>(`/comments/${commentId}/replies`, { content })
-    .then((res) => res.data);
+): Promise<Comment> => {
+  const res = await apiClient.post<Comment>(`/api/comments/${videoId}`, {
+    content,
+    parent_id: commentId,
+  });
+  return res.data;
+};
+
+export const reactToComment = async (
+  commentId: string,
+  reactionName: "like" | "dislike",
+): Promise<{ reactions: Record<string, number> }> => {
+  const res = await apiClient.post(`/api/comments/${commentId}/reaction`, {
+    reaction_name: reactionName,
+  });
+  return res.data;
+};
 
 export default {
   getComments,
   addComment,
-  updateComment,
+  // updateComment,
   deleteComment,
   addReply,
+  reactToComment,
 };

@@ -6,11 +6,11 @@ from sqlalchemy import DateTime, ForeignKey, Index, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..infrastructure.database import Base
+from src.infrastructure.database import Base
 
 if TYPE_CHECKING:
-    from .user import User
-    from .video import Video
+    from user import User
+    from video import Video
 
 
 class VideoView(Base):
@@ -37,7 +37,13 @@ class VideoView(Base):
     __table_args__ = (
         Index("ix_video_views_video_id", "video_id"),
         Index("ix_video_views_user_id", "user_id"),
-        Index("uq_video_views_unique", "video_id", "user_id", unique=True),
+        Index(
+            "uq_video_views_video_user",
+            "video_id",
+            "user_id",
+            unique=True,
+            postgresql_where="user_id IS NOT NULL",
+        ),
     )
 
     def __repr__(self) -> str:

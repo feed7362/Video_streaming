@@ -1,8 +1,8 @@
-"""initial
+"""init_schema
 
-Revision ID: 07193623e42f
+Revision ID: 6627ad3aa405
 Revises:
-Create Date: 2025-10-31 10:32:44.366873
+Create Date: 2026-03-03 15:17:32.352038
 
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "07193623e42f"
+revision: str = "6627ad3aa405"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -73,7 +73,7 @@ def upgrade() -> None:
         sa.Column("email", sa.String(), nullable=False),
         sa.Column("hash_password", sa.String(), nullable=False),
         sa.Column("status_id", sa.UUID(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("role_id", sa.UUID(), nullable=True),
         sa.ForeignKeyConstraint(["role_id"], ["roles.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(
@@ -86,7 +86,7 @@ def upgrade() -> None:
     op.create_table(
         "channels",
         sa.Column("id", sa.UUID(), nullable=False),
-        sa.Column("channel_name", sa.String(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
         sa.Column("user_id", sa.UUID(), nullable=False),
         sa.Column("subscribers_count", sa.Integer(), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
@@ -101,10 +101,9 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("user_id"),
     )
-    op.create_index(
-        op.f("ix_channels_channel_name"), "channels", ["channel_name"], unique=True
-    )
+    op.create_index(op.f("ix_channels_name"), "channels", ["name"], unique=True)
     op.create_table(
         "notifications",
         sa.Column("id", sa.UUID(), nullable=False),
@@ -199,9 +198,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("hash"),
     )
+    op.create_index("ix_videos_channel_id", "videos", ["channel_id"], unique=False)
     op.create_index("ix_videos_created_at", "videos", ["created_at"], unique=False)
     op.create_index("ix_videos_privacy", "videos", ["privacy_id"], unique=False)
-    op.create_index("ix_videos_user_id", "videos", ["channel_id"], unique=False)
     op.create_table(
         "comments",
         sa.Column("id", sa.UUID(), nullable=False),
@@ -300,6 +299,13 @@ def upgrade() -> None:
     op.create_index(
         "ix_video_views_video_id", "video_views", ["video_id"], unique=False
     )
+    op.create_index(
+        "uq_video_views_video_user",
+        "video_views",
+        ["video_id", "user_id"],
+        unique=True,
+        postgresql_where="user_id IS NOT NULL",
+    )
     op.create_table(
         "watch_history",
         sa.Column("id", sa.UUID(), nullable=False),
@@ -356,6 +362,11 @@ def downgrade() -> None:
     op.drop_table("comment_reactions")
     op.drop_table("watch_later")
     op.drop_table("watch_history")
+    op.drop_index(
+        "uq_video_views_video_user",
+        table_name="video_views",
+        postgresql_where="user_id IS NOT NULL",
+    )
     op.drop_index("ix_video_views_video_id", table_name="video_views")
     op.drop_index("ix_video_views_user_id", table_name="video_views")
     op.drop_table("video_views")
@@ -366,16 +377,16 @@ def downgrade() -> None:
     op.drop_index("ix_comments_video_id", table_name="comments")
     op.drop_index("ix_comments_user_id", table_name="comments")
     op.drop_table("comments")
-    op.drop_index("ix_videos_user_id", table_name="videos")
     op.drop_index("ix_videos_privacy", table_name="videos")
     op.drop_index("ix_videos_created_at", table_name="videos")
+    op.drop_index("ix_videos_channel_id", table_name="videos")
     op.drop_table("videos")
     op.drop_table("subscriptions")
     op.drop_index("ix_playlists_user_id", table_name="playlists")
     op.drop_index("ix_playlists_created_at", table_name="playlists")
     op.drop_table("playlists")
     op.drop_table("notifications")
-    op.drop_index(op.f("ix_channels_channel_name"), table_name="channels")
+    op.drop_index(op.f("ix_channels_name"), table_name="channels")
     op.drop_table("channels")
     op.drop_index(op.f("ix_users_email"), table_name="users")
     op.drop_table("users")

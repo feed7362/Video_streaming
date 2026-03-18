@@ -1,12 +1,19 @@
-from typing import Any, List, Optional
+from typing import Annotated
 
-from elasticsearch import AsyncElasticsearch
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
-from ..infrastructure.elasticsearch import get_es_client
-from ..schemas.endpoint import ErrorResponse
-from ..schemas.search import VideoHintsResponse, VideoResult, VideoSearchResponse
+from src.api.dependencies.metrics import video_search_metrics
+from src.api.dependencies.services import get_search_service
+from src.schemas.endpoint import ErrorResponse
+from src.schemas.search import (
+    VideoHintQuery,
+    VideoHintsResponse,
+    VideoResult,
+    VideoSearchRequest,
+    VideoSearchResponse,
+)
+from src.services.search import SearchService
 
 router_search = APIRouter(
     prefix="/api/search",
@@ -19,9 +26,6 @@ router_search = APIRouter(
 )
 
 
-# ─────────────────────────────────────────────────────────────
-# 🔎 Autocomplete (completion suggester + fuzzy fallback)
-# ─────────────────────────────────────────────────────────────
 @router_search.get(
     "/video_hints",
     response_model=VideoHintsResponse,
@@ -39,34 +43,14 @@ router_search = APIRouter(
     },
 )
 async def get_hints(
-    q: str = Query(
-        ...,
-        min_length=1,
-        description="Partial query string for video title suggestions.",
-    ),
-    es: AsyncElasticsearch = Depends(get_es_client),
+    payload: Annotated[VideoHintQuery, Depends()],
+    service: SearchService = Depends(get_search_service),
 ) -> VideoHintsResponse:
     """
     Returns autocomplete hints for the user's partial query.
     Uses Elasticsearch completion suggester.
     """
-    suggest_query = {
-        "video-suggest": {
-            "prefix": q,
-            "completion": {
-                "field": "suggest_name",
-                "skip_duplicates": True,
-                "fuzzy": {"fuzziness": 1},
-                "size": 10,
-            },
-        }
-    }
-
-    response = await es.search(index="videos", suggest=suggest_query)
-
-    options = response["suggest"]["video-suggest"][0]["options"]
-    hints = [opt.get("_source", {}).get("name") or opt.get("text") for opt in options]
-    hints = [h for h in hints if h]
+    hints = await service.get_video_hints(payload.q)
     return VideoHintsResponse(hints=hints)
 
 
@@ -90,29 +74,11 @@ async def get_hints(
         400: {"model": ErrorResponse, "description": "Invalid request or parameters."},
         500: {"model": ErrorResponse, "description": "Unexpected error occurred."},
     },
+    dependencies=[Depends(video_search_metrics)],
 )
 async def video_search(
-    q: str = Query(
-        ..., min_length=1, description="Search text input (e.g. 'funny cats')."
-    ),
-    limit: int = Query(10, ge=1, le=50, description="Number of results to return."),
-    smart_search: bool = Query(
-        False, description="Enable hybrid vector + text search."
-    ),
-    query_vector: Optional[List[float]] = Query(
-        None, description="Vector embedding for semantic search."
-    ),
-    category: Optional[str] = Query(None, description="Filter by category name."),
-    min_views: Optional[int] = Query(
-        None, ge=0, description="Minimum number of views."
-    ),
-    max_views: Optional[int] = Query(
-        None, ge=0, description="Maximum number of views."
-    ),
-    has_description: bool = Query(
-        False, description="Filter to only include videos that have a description."
-    ),
-    es: AsyncElasticsearch = Depends(get_es_client),
+    payload: VideoSearchRequest,
+    service: SearchService = Depends(get_search_service),
 ) -> VideoSearchResponse:
     """
     Hybrid search endpoint:
@@ -120,64 +86,15 @@ async def video_search(
     - Hybrid text + vector search if `smart_search=True` and `query_vector` is provided
     """
 
-    must_query = {
-        "multi_match": {
-            "query": q,
-            "fields": ["name^3", "description^2"],
-            "fuzziness": "AUTO",
-        }
-    }
-
-    # Build filters dynamically
-    filters: list[dict[str, dict]] = []
-
-    if category:
-        filters.append({"term": {"category": category}})
-
-    if min_views is not None or max_views is not None:
-        range_filter: dict[str, Any] = {"range": {"views": {}}}
-        if min_views is not None:
-            range_filter["range"]["views"]["gte"] = min_views
-        if max_views is not None:
-            range_filter["range"]["views"]["lte"] = max_views
-        filters.append(range_filter)
-
-    if has_description:
-        filters.append({"exists": {"field": "description"}})
-
-    # Combine query + filters
-    text_query = {
-        "bool": {
-            "must": [must_query],
-            "filter": filters,
-        }
-    }
-
-    # ────────────────────────────────────────────────
-    # Case 1: Text-only search
-    # ────────────────────────────────────────────────
-    if not smart_search or not query_vector:
-        result = await es.search(index="videos", query=text_query, size=limit)
-        return VideoSearchResponse(
-            results=[VideoResult(**hit["_source"]) for hit in result["hits"]["hits"]]
-        )
-
-    # ────────────────────────────────────────────────
-    # Case 2: Hybrid search (text + vector)
-    # ────────────────────────────────────────────────
-    result = await es.search(
-        index="videos",
-        knn={
-            "field": "video_embedding",
-            "query_vector": query_vector,
-            "k": limit,
-            "num_candidates": 100,
-        },
-        _source=["id", "name", "description", "views", "category"],
-        query=text_query,
-        rank={"rrf": {}},  # Reciprocal Rank Fusion — merges text and vector results
+    result = await service.search_video(
+        payload.query,
+        payload.query_vector,
+        payload.category,
+        payload.min_views,
+        payload.max_views,
+        payload.limit,
+        payload.smart_search,
+        payload.has_description,
     )
 
-    return VideoSearchResponse(
-        results=[VideoResult(**hit["_source"]) for hit in result["hits"]["hits"]]
-    )
+    return VideoSearchResponse(results=[VideoResult(**hit) for hit in result["hits"]])

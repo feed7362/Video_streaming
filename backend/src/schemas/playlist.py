@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
-    from .video import VideoRead
+    from video import VideoRead
 
 
 class PlaylistBase(BaseModel):

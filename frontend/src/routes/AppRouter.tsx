@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react";
 import Loading from "@/pages/Loading";
 import AppLayout from "@/layouts/AppLayout";
 import ForgotPass from "@/pages/ForgotPass";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const Home = lazy(() => import("@/pages/Home"));
 const Channel = lazy(() => import("@/pages/Channel"));
@@ -20,6 +21,8 @@ const History = lazy(() => import("@/pages/History"));
 const WatchLater = lazy(() => import("@/pages/WatchLater"));
 const Subscriptions = lazy(() => import("@/pages/Subscriptions"));
 const SearchResults = lazy(() => import("@/pages/SearchResults"));
+const GitHubCallback = lazy(() => import("@/pages/GitHubCallback"));
+const Studio = lazy(() => import("@/pages/Studio"));
 
 export default function AppRouter() {
     return (
@@ -27,16 +30,17 @@ export default function AppRouter() {
             <Routes>
                 <Route element={<AppLayout />}>
                     <Route path="/" element={<Home />} />
-                    <Route path="/upload" element={<Upload />} />
+                    <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
                     <Route path="/watch" element={<Watch />} />
-                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                     <Route path="/changelog" element={<Changelog />} />
                     <Route path="/pricing-table" element={<Pricing />} />
-                    <Route path="/liked" element={<Liked />} />
-                    <Route path="/history" element={<History />} />
-                    <Route path="/watch-later" element={<WatchLater />} />
-                    <Route path="/subscriptions" element={<Subscriptions />} />
+                    <Route path="/liked" element={<ProtectedRoute><Liked /></ProtectedRoute>} />
+                    <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+                    <Route path="/watch-later" element={<ProtectedRoute><WatchLater /></ProtectedRoute>} />
+                    <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
                     <Route path="/search-results" element={<SearchResults />} />
+                    <Route path="/studio" element={<ProtectedRoute><Studio /></ProtectedRoute>} />
                 </Route>
 
                 <Route path="/reset-password" element={<ResetPass />} />
@@ -46,15 +50,9 @@ export default function AppRouter() {
                 <Route path="/loading" element={<Loading />} />
                 <Route path="/channel" element={<Channel />} />
 
+                <Route path="/auth/callback" element={<GitHubCallback />} />
                 <Route path="/404" element={<NotFound />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />
-
-                {/* Static Pages (optional)
-        <Route path="/privacy" element={<PrivacyPolicy/>}/>
-        <Route path="/terms" element={<TermsOfService/>}/>
-        <Route path="/about" element={<About/>}/>
-        <Route path="/contact" element={<Contact/>}/>
-        */}
             </Routes>
         </Suspense>
     );

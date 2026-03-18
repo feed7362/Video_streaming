@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.requests import Request
 
-from src.core.rate_limiter import RateLimiter
 from src.infrastructure import get_redis
+from src.infrastructure.redis.rate_limiter import RateLimiter
 
 
 async def get_rate_limiter(redis=Depends(get_redis)) -> RateLimiter:

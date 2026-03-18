@@ -6,23 +6,18 @@ export const getChangelog = async (): Promise<ChangelogEntry[]> => {
   return res.data;
 };
 
-export const registerUser = (
-  username: string,
-  password: string,
-): Promise<string> =>
+export const registerUser = (email: string, password: string): Promise<void> =>
   clientApi
-    .post<{ token: string }>("/auth/register", { username, password })
-    .then((res) => {
-      localStorage.setItem("token", res.data.token);
-      return res.data.token;
-    });
+    .post("/api/auth/register", {
+      email,
+      username: email.split("@")[0],
+      password,
+    })
+    .then(() => {});
 
-export const loginUser = (
-  username: string,
-  password: string,
-): Promise<string> =>
+export const loginUser = (email: string, password: string): Promise<string> =>
   clientApi
-    .post<{ token: string }>("/auth/login", { username, password })
+    .post<{ token: string }>("/api/auth/login", { email, password })
     .then((res) => {
       localStorage.setItem("token", res.data.token);
       return res.data.token;
@@ -31,59 +26,54 @@ export const loginUser = (
 export const logoutUser = async (): Promise<void> => {
   localStorage.removeItem("token");
   try {
-    await clientApi.post("/auth/logout");
+    await clientApi.post("/api/auth/logout");
   } catch (err) {
     console.warn("Logout API error:", err);
   }
 };
 
-export const refreshToken = (): Promise<string> =>
-  clientApi.post<{ token: string }>("/auth/refresh-token").then((res) => {
-    localStorage.setItem("token", res.data.token);
-    return res.data.token;
-  });
-
 export const getCurrentUser = (): Promise<UserInfo> =>
-  clientApi.get<UserInfo>("/auth/me").then((res) => res.data);
-
-export const refreshCurrentUser = (): Promise<UserInfo> =>
-  clientApi.post<UserInfo>("/auth/me/refresh").then((res) => res.data);
-
-export const refreshUsersAvatar = (username: string): Promise<string> =>
-  clientApi
-    .post<{ avatarUrl: string }>(`/auth/users/${username}/refresh-avatar`)
-    .then((res) => res.data.avatarUrl);
+  clientApi.get<UserInfo>("/api/auth/me").then((res) => res.data);
 
 export const getOtherUserInfo = (username: string): Promise<UserInfo> =>
-  clientApi.get<UserInfo>(`/auth/users/${username}`).then((res) => res.data);
-
-export const getUserAvatar = (username: string): Promise<string | undefined> =>
-  refreshUsersAvatar(username);
+  clientApi
+    .get<UserInfo>(`/api/auth/users/${username}`)
+    .then((res) => res.data);
 
 export const checkUserExists = async (
   username: string,
   email: string,
 ): Promise<{ usernameExists: boolean; emailExists: boolean }> => {
   return clientApi
-    .post("/auth/check-user", { username, email })
+    .post("/api/auth/check-user", { username, email })
     .then((res) => res.data);
 };
 
 export const sendPasswordReset = async (email: string): Promise<void> => {
-  await clientApi.post("/auth/forgot-password", { email });
+  await clientApi.post("/api/auth/forgot-password", { email });
 };
+
+export const resetPassword = async (
+  token: string,
+  password: string,
+): Promise<void> => {
+  await clientApi.post("/api/auth/reset-password", { token, password });
+};
+
+export const getGithubAuthUrl = (): Promise<string> =>
+  clientApi
+    .get<{ authorization_url: string }>("/api/auth/github/authorize")
+    .then((res) => res.data.authorization_url);
 
 export default {
   registerUser,
   loginUser,
   logoutUser,
-  refreshToken,
   getCurrentUser,
-  refreshCurrentUser,
-  refreshUsersAvatar,
   getOtherUserInfo,
-  getUserAvatar,
   checkUserExists,
   getChangelog,
   sendPasswordReset,
+  resetPassword,
+  getGithubAuthUrl,
 };

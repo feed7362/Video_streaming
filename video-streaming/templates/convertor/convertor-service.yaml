@@ -8,6 +8,6 @@ spec:
     app: {{ include "video-streaming.name" . }}
     component: convertor
   ports:
-    - port: 8002
-      targetPort: 8002
+    - port: 9102
+      targetPort: 9102
       protocol: TCP

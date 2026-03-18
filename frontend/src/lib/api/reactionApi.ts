@@ -6,7 +6,7 @@ export const sendReaction = async (
   reaction: "like" | "dislike",
 ): Promise<ReactionResponse> => {
   const res = await clientApi.post<ReactionResponse>(
-    `/api/video/reaction/video/${videoId}`,
+    `/api/videos/${videoId}/reactions`,
     { reaction_name: reaction },
   );
   return res.data;
