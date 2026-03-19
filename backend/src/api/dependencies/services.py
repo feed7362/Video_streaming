@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 from fastapi import Depends
 
@@ -8,6 +9,8 @@ from src.infrastructure import (
     get_rabbit_broker,
     get_s3_client,
 )
+from src.services import get_current_user_id
+from src.services.analytics import AnalyticsService
 from src.services.comments import CommentService
 from src.services.file_signing import FileSigningService
 from src.services.files import FileService
@@ -61,3 +64,12 @@ def get_search_service(
     es: "AsyncElasticsearch" = Depends(get_es_client),
 ) -> SearchService:
     return SearchService(es)
+
+
+async def get_service_and_channel(
+    user_id: UUID = Depends(get_current_user_id),
+    session: "AsyncSession" = Depends(get_async_session),
+) -> tuple[AnalyticsService, object]:
+    service = AnalyticsService(session)
+    channel = await service.get_channel(user_id)
+    return service, channel

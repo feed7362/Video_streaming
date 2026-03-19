@@ -24,6 +24,7 @@ from src.errors.files import (
 )
 from src.errors.videos import VideoNotFoundError
 from src.models.channel import Channel
+from src.models.user import User
 from src.models.video import Video
 from src.models.video_resolutions import VideoResolution
 from src.schemas.endpoint import FileMeta, FileResponse
@@ -68,7 +69,16 @@ class FileService:
         channel_id = result.scalar_one_or_none()
 
         if not channel_id:
-            raise ChannelNotFoundError()
+            user_result = await self.session.execute(
+                select(User.username).where(User.id == user_id)
+            )
+            username = user_result.scalar_one_or_none()
+            if not username:
+                raise ChannelNotFoundError()
+            channel = Channel(user_id=user_id, name=username)
+            self.session.add(channel)
+            await self.session.flush()
+            channel_id = channel.id
 
         return channel_id
 
@@ -157,8 +167,6 @@ class FileService:
         video_id = uuid.uuid4()
 
         channel_id = await self._get_channel_id(user_id)
-        if not channel_id:
-            raise ChannelNotFoundError()
 
         inserted = await self._insert_video(
             video_id,

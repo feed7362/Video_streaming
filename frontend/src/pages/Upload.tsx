@@ -100,7 +100,7 @@ export default function Upload() {
                     <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-2 rounded border border-input bg-background text-foreground">
                         <option value="">Select category</option>
                         {categories.map((c) => (
-                            <option key={c.id} value={c.name}>
+                            <option key={c.id} value={c.name.toLowerCase()}>
                                 {c.name}
                             </option>
                         ))}

@@ -31,7 +31,6 @@ class AnalyticsService:
         channel_id = channel.id
         since = datetime.now(timezone.utc) - timedelta(days=30)
 
-        # Total views across all channel videos (from denormalized counter)
         total_views_result = await self.session.execute(
             select(func.coalesce(func.sum(Video.views_count), 0)).where(
                 Video.channel_id == channel_id
@@ -47,7 +46,6 @@ class AnalyticsService:
         )
         total_likes = int(total_likes_result.scalar())
 
-        # Total comments
         total_comments_result = await self.session.execute(
             select(func.count(Comment.id))
             .join(Video, Comment.video_id == Video.id)
@@ -55,7 +53,6 @@ class AnalyticsService:
         )
         total_comments = int(total_comments_result.scalar())
 
-        # Views per day (last 30 days from video_views table)
         views_per_day_result = await self.session.execute(
             select(
                 func.date(VideoView.viewed_at).label("day"),
@@ -71,7 +68,6 @@ class AnalyticsService:
             for row in views_per_day_result.all()
         ]
 
-        # Top 5 videos by views_count with comment count
         top_videos_result = await self.session.execute(
             select(
                 Video.id,
@@ -153,7 +149,6 @@ class AnalyticsService:
         channel_id = channel.id
         since = datetime.now(timezone.utc) - timedelta(days=30)
 
-        # Subscribers gained per day (last 30 days)
         subs_result = await self.session.execute(
             select(
                 func.date(Subscription.created_at).label("day"),
@@ -170,7 +165,6 @@ class AnalyticsService:
             DailyMetric(date=str(row.day), count=row.cnt) for row in subs_result.all()
         ]
 
-        # Unique viewers (distinct user_ids in video_views for channel)
         unique_result = await self.session.execute(
             select(func.count(func.distinct(VideoView.user_id)))
             .join(Video, VideoView.video_id == Video.id)
@@ -178,7 +172,6 @@ class AnalyticsService:
         )
         unique_viewers = int(unique_result.scalar())
 
-        # Returning viewers (users with > 1 view across channel videos)
         returning_result = await self.session.execute(
             select(func.count()).select_from(
                 select(VideoView.user_id)
@@ -191,7 +184,6 @@ class AnalyticsService:
         )
         returning_viewers = int(returning_result.scalar())
 
-        # Comments per day (last 30 days)
         comments_result = await self.session.execute(
             select(
                 func.date(Comment.created_at).label("day"),
