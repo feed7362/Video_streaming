@@ -117,58 +117,19 @@ class S3Client:
         except ClientError as e:
             logging.error(f"Error deleting file: {e}")
 
-    async def download_file(
-        self, object_name: str, chunk_size: int, bucket_name: Optional[str] = None
-    ) -> AsyncGenerator[bytes, None]:
-        if not bucket_name:
-            raise ValueError("bucket_name must be provided")
-        elif bucket_name not in self.bucket_names:
-            raise ValueError("bucket_name is not in bucket_names")
-        try:
-            async with self._get_client() as client:
-                head = await client.head_object(Bucket=bucket_name, Key=object_name)
-                size = head["ContentLength"]
-                chunk_size = max(min(chunk_size, size), 1 * 1024 * 1024)
-
-                for start in range(0, size, chunk_size):
-                    end = min(start + chunk_size - 1, size - 1)
-                    resp = await client.get_object(
-                        Bucket=bucket_name,
-                        Key=object_name,
-                        Range=f"bytes={start}-{end}",
-                    )
-                    yield await resp["Body"].read()
-                logging.info(
-                    f"File {object_name} downloaded with chunk size {chunk_size}"
-                )
-        except ClientError as e:
-            logging.error(f"Error downloading file: {e}")
-
-    async def download_file_by_range(
+    async def generate_presigned_url(
         self,
         object_name: str,
-        range_start: int = 0,
-        range_end: int = 1024,
-        bucket_name: Optional[str] = None,
-    ) -> AsyncGenerator[bytes, None]:
-        if not bucket_name:
-            raise ValueError("bucket_name must be provided")
-        elif bucket_name not in self.bucket_names:
-            raise ValueError("bucket_name is not in bucket_names")
-        try:
-            async with self._get_client() as client:
-                resp = await client.get_object(
-                    Bucket=bucket_name,
-                    Key=object_name,
-                    Range=f"bytes={range_start}-{range_end}",
-                )
-                logging.info(
-                    f"File {object_name} downloaded with chunk range "
-                    f"{range_start} - {range_end} Bytes"
-                )
-                yield await resp["Body"].read()
-        except ClientError as e:
-            logging.error(f"Error downloading file: {e}")
+        bucket_name: str,
+        expiry: int = 300,
+    ) -> str:
+        async with self._get_client() as client:
+            url = await client.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": bucket_name, "Key": object_name},
+                ExpiresIn=expiry,
+            )
+            return url
 
 
 _s3_client_instance: Optional[S3Client] = None

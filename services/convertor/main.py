@@ -7,7 +7,7 @@ from faststream.rabbit import RabbitBroker
 from prometheus_client import CollectorRegistry, make_asgi_app
 
 from src.config import get_rabbitmq_settings
-from src.exceptions import AppError, InvalidMediaError
+from src.exceptions import AppError, FFmpegExecutionError, InvalidMediaError
 from src.s3_client import get_s3_client
 from src.services import (
     check_liveness,
@@ -43,14 +43,10 @@ async def encode_video(filename: str) -> None:
             routing_key="video.encode.status",
         )
 
-        probe_stream = s3_client.download_file_by_range(
-            object_name=filename,
-            range_start=0,
-            range_end=5 * 1024 * 1024,
-            bucket_name="videos",
+        video_url = await s3_client.generate_presigned_url(
+            filename, bucket_name="videos", expiry=7200
         )
-
-        properties = await get_video_properties(probe_stream)
+        properties = await get_video_properties(video_url)
         if not properties.fps:
             raise InvalidMediaError("could not determine FPS from video metadata")
 
@@ -63,19 +59,29 @@ async def encode_video(filename: str) -> None:
             },
         )
 
-        async_gen = s3_client.download_file(
-            filename,
-            1024 * 1024 * 30,
-            bucket_name="videos",
-        )
-
-        await stream_ffmpeg(
-            async_gen,
-            base_dir,
-            int(round(properties.fps)),
-            3,
-            properties.has_audio,
-        )
+        try:
+            await stream_ffmpeg(
+                video_url,
+                base_dir,
+                int(round(properties.fps)),
+                3,
+                properties.has_audio,
+            )
+        except FFmpegExecutionError:
+            logging.warning(
+                "GPU encoding failed, retrying with CPU...",
+                extra={"video_id": video_id},
+            )
+            cleanup_dirs(video_id)
+            base_dir = await prepare_dirs(video_id)
+            await stream_ffmpeg(
+                video_url,
+                base_dir,
+                int(round(properties.fps)),
+                3,
+                properties.has_audio,
+                force_cpu=True,
+            )
 
         await s3_client.upload_dir(video_id, base_dir, bucket_name="videos")
 

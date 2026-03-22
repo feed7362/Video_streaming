@@ -5,12 +5,10 @@ import math
 import shutil
 import subprocess
 from pathlib import Path
-from typing import AsyncIterable
 
 from .exceptions import (
     DirectoryPrepareError,
     FFmpegExecutionError,
-    FFmpegInputError,
     FFmpegStartError,
     FFProbeError,
     InvalidMediaError,
@@ -52,24 +50,49 @@ def has_gpu() -> bool:
             stderr=subprocess.DEVNULL,
             check=True,
         )
+        test_cmd = [
+            "ffmpeg",
+            "-hide_banner",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=black:s=64x64:d=1",
+            "-c:v",
+            "h264_nvenc",
+            "-f",
+            "null",
+            "-",
+        ]
+        subprocess.run(
+            test_cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True,
+        )
         return True
     except Exception:
+        logging.warning(
+            "NVENC initialization failed or GPU missing. Falling back to CPU encoding."
+        )
         return False
 
 
 async def stream_ffmpeg(
-    input_async_iter: AsyncIterable[bytes],
+    url: str,
     output_dir: Path,
     fps: int,
     segment_duration: int = 3,
     has_audio: bool = True,
+    force_cpu: bool = False,
 ) -> int:
     out_template = str(output_dir / "stream_%v" / "seg_%03d.ts")
     out_playlist = str(output_dir / "stream_%v" / "playlist.m3u8")
 
     gop_size = math.ceil(fps * segment_duration)
-    print(f"Calculated GOP size for -g parameter: {gop_size}")
-    use_gpu = has_gpu()
+    logging.info(f"Calculated GOP size for -g parameter: {gop_size}")
+    use_gpu = has_gpu() and not force_cpu
 
     # ---------- Common base command ----------
     cmd = [
@@ -80,8 +103,6 @@ async def stream_ffmpeg(
         "-probesize",
         "100M",
         "-y",
-        "-fflags",
-        "+genpts",
     ]
 
     # ---------- Input & hardware acceleration ----------
@@ -92,7 +113,7 @@ async def stream_ffmpeg(
             "-hwaccel_output_format",
             "cuda",
         ]
-    cmd += ["-i", "pipe:0"]
+    cmd += ["-i", url]
 
     # ---------- Filter & scaling ----------
     if use_gpu:
@@ -176,7 +197,20 @@ async def stream_ffmpeg(
 
     # ---------- Preset / Rate control ----------
     if use_gpu:
-        cmd += ["-rc", "vbr", "-preset", "p1", "-tune:v", "ull"]
+        cmd += [
+            "-rc:v:0",
+            "vbr",
+            "-rc:v:1",
+            "vbr",
+            "-rc:v:2",
+            "vbr",
+            "-preset:v:0",
+            "p4",
+            "-preset:v:1",
+            "p4",
+            "-preset:v:2",
+            "p4",
+        ]
     else:
         cmd += ["-preset", "veryfast", "-tune", "zerolatency"]
 
@@ -205,34 +239,14 @@ async def stream_ffmpeg(
         out_playlist,
     ]
     try:
-        process = await asyncio.create_subprocess_exec(
-            *cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
-        )
+        process = await asyncio.create_subprocess_exec(*cmd, stderr=subprocess.PIPE)
     except Exception as e:
         raise FFmpegStartError() from e
-
-    async def feed_stdin() -> None:
-        if process.stdin is None:
-            logging.error("ffmpeg stdin is None")
-            return
-        try:
-            async for chunk in input_async_iter:
-                process.stdin.write(chunk)
-                await process.stdin.drain()
-            process.stdin.write_eof()
-        except Exception as e:
-            logging.error(f"Error feeding ffmpeg stdin: {e}")
-            raise FFmpegInputError() from e
-        finally:
-            if not process.stdin.is_closing():
-                process.stdin.close()
-                await process.stdin.wait_closed()
 
     stderr_output = []
 
     async def log_stderr() -> None:
         if process.stderr is None:
-            logging.error("ffmpeg stderr is None")
             return
         while True:
             chunk = await process.stderr.read(1024)
@@ -240,10 +254,9 @@ async def stream_ffmpeg(
                 break
             decoded = chunk.decode(errors="ignore").strip()
             stderr_output.append(decoded)
-            logging.debug("[ffmpeg stderr] %s", chunk.decode(errors="ignore").strip())
+            logging.debug("[ffmpeg stderr] %s", decoded)
 
-    await asyncio.gather(feed_stdin(), log_stderr())
-
+    await log_stderr()
     rc = await process.wait()
     if rc != 0:
         tail = "\n".join(stderr_output[-5:]) if stderr_output else "No stderr output"
@@ -251,10 +264,7 @@ async def stream_ffmpeg(
     return rc
 
 
-async def get_video_properties(
-    input_async_iter: AsyncIterable[bytes],
-) -> VideoProperties:
-    # Feed ffprobe only a small portion of data
+async def get_video_properties(url: str) -> VideoProperties:
     cmd = [
         "ffprobe",
         "-v",
@@ -262,33 +272,15 @@ async def get_video_properties(
         "-show_streams",
         "-of",
         "json",
-        "pipe:0",
+        url,
     ]
 
     try:
         process = await asyncio.create_subprocess_exec(
-            *cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            *cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
     except Exception as e:
         raise FFProbeError(details="Failed to start ffprobe process") from e
-
-    try:
-        if process.stdin is not None:
-            async for chunk in input_async_iter:
-                if process.stdin.is_closing():
-                    break
-                process.stdin.write(chunk)
-                await process.stdin.drain()
-            process.stdin.write_eof()
-    except BrokenPipeError:
-        logging.warning("ffprobe closed stdin early (likely got enough data).")
-    except Exception as e:
-        logging.error(f"Error reading chunks for ffprobe: {e}")
-        process.kill()
-        raise FFProbeError(details=f"Error reading chunks for ffprobe: {str(e)}") from e
-    finally:
-        if process.stdin and not process.stdin.is_closing():
-            process.stdin.close()
 
     stdout, stderr = await process.communicate()
     if process.returncode != 0:
