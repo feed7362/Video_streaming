@@ -73,8 +73,9 @@ async def get_videos(
 )
 async def get_categories(
     service: VideoService = Depends(get_video_service),
+    plain: bool = Query(True, description="Return plain list of category names"),
 ) -> List[str]:
-    return await service.list_categories()
+    return await service.list_categories(plain=plain)
 
 
 @router_videos.get(
