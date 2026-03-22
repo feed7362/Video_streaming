@@ -1,7 +1,5 @@
 import { useEffect, useRef } from "react";
-
 import Hls from "hls.js";
-import { Card } from "@/components/ui/card";
 
 interface VideoPlayerProps {
     src: string;
@@ -9,7 +7,6 @@ interface VideoPlayerProps {
 
 export default function VideoPlayer({ src }: VideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
-
 
     useEffect(() => {
         const video = videoRef.current;
@@ -22,8 +19,8 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 video.play();
             });
-            hls.on(Hls.Events.ERROR, function (event, data) {
-                console.error('HLS.js error:', event, data);
+            hls.on(Hls.Events.ERROR, (event, data) => {
+                console.error("HLS.js error:", event, data);
             });
             return () => hls.destroy();
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
@@ -31,12 +28,12 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
         }
     }, [src]);
 
-    return (<Card className="w-full max-w-4xl mx-auto rounded-lg overflow-hidden p-0">
+    return (
         <video
             ref={videoRef}
             controls
-            className="w-full h-auto block"
-            style={{ aspectRatio: "16/9", display: "block" }}
+            className="w-full block"
+            style={{ aspectRatio: "16/9" }}
         />
-    </Card>);
+    );
 }

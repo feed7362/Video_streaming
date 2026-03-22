@@ -1,6 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card } from "@/components/ui/card";
-import { CARD_CONFIG } from "@/components/CARD_CONFIG.tsx";
+
+const THUMB_H = 190;   // px — fixed thumbnail height
+const META_H  =  88;   // px — fixed meta row height
 
 interface VideoCardProps {
     id?: string;
@@ -11,17 +12,73 @@ interface VideoCardProps {
     views?: number;
     timeAgo?: string;
     loading?: boolean;
+    /** Render as a compact horizontal row (Watch sidebar) */
+    horizontal?: boolean;
 }
 
-// Функція для форматування числа переглядів (наприклад, 12000 -> 12K)
 const formatViews = (views: number | undefined): string => {
-    if (views === undefined) return '';
-    if (views < 1000) return views.toString();
-    if (views < 1000000) return `${(views / 1000).toFixed(1)}K`;
-    return `${(views / 1000000).toFixed(1)}M`;
+    if (views === undefined) return "";
+    if (views < 1000) return `${views} views`;
+    if (views < 1_000_000) return `${(views / 1000).toFixed(1)}K views`;
+    return `${(views / 1_000_000).toFixed(1)}M views`;
 };
 
+const Avatar = ({ src, name, size }: { src?: string; name?: string; size: number }) => {
+    const initial = (name ?? "?").charAt(0).toUpperCase();
+    if (src) {
+        return (
+            <img
+                src={src}
+                alt={name}
+                width={size}
+                height={size}
+                className="rounded-full object-cover shrink-0"
+                style={{ width: size, height: size }}
+                loading="lazy"
+                decoding="async"
+            />
+        );
+    }
+    return (
+        <div
+            className="rounded-full bg-muted flex items-center justify-center shrink-0 text-xs font-semibold text-muted-foreground"
+            style={{ width: size, height: size }}
+        >
+            {initial}
+        </div>
+    );
+};
 
+/* ── Skeletons ─────────────────────────────────────────────────────── */
+function CardSkeleton({ horizontal }: { horizontal?: boolean }) {
+    if (horizontal) {
+        return (
+            <div className="flex gap-2">
+                <Skeleton className="rounded-xl shrink-0" style={{ width: 168, height: 94 }} />
+                <div className="flex-1 min-w-0 pt-1 space-y-2">
+                    <Skeleton className="h-3.5 w-full" />
+                    <Skeleton className="h-3 w-2/3" />
+                    <Skeleton className="h-3 w-1/2" />
+                </div>
+            </div>
+        );
+    }
+    return (
+        <div className="flex flex-col" style={{ height: THUMB_H + META_H }}>
+            <Skeleton className="rounded-t-xl w-full shrink-0" style={{ height: THUMB_H }} />
+            <div className="flex gap-3 px-1 py-2 shrink-0" style={{ height: META_H }}>
+                <Skeleton className="rounded-full shrink-0" style={{ width: 36, height: 36 }} />
+                <div className="flex-1 min-w-0 space-y-2 pt-1">
+                    <Skeleton className="h-3.5 w-full" />
+                    <Skeleton className="h-3 w-2/3" />
+                    <Skeleton className="h-3 w-1/2" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ── Card ─────────────────────────────────────────────────────────── */
 export default function VideoCard({
     title,
     thumbnail,
@@ -30,65 +87,69 @@ export default function VideoCard({
     views,
     timeAgo,
     loading = false,
+    horizontal = false,
 }: VideoCardProps) {
-    const { height, avatarSize, metaRatio } = CARD_CONFIG;
+    if (loading) return <CardSkeleton horizontal={horizontal} />;
 
-    const metaHeight = height * metaRatio;
-    const thumbnailHeight = height * (1 - metaRatio);
+    // Use \u00b7 escape (middle dot) to avoid raw-byte encoding issues
+    const meta = [formatViews(views), timeAgo].filter(Boolean).join(" \u00b7 ");
 
-    const formattedViews = formatViews(views);
-    const metaText = `${formattedViews} переглядів${timeAgo ? ` · ${timeAgo}` : ''}`;
-
-
-    if (loading) {
+    /* ── Horizontal (Watch sidebar) ───────────────────────────────── */
+    if (horizontal) {
         return (
-            <div className="w-full">
-                <div className="flex flex-col gap-0 w-full" style={{ height }}>
-                    <Skeleton
-                        className="rounded-t-xl block w-full"
-                        style={{ height: thumbnailHeight }}
+            <div className="flex gap-2 group">
+                <div className="relative shrink-0 rounded-xl overflow-hidden bg-muted" style={{ width: 168, height: 94 }}>
+                    <img
+                        src={thumbnail}
+                        alt={title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        loading="lazy"
+                        decoding="async"
                     />
-                    <div className="flex items-center gap-3 px-2" style={{ height: metaHeight }}>
-                        <Skeleton className="rounded-full" style={{ width: avatarSize, height: avatarSize }} />
-                        <div className="flex-1 min-w-0">
-                            <Skeleton className="h-4 mb-2" style={{ width: "60%" }} />
-                            {/* Скелетон для метаданих */}
-                            <Skeleton className="h-4" style={{ width: "40%" }} />
-                        </div>
-                    </div>
+                </div>
+                <div className="flex-1 min-w-0 pt-0.5">
+                    <p className="text-sm font-semibold line-clamp-2 leading-snug">{title}</p>
+                    <p className="text-xs text-muted-foreground mt-1 truncate">{channel_name}</p>
+                    {meta && <p className="text-xs text-muted-foreground truncate">{meta}</p>}
                 </div>
             </div>
         );
     }
 
+    /* ── Vertical (Home grid) — fixed total height ────────────────── */
     return (
-
-        <Card className="p-0 gap-0 rounded-xl overflow-hidden w-full" style={{ height }}>
-            <img
-                src={thumbnail}
-                alt={title}
-                className="rounded-t-xl block w-full"
-                style={{ height: thumbnailHeight, objectFit: "cover", display: "block" }}
-            />
-            <div className="flex items-start gap-3 px-3 py-2" style={{ height: metaHeight }}>
+        <div
+            className="flex flex-col group cursor-pointer w-full"
+            style={{ height: THUMB_H + META_H }}
+        >
+            {/* Thumbnail — rounded top only, fixed height */}
+            <div
+                className="relative w-full overflow-hidden rounded-t-xl bg-muted shrink-0"
+                style={{ height: THUMB_H }}
+            >
                 <img
-                    className="avatar-img rounded-full"
-                    src={channel_avatar}
-                    alt={channel_name || "channel avatar"}
-                    width={avatarSize}
-                    height={avatarSize}
-                    decoding="async"
+                    src={thumbnail}
+                    alt={title}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                     loading="lazy"
-                    style={{ width: avatarSize, height: avatarSize, display: "block", objectFit: "cover" }}
+                    decoding="async"
                 />
-                <div className="flex flex-col flex-1 min-w-0">
-                    <h2 className="font-semibold truncate">{title}</h2>
-                    <h4 className="text-sm text-gray-500 truncate">{channel_name}</h4>
-                    <h3 className="text-sm text-gray-500">
-                        {metaText}
-                    </h3>
+            </div>
+
+            {/* Meta — fixed height, overflow hidden so text never expands card */}
+            <div
+                className="flex gap-3 px-1 py-2 overflow-hidden shrink-0"
+                style={{ height: META_H }}
+            >
+                <div className="pt-0.5 shrink-0">
+                    <Avatar src={channel_avatar} name={channel_name} size={36} />
+                </div>
+                <div className="flex-1 min-w-0 overflow-hidden">
+                    <h3 className="text-sm font-semibold line-clamp-2 leading-snug">{title}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{channel_name}</p>
+                    {meta && <p className="text-xs text-muted-foreground truncate">{meta}</p>}
                 </div>
             </div>
-        </Card>
+        </div>
     );
 }

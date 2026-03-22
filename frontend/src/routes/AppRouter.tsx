@@ -41,6 +41,7 @@ export default function AppRouter() {
                     <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
                     <Route path="/search-results" element={<SearchResults />} />
                     <Route path="/studio" element={<ProtectedRoute><Studio /></ProtectedRoute>} />
+                <Route path="/channel/:channel_name" element={<Channel />} />
                 </Route>
 
                 <Route path="/reset-password" element={<ResetPass />} />
@@ -48,7 +49,7 @@ export default function AppRouter() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/loading" element={<Loading />} />
-                <Route path="/channel" element={<Channel />} />
+                <Route path="/channel" element={<Navigate to="/" replace />} />
 
                 <Route path="/auth/callback" element={<GitHubCallback />} />
                 <Route path="/404" element={<NotFound />} />
