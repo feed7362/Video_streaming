@@ -104,7 +104,7 @@ export function useVideo() {
 
     try {
       const nextPage = page + 1;
-      const newResults = await search(searchQuery, nextPage, searchFilters);
+      const newResults = await search(searchQuery, searchFilters);
 
       const resultsWithTime: VideoPreviewWithTime[] = newResults.map((v) => ({
         ...v,

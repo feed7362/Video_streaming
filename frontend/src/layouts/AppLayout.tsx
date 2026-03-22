@@ -4,30 +4,27 @@ import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { Toaster } from "@/components/ui/toast/toaster";
 
-function LayoutInner() {
+function MainContent() {
     const { open } = useSidebar();
     return (
-        <div className="h-screen flex flex-col [--header-height:56px]">
-            <SiteHeader />
-            <AppSidebar />
-            <main
-                className="flex-1 min-h-0 overflow-y-auto transition-all duration-200"
-                style={{
-                    marginTop: "var(--header-height)",
-                    marginLeft: open ? "224px" : "72px",
-                }}
-            >
-                <Outlet />
-            </main>
-            <Toaster />
-        </div>
+        <main
+            className="absolute bottom-0 right-0 top-[var(--header-height)] overflow-y-auto transition-all duration-200"
+            style={{ left: open ? "224px" : "72px" }}
+        >
+            <Outlet />
+        </main>
     );
 }
 
 export default function AppLayout() {
     return (
-        <SidebarProvider defaultOpen={false}>
-            <LayoutInner />
-        </SidebarProvider>
+        <div className="h-screen overflow-hidden [--header-height:calc(--spacing(14))]">
+            <SidebarProvider defaultOpen={false}>
+                <AppSidebar />
+                <SiteHeader />
+                <MainContent />
+                <Toaster />
+            </SidebarProvider>
+        </div>
     );
 }

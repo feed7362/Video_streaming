@@ -23,6 +23,8 @@ const Subscriptions = lazy(() => import("@/pages/Subscriptions"));
 const SearchResults = lazy(() => import("@/pages/SearchResults"));
 const GitHubCallback = lazy(() => import("@/pages/GitHubCallback"));
 const Studio = lazy(() => import("@/pages/Studio"));
+const Playlists = lazy(() => import("@/pages/Playlists"));
+const YourVideos = lazy(() => import("@/pages/YourVideos"));
 
 export default function AppRouter() {
     return (
@@ -41,6 +43,8 @@ export default function AppRouter() {
                     <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
                     <Route path="/search-results" element={<SearchResults />} />
                     <Route path="/studio" element={<ProtectedRoute><Studio /></ProtectedRoute>} />
+                    <Route path="/playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
+                    <Route path="/your-videos" element={<ProtectedRoute><YourVideos /></ProtectedRoute>} />
                 <Route path="/channel/:channel_name" element={<Channel />} />
                 </Route>
 

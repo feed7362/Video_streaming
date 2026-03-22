@@ -118,7 +118,7 @@ export default function UploadPage() {
     /* ── Phase 1: Drop zone ─────────────────────────────────────── */
     if (!videoFile) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-background px-4">
+            <div className="flex items-center justify-center py-20 px-4">
                 <div className="w-full max-w-lg text-center">
                     <h1 className="text-2xl font-semibold mb-2">Upload video</h1>
                     <p className="text-muted-foreground text-sm mb-8">
@@ -172,7 +172,7 @@ export default function UploadPage() {
 
     /* ── Phase 2: Details ───────────────────────────────────────── */
     return (
-        <div className="min-h-screen bg-background flex flex-col">
+        <div className="flex flex-col">
             {/* Top bar */}
             <div className="flex items-center justify-between border-b px-6 py-4 sticky top-0 bg-background z-10">
                 <div className="flex items-center gap-3">
@@ -197,7 +197,7 @@ export default function UploadPage() {
             </div>
 
             {/* Body */}
-            <div className="flex flex-1 gap-8 px-8 py-8 max-w-6xl w-full mx-auto">
+            <div className="flex flex-1 gap-8 px-6 py-6 w-full">
                 {/* Left: form */}
                 <div className="flex-1 flex flex-col gap-6 min-w-0">
                     {/* Title */}

@@ -14,26 +14,22 @@ interface ApiVideoItem extends VideoPreview {
 
 export const search = async (
   query: string,
-  page: number,
   filters?: SearchFilters,
 ): Promise<VideoPreviewWithTime[]> => {
-  const params = {
-    q: query,
-    page: page,
+  const body = {
+    query,
+    limit: 9,
     category: filters?.category === "All" ? undefined : filters?.category,
     min_views: filters?.minViews,
     max_views: filters?.maxViews,
-    smart_search: filters?.smartSearch,
-    has_description: filters?.includeDescription,
+    smart_search: filters?.smartSearch ?? false,
+    has_description: filters?.includeDescription ?? false,
   };
 
   try {
     const response = await clientApi.post<SearchResponse>(
       `/api/search/video`,
-      {},
-      {
-        params: params,
-      },
+      body,
     );
 
     const results = response.data?.results || [];
@@ -68,7 +64,7 @@ export const getHints = async (query: string): Promise<string[]> => {
     const response = await clientApi.get<SearchHintsResponse>(
       `/api/search/video_hints`,
       {
-        params: { q: query },
+        params: { query },
       },
     );
     return response.data.hints || [];

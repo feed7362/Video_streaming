@@ -18,8 +18,10 @@ export default function History() {
         setLoading(true);
         try {
             const response = await getUserHistory(page, pageSize);
-            setVideos(prev => [...prev, ...response.items]);
-            setHasMore(videos.length + response.items.length < response.total);
+            const items = Array.isArray(response) ? response : (response.items ?? []);
+            const total = Array.isArray(response) ? response.length : (response.total ?? 0);
+            setVideos(prev => [...prev, ...items]);
+            setHasMore(videos.length + items.length < total);
             setPage(prev => prev + 1);
         } catch (err: unknown) {
             console.error("Failed to load history:", err);
@@ -52,8 +54,8 @@ export default function History() {
     };
 
     return (
-        <div className="my-4 mx-auto max-w-[1400px] px-6">
-            <div className="flex justify-between items-center mb-4">
+        <div className="px-4 py-4">
+            <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">History</h1>
                 {videos.length > 0 && (
                     <Button variant="destructive" onClick={handleClearHistory}>
@@ -62,8 +64,7 @@ export default function History() {
                 )}
             </div>
 
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-                style={{ gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))" }}>
+            <div className="grid gap-x-4 gap-y-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 pb-10">
                 {loading && videos.length === 0
                     ? Array.from({ length: 12 }).map((_, i) => <VideoCard key={i} loading />)
                     : (

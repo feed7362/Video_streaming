@@ -49,27 +49,22 @@ const PAGE_SIZE = 9;
 // Функція пошуку відео
 const fetchSearchResults = async (
   query: string,
-  page: number,
   filters?: SearchFilters,
 ): Promise<VideoPreviewWithTime[]> => {
-  const params = {
-    q: query,
-    page: page,
-    size: PAGE_SIZE,
+  const body = {
+    query,
+    limit: PAGE_SIZE,
     category: filters?.category === "All" ? undefined : filters?.category,
     min_views: filters?.minViews,
     max_views: filters?.maxViews,
-    smart_search: filters?.smartSearch,
-    has_description: filters?.includeDescription,
+    smart_search: filters?.smartSearch ?? false,
+    has_description: filters?.includeDescription ?? false,
   };
 
   try {
     const response = await clientApi.post<SearchResponse>(
       `/api/search/video`,
-      {},
-      {
-        params: params,
-      },
+      body,
     );
 
     const results = response.data?.results || [];
@@ -100,7 +95,7 @@ const getHints = async (query: string): Promise<string[]> => {
     const response = await clientApi.get<SearchHintsResponse>(
       `/api/search/video_hints`,
       {
-        params: { q: query },
+        params: { query },
       },
     );
     return response.data.hints || [];
@@ -184,11 +179,7 @@ export function useSearch({
     setLoading(true);
 
     try {
-      const newResults = await fetchSearchResults(
-        searchQuery,
-        nextPage,
-        searchFilters,
-      );
+      const newResults = await fetchSearchResults(searchQuery, searchFilters);
 
       if (newResults.length < PAGE_SIZE) {
         setHasMore(false);
@@ -256,7 +247,7 @@ export function useSearch({
       setHasMore(true);
       setLoading(true);
 
-      fetchSearchResults(queryFromUrl, 1, searchFilters)
+      fetchSearchResults(queryFromUrl, searchFilters)
         .then((newResults) => {
           setVideos(newResults);
           setHasMore(newResults.length === PAGE_SIZE);
