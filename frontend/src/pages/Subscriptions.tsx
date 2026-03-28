@@ -47,7 +47,7 @@ export default function Subscriptions() {
     }
 
     return (
-        <div className="my-8 mx-auto max-w-[1100px] px-6">
+        <div className="px-4 py-6 max-w-3xl">
             <h1 className="text-3xl font-bold mb-6">
                 Channels you’re subscribed to
             </h1>

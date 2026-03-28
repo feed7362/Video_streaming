@@ -5,6 +5,7 @@ export interface ChannelInfo {
   subscribersCount: number;
   videosCount: number;
   bio?: string;
+  description?: string;
   createdAt: string;
   name: string;
   isOwner?: boolean;

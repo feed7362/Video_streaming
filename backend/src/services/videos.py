@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, get_args
 from uuid import NAMESPACE_DNS, UUID, uuid5
 
 from sqlalchemy import select, update
@@ -12,7 +12,7 @@ from src.errors.videos import (
     VideoPrivacyUpdateForbidden,
 )
 from src.models import Category, Channel, PrivacyStatus, Video, VideoReaction, VideoView
-from src.schemas.video import map_video_to_playback, to_video_preview
+from src.schemas.video import VideoCategory, map_video_to_playback, to_video_preview
 from src.services.reactions import toggle_reaction
 
 
@@ -59,7 +59,9 @@ class VideoService:
             mapper=to_video_preview,
         )
 
-    async def list_categories(self) -> List[str]:
+    async def list_categories(self, plain: bool) -> List[str]:
+        if plain:
+            return list(get_args(VideoCategory))
         result = await self.session.execute(
             select(Category.name)
             .join(Video, Category.id == Video.category_id)

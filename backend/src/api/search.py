@@ -50,7 +50,7 @@ async def get_hints(
     Returns autocomplete hints for the user's partial query.
     Uses Elasticsearch completion suggester.
     """
-    hints = await service.get_video_hints(payload.q)
+    hints = await service.get_video_hints(payload.query)
     return VideoHintsResponse(hints=hints)
 
 

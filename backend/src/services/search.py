@@ -78,7 +78,7 @@ class SearchService:
                 )
                 return {
                     "hits": [
-                        {**hit["_source"], "score": hit.get("_score")}
+                        {"id": hit["_id"], **hit["_source"], "score": hit.get("_score")}
                         for hit in result["hits"]["hits"]
                     ]
                 }

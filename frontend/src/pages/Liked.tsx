@@ -43,10 +43,9 @@ export default function Liked() {
     }
 
     return (
-        <div className="my-4 mx-auto max-w-[1400px] px-6">
-            <h1 className="text-2xl font-bold mb-4">Liked videos</h1>
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-                style={{ gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))" }}>
+        <div className="px-4 py-4">
+            <h1 className="text-2xl font-bold mb-6">Liked videos</h1>
+            <div className="grid gap-x-4 gap-y-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 pb-10">
                 {loading
                     ? Array.from({ length: 12 }).map((_, i) => <VideoCard key={i} loading />)
                     : (

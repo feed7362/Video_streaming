@@ -41,7 +41,7 @@ export function useVideo() {
   const metaDataText = useMemo(() => {
     if (!video) return "";
     const viewCountText = formatViews(video.views);
-    return `${viewCountText} views ${video.timeAgo ? "� " + video.timeAgo : ""}`;
+    return `${viewCountText} views${video.timeAgo ? " \u00b7 " + video.timeAgo : ""}`;
   }, [video, formatViews]);
 
   const fetchVideo = useCallback(async () => {
@@ -104,7 +104,7 @@ export function useVideo() {
 
     try {
       const nextPage = page + 1;
-      const newResults = await search(searchQuery, nextPage, searchFilters);
+      const newResults = await search(searchQuery, searchFilters);
 
       const resultsWithTime: VideoPreviewWithTime[] = newResults.map((v) => ({
         ...v,
