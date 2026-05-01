@@ -7,7 +7,7 @@ requires-python = ">=3.10,<3.13"
 dependencies = [
     "aiobotocore>=2.24.1",
     "faststream[cli,prometheus,rabbit]>=0.5.48",
-    "pydantic-settings>=2.10.1",
+    "pydantic-settings>=2.14.0",
     "pytest>=8.4.1",
     "pyyaml>=6.0.2",
     "uvicorn[standard]>=0.35.0",
