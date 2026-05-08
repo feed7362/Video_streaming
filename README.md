@@ -1,117 +1,146 @@
-# Video Streaming Platform
+# StreamHub — Вебплатформа соціальної взаємодії та аналітики мультимедійного контенту
 
-This project is a complete video streaming platform developed using a microservices architecture. It's designed to be
-scalable, maintainable, and observable, incorporating modern development practices and a full CI/CD pipeline.
+Повнофункціональна мікросервісна платформа відеостримінгу з підтримкою адаптивного HLS-стримінгу, аналітики авторів, повнотекстового пошуку, OAuth-автентифікації та моніторингу в реальному часі.
 
-## ✨ Features
+---
 
-- **Microservices Architecture**: Decoupled services for the backend, authentication, video conversion, and moderation.
-- **Asynchronous Backend**: Built with **FastAPI** for high performance and handling concurrent operations like file
-  uploads and streaming.
-- **Modern Frontend**: A responsive user interface built with **React** and **Vite**.
-- **Efficient Video Processing**: An asynchronous video conversion service using **FFmpeg** and a message queue (*
-  *RabbitMQ**) to handle transcoding tasks.
-- **Scalable Storage**: Uses **MinIO** for S3-compatible object storage for video files.
-- **Robust CI/CD**: Automated testing, linting, and deployment pipelines using **GitHub Actions**.
-- **Comprehensive Observability**: A full monitoring stack with **Prometheus** for metrics, **Loki** for logs, and *
-  *Grafana** for visualization and dashboards.
-- **Containerized Environment**: The entire application stack is containerized with **Docker** and orchestrated with
-  Docker Compose for easy setup and deployment.
+## Технологічний стек
 
-## 🏛️ Architecture Overview
+| Рівень | Технологія | Версія |
+|--------|-----------|--------|
+| **Backend (BFF)** | FastAPI | 0.129 |
+| **Frontend** | React + TypeScript + Vite | 19 / 5.8 / 7.x |
+| **База даних** | PostgreSQL | 16 |
+| **ORM / Міграції** | SQLAlchemy + Alembic | 2.0 |
+| **Кеш / Rate limiting** | Redis | latest |
+| **Черга повідомлень** | RabbitMQ + FastStream | 3.8 |
+| **Об'єктне сховище** | MinIO | latest |
+| **Пошуковий рушій** | Elasticsearch | 9.2.0 |
+| **Транскодування** | FFmpeg (GPU + CPU fallback) | — |
+| **Управління секретами** | HashiCorp Vault | latest |
+| **Шлюз** | NGINX | alpine |
+| **Моніторинг** | Prometheus + Grafana + Loki | — |
+| **Контейнеризація** | Docker + Docker Compose | 24+ |
+| **Пакетний менеджер Python** | uv | — |
+| **CI/CD** | GitHub Actions | — |
 
-The application is composed of several key components that work together:
+---
 
-- **NGINX Gateway**: Acts as a reverse proxy, directing traffic to the appropriate service (frontend or backend).
-- **Frontend**: The client-facing React application that users interact with.
-- **Backend (BFF)**: A Backend-For-Frontend service built with FastAPI. It handles API requests, manages business logic,
-  and communicates with other services and the database.
-- **Services**:
-    - **Converter Service**: Consumes messages from RabbitMQ to perform video transcoding using FFmpeg.
-    - **Auth & Moderation Services**: Dedicated microservices for handling user authentication and content moderation.
-- **Data & Messaging**:
-    - **PostgreSQL**: The primary relational database for storing application data.
-    - **MinIO**: S3-compatible storage for all video assets.
-    - **RabbitMQ**: A message broker for queuing asynchronous tasks like video encoding.
-- **Observability Stack**:
-    - **Prometheus**: Collects metrics from the backend services.
-    - **Loki & Promtail**: Aggregate logs from all Docker containers.
-    - **Grafana**: Provides dashboards for visualizing logs and metrics.
+## Системні вимоги
 
-## 🛠️ Tech Stack
+| Компонент | Мінімальна версія |
+|-----------|------------------|
+| Docker Engine | 24.0+ |
+| Docker Compose | v2.20+ |
+| Python | 3.12+ |
+| Node.js | 20+ |
+| npm | 10+ |
+| uv | 0.4+ |
+| Git | 2.40+ |
+| RAM | 8 GB |
+| Дисковий простір | 20 GB |
+| OS | Linux / macOS / Windows 10+ (WSL2) |
 
-| Category      | Technologies                                                                   |
-| :------------ | :----------------------------------------------------------------------------- |
-| **Backend** | Python 3.12, FastAPI, SQLAlchemy, Pydantic, Uvicorn, `uv`                      |
-| **Frontend** | React, Vite, ESLint, Prettier                                                  |
-| **Database** | PostgreSQL, Alembic (Migrations)                                               |
-| **Services** | RabbitMQ (Message Broker), FFmpeg (Video Processing)                           |
-| **Storage** | MinIO (S3-Compatible Object Storage)                                           |
-| **DevOps** | Docker, Docker Compose, GitHub Actions, NGINX, Pre-commit, Gitleaks, Dependabot |
-| **Monitoring**| Prometheus, Grafana, Loki, Promtail                                            |
+---
 
-## 🚀 Getting Started
+## Розгортання
 
-### Prerequisites
+### 1. Клонування репозиторію
 
-- Docker and Docker Compose
-- An NVIDIA GPU with the NVIDIA Container Toolkit is required for the FFMPEG conversion service.
+```bash
+git clone https://github.com/feed7362/Video_streaming.git
+cd Video_streaming
+```
 
-### Running Locally
+### 2. Налаштування змінних середовища
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd <repository-name>
-   ```
+```bash
+cp Docker/.env.example Docker/.env
+# Відредагуйте Docker/.env: вкажіть паролі БД, ключі MinIO тощо
+```
 
-2. **Prepare Environment Files:**
-   Copy the example environment files and populate them with your secrets if necessary.
-   ```bash
-   cp backend/src/database.env.example backend/src/database.env
-   cp backend/src/s3.env.example backend/src/s3.env
-   ```
+### 3. Запуск контейнерів
 
-3. **Build and Run the Stack:**
-   Use the following Docker Compose commands from the root directory.
-   ```bash
-   # Build all the service images
-   docker compose -p video_streaming_stack -f ./Docker/docker-compose.yml build
+```bash
+cd Docker
+docker compose up -d
+```
 
-   # Start all services in detached mode
-   docker compose -p video_streaming_stack -f ./Docker/docker-compose.yml up -d
-   ```
+Запустяться 15 сервісів: nginx, bff, frontend, convertor, postgres, redis, rabbitmq, minio, elasticsearch, keycloak, vault, prometheus, grafana, loki, promtail.
 
-4. **Accessing Services:**
-    - **Frontend Application**: `http://localhost`
-    - **Backend API Docs**: `http://localhost/api/docs`
-    - **Grafana Dashboard**: `http://localhost/grafana` (user: `admin`, pass: `admin`)
-    - **MinIO Console**: `http://localhost/minio/ui`
+### 4. Застосування міграцій бази даних
 
-## CI/CD Pipeline
+```bash
+docker exec bff_service alembic upgrade head
+```
 
-This project is configured with a complete CI/CD pipeline using GitHub Actions:
+### 5. Встановлення залежностей та збірка frontend (для розробки)
 
-1. **Push to `dev` branch**: Triggers the `CI for dev branch` workflow, which runs linting, type-checking, tests, and
-   security scans for all services.
-2. **Successful CI on `dev`**: Automatically triggers the `Auto PR to Stage` workflow, which creates a pull request from
-   `dev` to the `stage` branch.
-3. **Merge to `stage` branch**: Triggers the `CD Pipeline` workflow, which detects changed services, builds their Docker
-   images, and (optionally) deploys them.
+```bash
+# Backend
+cd backend
+uv sync
 
-## 🤝 Contributing
+# Frontend
+cd frontend
+npm install
+npm run build
+```
 
-Contributions are welcome! Please follow these steps:
+### 6. Наповнення тестовими даними (опціонально)
 
-1. Fork the repository.
-2. Create a new branch for your feature or bug fix.
-3. Set up the pre-commit hooks to ensure code quality: `pre-commit install`.
-4. Make your changes.
-5. Submit a pull request.
+```bash
+docker exec bff_service python -m utils.db_seeder
+```
 
-Please use the provided templates for submitting [bug reports](.github/ISSUE_TEMPLATE/bug_report.md)
-and [feature requests](.github/ISSUE_TEMPLATE/feature_request.md).
+### 7. Перевірка стану сервісів
 
-## 📄 License
+```bash
+docker ps
+curl http://localhost/api/health/ready
+```
 
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
+---
+
+## Доступ до сервісів
+
+| Сервіс | URL |
+|--------|-----|
+| Головна сторінка | http://localhost |
+| API документація | http://localhost/api/docs |
+| Grafana | http://localhost/grafana (admin / admin) |
+| MinIO Console | http://localhost/minio/ui |
+| RabbitMQ | http://localhost/rabbitmq |
+
+---
+
+## Структура проєкту
+
+```
+Video_streaming/
+├── Docker/                  # docker-compose.yml, .env, postgres init
+├── backend/                 # FastAPI BFF (Python 3.12, uv)
+│   ├── src/api/             # REST endpoint handlers (15 роутерів)
+│   ├── src/services/        # Бізнес-логіка
+│   ├── src/models/          # SQLAlchemy ORM моделі
+│   ├── src/infrastructure/  # Клієнти: DB, Redis, MinIO, ES, Vault, RabbitMQ
+│   └── alembic/             # Міграції БД
+├── frontend/                # React 19 + TypeScript SPA (Vite)
+│   └── src/
+│       ├── pages/           # 27 сторінок (lazy-loaded)
+│       ├── components/      # Спільні UI компоненти
+│       └── lib/api/         # Axios API клієнти
+├── services/
+│   └── convertor/           # FFmpeg мікросервіс транскодування
+├── gateway/
+│   └── nginx.conf           # Reverse proxy + маршрутизація
+├── monitoring/              # Prometheus, Loki, Promtail конфіги
+├── vault/                   # HashiCorp Vault auto-unseal
+└── ci/                      # GitHub Actions CI/CD workflows
+```
+
+---
+
+## Ліцензія
+
+[Apache License 2.0](LICENSE)
