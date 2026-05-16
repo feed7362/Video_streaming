@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Optional
 from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
 
 import xxhash
+from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import UploadFile
 from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -28,6 +29,7 @@ from src.models.user import User
 from src.models.video import Video
 from src.models.video_resolutions import VideoResolution
 from src.schemas.endpoint import FileMeta, FileResponse
+from src.services.correlation import get_request_id
 
 if TYPE_CHECKING:
     from faststream.rabbit import RabbitBroker
@@ -195,9 +197,11 @@ class FileService:
                 filename,
                 queue="video.encode",
                 priority=10,
+                correlation_id=get_request_id(),
+                headers={"x-request-id": get_request_id()},
             )
-        except Exception as e:
-            logging.error(f"Upload pipeline failed for {video_id}: {e}")
+        except (RuntimeError, ConnectionError, TimeoutError, OSError) as e:
+            logging.exception("Upload pipeline failed for %s: %s", video_id, e)
 
             await self.session.execute(delete(Video).where(Video.id == video_id))
             await self.session.commit()
@@ -260,8 +264,8 @@ class FileService:
             return self.s3_client.download_file(
                 object_key, chunk_size, bucket_name=bucket_name
             )
-        except Exception as e:
-            logging.error(f"S3 streaming error for {object_key}: {e}")
+        except (BotoCoreError, ClientError) as e:
+            logging.exception("S3 streaming error for %s: %s", object_key, e)
             raise S3DownloadError(object_key)
 
     async def delete_video(self, video_id, user_id):
@@ -292,8 +296,8 @@ class FileService:
                 await self.s3_client.delete_file(
                     thumbnail_path.split("/")[-1], bucket_name="video-thumbnails"
                 )
-        except Exception as e:
-            logging.warning(f"S3 deletion failed for {video_id}: {e}")
+        except (BotoCoreError, ClientError) as e:
+            logging.warning("S3 deletion failed for %s: %s", video_id, e, exc_info=True)
             await self.session.rollback()
             raise S3DeletionError()
 

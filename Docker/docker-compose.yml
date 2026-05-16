@@ -4,6 +4,15 @@ services:
       context: ../backend
       dockerfile: Dockerfile
     container_name: bff_service
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 256M
     expose:
       - "8000"
     depends_on:
@@ -91,9 +100,15 @@ services:
       context: ../services/convertor
       dockerfile: Dockerfile
     container_name: ffmpeg_service
+    restart: unless-stopped
     deploy:
       resources:
+        limits:
+          cpus: "4"
+          memory: 4G
         reservations:
+          cpus: "1"
+          memory: 1G
           devices:
             - driver: nvidia
               count: all
@@ -208,13 +223,35 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
+    restart: unless-stopped
     expose:
       - "9090"
     volumes:
       - ../monitoring/prometheus.yaml:/etc/prometheus/prometheus.yaml
+      - ../monitoring/alert.rules.yml:/etc/prometheus/alert.rules.yml
       - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yaml"
+      - "--web.enable-lifecycle"
+    depends_on:
+      - alertmanager
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: unless-stopped
+    expose:
+      - "9093"
+    volumes:
+      - ../monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    logging:
+      driver: "json-file"
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   grafana:
     image: grafana/grafana:latest
@@ -222,8 +259,10 @@ services:
     expose:
       - "3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      # Must be set in .env — compose will refuse to start if missing/empty
+      # (the :? syntax errors out on unset/empty values).
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set in .env}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in .env}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_SERVER_ROOT_URL=http://localhost/grafana
@@ -251,10 +290,49 @@ services:
       - ../vault/config:/etc/vault
       - ../vault/tls:/etc/vault/tls
     healthcheck:
+      # `vault status` exits 0 only when unsealed; exit 2 while sealed.
+      # Dependents wait until the unsealer sidecar finishes.
       test: [ "CMD", "vault", "status", "-address=http://localhost:8200" ]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 30
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  vault-unsealer:
+    # ~10MB alpine+curl. We only need HTTP POST /v1/sys/unseal — no vault CLI required.
+    image: curlimages/curl:latest
+    container_name: vault_unsealer
+    restart: "no"
+    depends_on:
+      - vault
+    env_file:
+      - ../vault/unseal-keys.env
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      'set -eu;
+       VAULT=http://vault:8200;
+       echo "[unsealer] waiting for vault...";
+       i=0;
+       until curl -fsS "$$VAULT/v1/sys/seal-status" >/tmp/s 2>/dev/null; do
+         i=$$((i+1)); [ $$i -gt 60 ] && echo "[unsealer] vault never came up" && exit 1;
+         sleep 2;
+       done;
+       if grep -q "\"sealed\":false" /tmp/s; then
+         echo "[unsealer] already unsealed"; exit 0;
+       fi;
+       echo "[unsealer] unsealing...";
+       for K in "$$VAULT_UNSEAL_KEY_1" "$$VAULT_UNSEAL_KEY_2" "$$VAULT_UNSEAL_KEY_3"; do
+         curl -fsS -X POST -d "{\"key\":\"$$K\"}" "$$VAULT/v1/sys/unseal" >/tmp/s;
+       done;
+       if grep -q "\"sealed\":false" /tmp/s; then
+         echo "[unsealer] OK — vault unsealed";
+       else
+         echo "[unsealer] FAILED — response: $$(cat /tmp/s)"; exit 1;
+       fi;'
     logging:
       driver: "json-file"
       options:
@@ -263,11 +341,21 @@ services:
   elasticsearch:
     image: elasticsearch:9.2.0
     container_name: elasticsearch_service
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
     environment:
       - node.name=es01
       - cluster.name=${CLUSTER_NAME}
       - discovery.type=single-node
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=false
       - xpack.license.self_generated.type=${LICENSE}
@@ -294,6 +382,7 @@ volumes:
   minio_data:
   grafana_data:
   prometheus_data:
+  alertmanager_data:
   postgres_data:
   vault_data:
   es_data:

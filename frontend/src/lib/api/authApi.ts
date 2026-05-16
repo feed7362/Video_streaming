@@ -33,7 +33,9 @@ export const logoutUser = async (): Promise<void> => {
 };
 
 export const getCurrentUser = (): Promise<UserInfo> =>
-  clientApi.get<UserInfo>("/api/auth/me").then((res) => res.data);
+  clientApi
+    .get<UserInfo>("/api/auth/me", { silent: true })
+    .then((res) => res.data);
 
 export const getOtherUserInfo = (username: string): Promise<UserInfo> =>
   clientApi

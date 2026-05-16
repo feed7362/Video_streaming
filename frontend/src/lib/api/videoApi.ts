@@ -88,29 +88,22 @@ export const uploadVideo = async (
     category?: string;
   },
 ): Promise<UploadResponse> => {
-  try {
-    const formData = new FormData();
-    formData.append("video", file);
-    if (options?.thumbnail) formData.append("thumbnail", options.thumbnail);
+  const formData = new FormData();
+  formData.append("video", file);
+  if (options?.thumbnail) formData.append("thumbnail", options.thumbnail);
+  // Backend schema uses Form(...) — these must be in the multipart body, not the query.
+  // See backend/src/schemas/video.py:VideoUploadParams.
+  formData.append("name", (options?.title || file.name || "Untitled").trim());
+  formData.append("description", options?.description?.trim() || "");
+  formData.append("privacy", options?.isPublic ? "public" : "private");
+  formData.append("category", options?.category || "entertainment");
 
-    const res = await clientApi.post<UploadResponse>(
-      `/api/files/videos`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-        params: {
-          name: options?.title || "Untitled",
-          description: options?.description || "",
-          privacy: options?.isPublic ? "public" : "private",
-          category: options?.category || "entertainment",
-        },
-      },
-    );
-
-    return res.data;
-  } catch (err: any) {
-    return Promise.reject(err.response?.data || { message: "Upload failed" });
-  }
+  // Let the browser set Content-Type (including multipart boundary).
+  const res = await clientApi.post<UploadResponse>(
+    `/api/files/videos`,
+    formData,
+  );
+  return res.data;
 };
 
 export const deleteVideo = async (id: string): Promise<void> => {

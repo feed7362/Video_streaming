@@ -1,0 +1,57 @@
+groups:
+  - name: video-streaming.rules
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Target {{ $labels.job }} ({{ $labels.instance }}) is down"
+          description: "Prometheus has not scraped {{ $labels.instance }} for >2m."
+
+      - alert: HighHttp5xxRate
+        # FastAPI/prometheus default histogram exposes http_requests_total{status_code}
+        expr: |
+          sum(rate(http_requests_total{status_code=~"5.."}[5m])) by (job)
+            /
+          sum(rate(http_requests_total[5m])) by (job)
+            > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "5xx rate > 5% on {{ $labels.job }}"
+          description: "Investigate recent deploys or upstream dependencies."
+
+      - alert: HttpRequestLatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, job)
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 latency > 2s on {{ $labels.job }}"
+
+      - alert: ConvertorEncodeFailures
+        # Triggers if FFmpeg metrics expose any *_failed or *_error counter going up.
+        # Safe-fallback: just watches for the convertor going down.
+        expr: up{job="ffmpeg"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Convertor (ffmpeg) is down"
+
+      - alert: ProcessRestartLoop
+        # process_start_time_seconds is exported by prometheus_client by default.
+        expr: changes(process_start_time_seconds[10m]) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} restarted >3 times in 10m"
+          description: "Probable crash loop. Check logs."

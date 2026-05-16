@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import VideoPlayer from "@/components/VideoPlayer";
 import VideoCard from "@/components/VideoCard";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,22 @@ function Avatar({ src, name, size }: { src?: string; name?: string; size: number
             {initial}
         </div>
     );
+}
+
+interface ApiCommentRaw {
+    id: string | number;
+    user_id?: string;
+    userId?: string;
+    content: string;
+    created_at?: string;
+    createdAt?: string;
+    likes_count?: number;
+    likesCount?: number;
+    dislikes_count?: number;
+    dislikesCount?: number;
+    user_name?: string;
+    user_avatar?: string;
+    replies?: ApiCommentRaw[];
 }
 
 function formatCount(n: number) {
@@ -56,28 +72,29 @@ export default function Watch() {
     const [showDesc, setShowDesc] = useState(false);
     const [resolution, setResolution] = useState("720p");
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fromApi = (c: any): VideoComment => ({
-        id: String(c.id),
-        userId: String(c.user_id ?? c.userId ?? ""),
-        content: c.content,
-        createdAt: c.created_at ?? c.createdAt ?? "",
-        videoId,
-        likesCount: c.likes_count ?? c.likesCount ?? 0,
-        dislikesCount: c.dislikes_count ?? c.dislikesCount ?? 0,
-        user_name: c.user_name,
-        user_avatar: c.user_avatar,
-        ...(Array.isArray(c.replies) ? { replies: c.replies.map(fromApi) } : {}),
-    });
+    const fromApi = useCallback(
+        (c: ApiCommentRaw): VideoComment => ({
+            id: String(c.id),
+            userId: String(c.user_id ?? c.userId ?? ""),
+            content: c.content,
+            createdAt: c.created_at ?? c.createdAt ?? "",
+            videoId,
+            likesCount: c.likes_count ?? c.likesCount ?? 0,
+            dislikesCount: c.dislikes_count ?? c.dislikesCount ?? 0,
+            user_name: c.user_name,
+            user_avatar: c.user_avatar,
+            ...(Array.isArray(c.replies) ? { replies: c.replies.map(fromApi) } : {}),
+        }),
+        [videoId],
+    );
 
     useEffect(() => {
         if (!videoId) return;
         setComments([]);
         getComments(videoId, 1, 100)
-            .then((page) => setComments(page.items.map(fromApi)))
+            .then((page) => setComments((page.items as unknown as ApiCommentRaw[]).map(fromApi)))
             .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [videoId]);
+    }, [videoId, fromApi]);
 
     const handleAddComment = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -48,10 +48,18 @@ class ElasticSettings(BaseAppSettings):
 
 
 class JWTSettings(BaseAppSettings):
-    JWT_SECRET: str = Field(default="CHANGE-ME-IN-PRODUCTION")
+    # No default — must be supplied via Vault (or env). Fail-fast on missing.
+    JWT_SECRET: str = Field(min_length=32)
+
+    @computed_field
+    def is_dev_placeholder(self) -> bool:
+        return "CHANGE-ME" in self.JWT_SECRET or self.JWT_SECRET == "changeme"
 
 
 class GitHubOAuthSettings(BaseAppSettings):
+    # GitHub OAuth is optional. Defaults are empty so the app boots without it;
+    # the /api/auth/github/* endpoints will return a clear 400 when invoked
+    # without real creds.
     GITHUB_CLIENT_ID: str = Field(default="")
     GITHUB_CLIENT_SECRET: str = Field(default="")
     GITHUB_CALLBACK_URL: str = Field(
@@ -102,7 +110,15 @@ def get_elastic_settings() -> ElasticSettings:
 @lru_cache()
 def get_jwt_settings() -> JWTSettings:
     vault = get_vault_client()
-    return JWTSettings(**vault.read_secret("jwt", mount_point="secret"))
+    settings = JWTSettings(**vault.read_secret("jwt", mount_point="secret"))
+    if settings.is_dev_placeholder:
+        import logging
+
+        logging.warning(
+            "JWT_SECRET in Vault looks like a placeholder. "
+            "Rotate it before exposing this instance to the internet."
+        )
+    return settings
 
 
 @lru_cache()

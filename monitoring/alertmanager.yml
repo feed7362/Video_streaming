@@ -1,0 +1,28 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default
+  group_by: ["alertname", "job"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - severity = "critical"
+      receiver: default
+      group_wait: 10s
+      repeat_interval: 1h
+
+receivers:
+  - name: default
+    # Stub webhook. Swap for Slack/Discord/email/PagerDuty in your real env.
+    # Example Slack: slack_configs: [{ api_url: "<webhook>", channel: "#alerts" }]
+    webhook_configs:
+      - url: "http://localhost:9999/alerts"
+        send_resolved: true
+
+inhibit_rules:
+  - source_matchers: [severity = "critical"]
+    target_matchers: [severity = "warning"]
+    equal: ["alertname", "job"]

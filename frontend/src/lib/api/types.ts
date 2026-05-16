@@ -249,3 +249,19 @@ export interface SearchApiResponse {
 export interface SearchHintsResponse {
   hints: string[];
 }
+
+export interface ApiErrorFieldIssue {
+  field?: string;
+  loc?: (string | number)[];
+  message?: string;
+  msg?: string;
+  type?: string;
+}
+
+export interface ApiErrorEnvelope {
+  status?: "error" | string;
+  code?: number;
+  message?: string;
+  errors?: ApiErrorFieldIssue[] | Record<string, unknown> | string;
+  detail?: string | ApiErrorFieldIssue[];
+}

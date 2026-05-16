@@ -1,3 +1,4 @@
+import logging
 import secrets
 
 import bcrypt
@@ -5,7 +6,7 @@ import httpx
 import jwt as pyjwt
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, RedirectResponse
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import get_github_oauth_settings, get_jwt_settings
@@ -97,12 +98,14 @@ async def check_user(
     session: AsyncSession = Depends(get_async_session),
 ) -> CheckUserResponse:
     username_result = await session.execute(
-        select(User).where(User.username == data.username)
+        select(exists().where(User.username == data.username))
     )
-    email_result = await session.execute(select(User).where(User.email == data.email))
+    email_result = await session.execute(
+        select(exists().where(User.email == data.email))
+    )
     return CheckUserResponse(
-        usernameExists=username_result.scalar_one_or_none() is not None,
-        emailExists=email_result.scalar_one_or_none() is not None,
+        usernameExists=bool(username_result.scalar()),
+        emailExists=bool(email_result.scalar()),
     )
 
 
@@ -112,7 +115,7 @@ async def get_user_by_username(
     session: AsyncSession = Depends(get_async_session),
 ) -> UserPublic:
     result = await session.execute(select(User).where(User.username == username))
-    user = result.scalar_one_or_none()
+    user = result.unique().scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return UserPublic.model_validate(user)
@@ -156,7 +159,8 @@ async def github_callback(
             code=code,
             redirect_uri=_github_settings.GITHUB_CALLBACK_URL,
         )
-    except Exception:
+    except (httpx.HTTPError, KeyError, ValueError) as e:
+        logging.warning("GitHub OAuth code exchange failed: %s", e, exc_info=True)
         raise HTTPException(status_code=400, detail="Failed to exchange GitHub code")
 
     access_token = token_data["access_token"]
@@ -214,13 +218,15 @@ async def github_callback(
     else:
         # Find user by email
         user_result = await session.execute(select(User).where(User.email == email))
-        user = user_result.scalar_one_or_none()
+        user = user_result.unique().scalar_one_or_none()
 
         if not user:
             # Generate unique username
             username = github_login
-            taken = await session.execute(select(User).where(User.username == username))
-            if taken.scalar_one_or_none():
+            taken = await session.execute(
+                select(exists().where(User.username == username))
+            )
+            if taken.scalar():
                 username = f"{github_login}_{github_id[:6]}"
 
             user = User(

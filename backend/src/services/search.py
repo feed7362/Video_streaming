@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from elasticsearch import AsyncElasticsearch
+from elasticsearch import ApiError, AsyncElasticsearch, TransportError
 
 from src.errors.search import VideoHintsError, VideoSearchError
 
@@ -31,7 +31,7 @@ class SearchService:
             ]
             return [h for h in hints if h]
 
-        except Exception as ex:
+        except (ApiError, TransportError, KeyError, IndexError) as ex:
             raise VideoHintsError(query=query, cause=ex)
 
     async def search_video(
@@ -103,5 +103,5 @@ class SearchService:
                     for hit in result["hits"]["hits"]
                 ]
             }
-        except Exception as ex:
+        except (ApiError, TransportError, KeyError, IndexError) as ex:
             raise VideoSearchError(query=query, cause=ex)

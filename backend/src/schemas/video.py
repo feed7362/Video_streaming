@@ -152,9 +152,11 @@ class VideoUploadParams(BaseModel):
     video: Annotated[UploadFile, File(description="A video file to upload")]
     thumbnail: Annotated[
         Optional[UploadFile], File(description="Preview image for the video")
-    ]
+    ] = None
     name: str = Form(..., description="Name of the uploaded files.")
-    description: str = Form(..., description="Description of the uploaded files.")
+    description: str = Form(
+        default="", description="Optional description of the uploaded files."
+    )
     category: VideoCategory = Form(..., description="Category of the uploaded files.")
     privacy: Literal["public", "private"] = Form(
         default="public", description="Privacy level: `public` or `private`"
@@ -169,10 +171,8 @@ class VideoUploadParams(BaseModel):
 
     @field_validator("description")
     @classmethod
-    def description_must_not_be_empty(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("Description cannot be empty")
-        return v.strip()
+    def description_strip(cls, v: str) -> str:
+        return (v or "").strip()
 
 
 class VideoDownloadQuery(BaseModel):

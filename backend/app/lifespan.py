@@ -44,20 +44,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
     redis = get_redis()
     await redis.ping()
-    print("Redis connected successfully.")
+    logging.info("Redis connected successfully.")
 
     logging.info("🚀 Startup complete. Background tasks running.")
     yield
 
     # Graceful shutdown
-    await es_client.close()
     await rabbit_broker.stop()
     logging.info("Rabbit broker connection disposed gracefully.")
     await engine.dispose()
     logging.info("Database engine disposed gracefully.")
     await es_client.close()
+    logging.info("Elasticsearch client closed.")
 
     await redis.aclose()
-    print("Redis connection closed.")
-    logging.info("Background tasks cancelled.")
+    logging.info("Redis connection closed.")
     logging.info("Shutdown complete.")

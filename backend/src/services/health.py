@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import logging
 from typing import TYPE_CHECKING, Dict, Optional
 
 from fastapi import status
@@ -38,6 +39,7 @@ class HealthService:
             await self.session.execute(text("SELECT 1"))
             self.checks["database"] = "ok"
         except Exception as ex:
+            logging.exception("Health: database check failed")
             err = DatabaseUnavailableError(ex)
             self.checks["database"] = err.code
             self._statuses.append(err.status_code)
@@ -47,6 +49,7 @@ class HealthService:
             await self.s3_client.get_bucket_list()
             self.checks["object_storage"] = "ok"
         except Exception as ex:
+            logging.exception("Health: object storage check failed")
             err = ObjectStorageUnavailableError(ex)
             self.checks["object_storage"] = err.code
             self._statuses.append(err.status_code)
@@ -69,6 +72,7 @@ class HealthService:
 
             self.checks["message_broker"] = "ok"
         except Exception as ex:
+            logging.exception("Health: message broker check failed")
             err = MessageBrokerUnavailableError(ex)
             self.checks["message_broker"] = err.code
             self._statuses.append(err.status_code)
