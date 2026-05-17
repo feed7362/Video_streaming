@@ -8,7 +8,7 @@ dependencies = [
     "aiobotocore>=2.24.1",
     "faststream[cli,prometheus,rabbit]>=0.5.48",
     "pydantic-settings>=2.10.1",
-    "pytest>=8.4.1",
+    "pytest>=9.0.3",
     "hvac>=2.3.0",
     "pyyaml>=6.0.2",
     "uvicorn[standard]>=0.35.0",
@@ -17,7 +17,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pytest>=8.4.1",
+    "pytest>=9.0.3",
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=6.2.1",
 ]
