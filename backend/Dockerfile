@@ -1,10 +1,17 @@
-FROM python:3.12-slim
+# syntax=docker/dockerfile:1.7
+FROM python:3.12-slim AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# OS deps in one layer with cache mount for apt
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV UV_PROJECT_ENVIRONMENT="/opt/venv" \
@@ -15,20 +22,20 @@ ENV UV_PROJECT_ENVIRONMENT="/opt/venv" \
 
 RUN uv venv /opt/venv
 
+# Lockfile first — this layer only changes when deps change
 COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --no-dev --frozen
 
-RUN uv sync --no-dev --frozen
-
+# Source — only this layer rebuilds on code changes
 COPY src ./src
 COPY app ./app
-COPY main.py .
-COPY log_conf.yaml .
-COPY alembic.ini .
+COPY main.py log_conf.yaml alembic.ini ./
 COPY alembic ./alembic
 COPY utils ./utils
 
-RUN addgroup --system app && adduser --system --group --home /app app
-RUN chown -R app:app /app /opt/venv
+RUN addgroup --system app && adduser --system --group --home /app app \
+    && chown -R app:app /app /opt/venv
 USER app
 
 ENTRYPOINT ["uvicorn", "main:app"]

@@ -1,0 +1,58 @@
+{{- $svc := .Values.backend -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "video-streaming.fullname" . }}-backend
+  labels:
+    {{- include "video-streaming.labels" (dict "ctx" . "component" "backend") | nindent 4 }}
+spec:
+  {{- if not $svc.autoscaling.enabled }}
+  replicas: {{ $svc.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  selector:
+    matchLabels:
+      {{- include "video-streaming.selectorLabels" (dict "ctx" . "component" "backend") | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      labels:
+        {{- include "video-streaming.selectorLabels" (dict "ctx" . "component" "backend") | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "video-streaming.serviceAccountName" . }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "video-streaming.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: backend
+          image: {{ include "video-streaming.image" (dict "ctx" . "svc" $svc) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- include "video-streaming.containerSecurityContext" . | nindent 12 }}
+          ports:
+            - { name: http, containerPort: {{ $svc.service.port }}, protocol: TCP }
+          envFrom:
+            - configMapRef: { name: {{ include "video-streaming.configMapName" . }} }
+            - secretRef:    { name: {{ include "video-streaming.secretName" . }} }
+          livenessProbe:
+            httpGet: { path: {{ $svc.probes.liveness.path }}, port: http }
+            initialDelaySeconds: {{ $svc.probes.liveness.initialDelaySeconds }}
+            periodSeconds:       {{ $svc.probes.liveness.periodSeconds }}
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: { path: {{ $svc.probes.readiness.path }}, port: http }
+            initialDelaySeconds: {{ $svc.probes.readiness.initialDelaySeconds }}
+            periodSeconds:       {{ $svc.probes.readiness.periodSeconds }}
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml $svc.resources | nindent 12 }}

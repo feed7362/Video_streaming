@@ -1,0 +1,30 @@
+{{- $components := list
+  (dict "name" "backend"   "cfg" .Values.backend)
+  (dict "name" "frontend"  "cfg" .Values.frontend)
+  (dict "name" "convertor" "cfg" .Values.convertor)
+-}}
+{{- range $components }}
+{{- if .cfg.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "video-streaming.fullname" $ }}-{{ .name }}
+  labels:
+    {{- include "video-streaming.labels" (dict "ctx" $ "component" .name) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "video-streaming.fullname" $ }}-{{ .name }}
+  minReplicas: {{ .cfg.autoscaling.minReplicas }}
+  maxReplicas: {{ .cfg.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .cfg.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+{{- end }}

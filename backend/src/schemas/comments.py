@@ -68,6 +68,47 @@ class CommentPage(Page[CommentRead]):
     pass
 
 
+class OwnerCommentRead(BaseModel):
+    """Comment shape for the creator moderation view — includes the parent
+    video so the table can show which video each comment belongs to."""
+
+    id: UUID
+    user_id: UUID
+    user_name: str
+    user_avatar: Optional[str] = None
+    content: str
+    created_at: datetime
+    likes_count: int
+    dislikes_count: int
+    parent_id: Optional[UUID] = None
+    video_id: UUID
+    video_title: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OwnerCommentPage(Page[OwnerCommentRead]):
+    """Paginated list of comments-on-my-videos."""
+
+    pass
+
+
+def to_owner_comment_read(c: Comment) -> OwnerCommentRead:
+    return OwnerCommentRead(
+        id=c.id,
+        user_id=c.user_id,
+        user_name=getattr(c.user, "name", "Anonymous"),
+        user_avatar=getattr(c.user, "avatar_url", None),
+        content=c.content,
+        created_at=c.created_at,
+        likes_count=c.likes_count,
+        dislikes_count=c.dislikes_count,
+        parent_id=c.parent_id,
+        video_id=c.video_id,
+        video_title=getattr(c.video, "name", "(unknown)"),
+    )
+
+
 class CommentCreateRequest(BaseModel):
     content: str = Field(
         ...,

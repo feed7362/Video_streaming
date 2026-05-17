@@ -1,117 +1,152 @@
 # Video Streaming Platform
 
-This project is a complete video streaming platform developed using a microservices architecture. It's designed to be
-scalable, maintainable, and observable, incorporating modern development practices and a full CI/CD pipeline.
+Microservice video platform: FastAPI backend, React/Vite frontend, FFmpeg/NVENC encoder, MinIO storage, RabbitMQ, PostgreSQL, Elasticsearch, Redis, Vault, observability stack. One-command bring-up via Docker Compose; optional Helm chart for Kubernetes.
 
 ## ✨ Features
 
-- **Microservices Architecture**: Decoupled services for the backend, authentication, video conversion, and moderation.
-- **Asynchronous Backend**: Built with **FastAPI** for high performance and handling concurrent operations like file
-  uploads and streaming.
-- **Modern Frontend**: A responsive user interface built with **React** and **Vite**.
-- **Efficient Video Processing**: An asynchronous video conversion service using **FFmpeg** and a message queue (*
-  *RabbitMQ**) to handle transcoding tasks.
-- **Scalable Storage**: Uses **MinIO** for S3-compatible object storage for video files.
-- **Robust CI/CD**: Automated testing, linting, and deployment pipelines using **GitHub Actions**.
-- **Comprehensive Observability**: A full monitoring stack with **Prometheus** for metrics, **Loki** for logs, and *
-  *Grafana** for visualization and dashboards.
-- **Containerized Environment**: The entire application stack is containerized with **Docker** and orchestrated with
-  Docker Compose for easy setup and deployment.
+- **Microservices**: decoupled bff / frontend / convertor / moderation.
+- **Async backend**: FastAPI + asyncpg + aiobotocore + faststream. Vault for secrets.
+- **Modern frontend**: React 19, Vite, TypeScript strict, shadcn/ui, Tailwind v4, HLS.js, react-hook-form + Zod, sonner toasts.
+- **Async encoding**: RabbitMQ-fed FFmpeg with NVENC + CPU fallback; dead-letter queue + bounded retries.
+- **Observability**: Prometheus + Loki + Promtail + Grafana + Alertmanager. Per-request correlation IDs threaded BFF → RabbitMQ → convertor.
+- **Robust CI/CD**: GitHub Actions, pre-commit (black/ruff/mypy/eslint/prettier/gitleaks/bandit), Dependabot.
+- **Containerized**: Docker Compose for dev/staging, Helm chart for Kubernetes, Buildx Bake for fast parallel builds.
 
-## 🏛️ Architecture Overview
+## 🏛️ Architecture
 
-The application is composed of several key components that work together:
-
-- **NGINX Gateway**: Acts as a reverse proxy, directing traffic to the appropriate service (frontend or backend).
-- **Frontend**: The client-facing React application that users interact with.
-- **Backend (BFF)**: A Backend-For-Frontend service built with FastAPI. It handles API requests, manages business logic,
-  and communicates with other services and the database.
-- **Services**:
-    - **Converter Service**: Consumes messages from RabbitMQ to perform video transcoding using FFmpeg.
-    - **Auth & Moderation Services**: Dedicated microservices for handling user authentication and content moderation.
-- **Data & Messaging**:
-    - **PostgreSQL**: The primary relational database for storing application data.
-    - **MinIO**: S3-compatible storage for all video assets.
-    - **RabbitMQ**: A message broker for queuing asynchronous tasks like video encoding.
-- **Observability Stack**:
-    - **Prometheus**: Collects metrics from the backend services.
-    - **Loki & Promtail**: Aggregate logs from all Docker containers.
-    - **Grafana**: Provides dashboards for visualizing logs and metrics.
+```
+            ┌──────────────┐
+            │  NGINX (GW)  │ ← single entrypoint at :80
+            └──────┬───────┘
+   ┌──────────────┼─────────────────┬─────────────┐
+   ▼              ▼                 ▼             ▼
+ React          FastAPI BFF       MinIO         Grafana
+ (Vite)         │                  (S3)         /Prometheus
+                ├─ PostgreSQL                   /Loki/AM
+                ├─ Redis  (cache/rate-limit)
+                ├─ Elasticsearch (search)
+                ├─ Vault  (secrets, auto-unsealed by sidecar)
+                └─ RabbitMQ ─► Convertor (NVENC → HLS)
+                                       ↓ on failure
+                                  video.dlx → video.encode.dlq
+                                  video.failed (terminal)
+```
 
 ## 🛠️ Tech Stack
 
-| Category      | Technologies                                                                   |
-| :------------ | :----------------------------------------------------------------------------- |
-| **Backend** | Python 3.12, FastAPI, SQLAlchemy, Pydantic, Uvicorn, `uv`                      |
-| **Frontend** | React, Vite, ESLint, Prettier                                                  |
-| **Database** | PostgreSQL, Alembic (Migrations)                                               |
-| **Services** | RabbitMQ (Message Broker), FFmpeg (Video Processing)                           |
-| **Storage** | MinIO (S3-Compatible Object Storage)                                           |
-| **DevOps** | Docker, Docker Compose, GitHub Actions, NGINX, Pre-commit, Gitleaks, Dependabot |
-| **Monitoring**| Prometheus, Grafana, Loki, Promtail                                            |
+| Category      | Technologies |
+| :------------ | :----------- |
+| Backend       | Python 3.12, FastAPI, SQLAlchemy 2 async, asyncpg, Pydantic v2, fastapi-users, faststream, aiobotocore, hvac, prometheus-client |
+| Frontend      | React 19, Vite, TypeScript strict, shadcn/ui (Radix + Tailwind v4), HLS.js, Axios, react-hook-form + Zod, sonner |
+| Database      | PostgreSQL, Alembic |
+| Services      | RabbitMQ, FFmpeg (NVENC) |
+| Storage       | MinIO (S3-compatible) |
+| Secrets       | HashiCorp Vault + sidecar auto-unsealer |
+| DevOps        | Docker, Docker Compose, Buildx Bake, Helm (chart in `helm/`), GitHub Actions, NGINX, Pre-commit, Gitleaks, Bandit, Dependabot |
+| Observability | Prometheus, Alertmanager, Grafana, Loki, Promtail |
 
 ## 🚀 Getting Started
 
 ### Prerequisites
+- Docker + Docker Compose v2.
+- NVIDIA GPU + Container Toolkit for the convertor (CPU-only fallback works but is slow).
 
-- Docker and Docker Compose
-- An NVIDIA GPU with the NVIDIA Container Toolkit is required for the FFMPEG conversion service.
+### Quick start
 
-### Running Locally
+```bash
+git clone <repo-url> && cd <repo>
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd <repository-name>
-   ```
+# 1. Configure env. Copy and fill the example.
+cp Docker/.env.example Docker/.env
+# Required at minimum: VAULT_TOKEN, POSTGRES_*, MINIO_*, ELASTIC_PASSWORD,
+# CLUSTER_NAME, LICENSE, GRAFANA_ADMIN_USER, GRAFANA_ADMIN_PASSWORD.
 
-2. **Prepare Environment Files:**
-   Copy the example environment files and populate them with your secrets if necessary.
-   ```bash
-   cp backend/src/database.env.example backend/src/database.env
-   cp backend/src/s3.env.example backend/src/s3.env
-   ```
+# 2. Vault unseal keys (first install only).
+cp vault/unseal-keys.env.example vault/unseal-keys.env
+# After `vault operator init` paste 3 of 5 keys into this file.
 
-3. **Build and Run the Stack:**
-   Use the following Docker Compose commands from the root directory.
-   ```bash
-   # Build all the service images
-   docker compose -p video_streaming_stack -f ./Docker/docker-compose.yml build
+# 3. Bring everything up. Compose project name is set in the file —
+# no `-p` flag needed.
+docker compose -f ./Docker/docker-compose.yml up -d --build
+```
 
-   # Start all services in detached mode
-   docker compose -p video_streaming_stack -f ./Docker/docker-compose.yml up -d
-   ```
+### Endpoints (default ports via gateway)
 
-4. **Accessing Services:**
-    - **Frontend Application**: `http://localhost`
-    - **Backend API Docs**: `http://localhost/api/docs`
-    - **Grafana Dashboard**: `http://localhost/grafana` (user: `admin`, pass: `admin`)
-    - **MinIO Console**: `http://localhost/minio/ui`
+| Service        | URL |
+| -------------- | --- |
+| Frontend       | `http://localhost` |
+| Backend docs   | `http://localhost/api/docs` |
+| Grafana        | `http://localhost/grafana` (creds from `.env`) |
+| Prometheus     | `http://localhost/prometheus/` |
+| Alertmanager   | exposed in-cluster only; reach via `docker exec alertmanager wget -qO- http://localhost:9093/api/v2/status` |
+| MinIO Console  | `http://localhost/minio/ui` |
+| RabbitMQ       | `http://localhost/rabbitmq` |
+| Vault UI       | `http://localhost/ui/` |
 
-## CI/CD Pipeline
+## ⚡ Fast builds with Buildx Bake
 
-This project is configured with a complete CI/CD pipeline using GitHub Actions:
+For iterative development the included `docker-bake.hcl` builds bff + frontend + convertor in parallel with shared BuildKit cache:
 
-1. **Push to `dev` branch**: Triggers the `CI for dev branch` workflow, which runs linting, type-checking, tests, and
-   security scans for all services.
-2. **Successful CI on `dev`**: Automatically triggers the `Auto PR to Stage` workflow, which creates a pull request from
-   `dev` to the `stage` branch.
-3. **Merge to `stage` branch**: Triggers the `CD Pipeline` workflow, which detects changed services, builds their Docker
-   images, and (optionally) deploys them.
+```bash
+# one-time builder setup
+docker buildx create --name vsbuilder --driver docker-container --bootstrap
+docker buildx use vsbuilder
+
+# build everything in parallel
+docker buildx bake
+
+# only the lighter targets
+docker buildx bake app
+
+# bring up using the freshly-baked images (no rebuild)
+docker compose -f ./Docker/docker-compose.yml up -d --no-build
+```
+
+First clean build is ~2–3 min. Incremental builds after a single source change drop to ~5–10 s thanks to `--mount=type=cache` for uv/npm and a local layer cache in `.buildx-cache/`.
+
+## ☸️ Kubernetes / Helm
+
+Production-shaped Helm chart lives in `helm/`. It includes ConfigMap, Secret with `JWT_SECRET ≥ 32 char` fail-fast, ServiceAccount, per-service Deployment/Service with probes + resource limits + non-root security context, HPA, PDB, ingress, and an Alembic migration Job (pre-install/upgrade hook). Sub-charts bundle PostgreSQL, MinIO, RabbitMQ, Vault, Prometheus, Alertmanager, Grafana, Loki, Promtail.
+
+```bash
+cd helm
+helm dependency update
+helm install dev . --namespace video --create-namespace \
+  --set 'secret.data.JWT_SECRET=long-random-32+-char-secret-please'
+```
+
+See `helm/values.yaml` for the full configuration surface.
+
+## 🔒 Secrets management
+
+- **Application secrets** live in Vault. The BFF loads them via `hvac` at startup (`src/config.py`). Vault auto-unseals on every boot via a tiny `curlimages/curl` sidecar that posts unseal keys from a gitignored `vault/unseal-keys.env`.
+- **JWT_SECRET** is required and fail-fast: min 32 chars or BFF aborts. No more `CHANGE-ME-IN-PRODUCTION` default.
+- **Grafana admin** is no longer `admin/admin`. Set `GRAFANA_ADMIN_PASSWORD` in `Docker/.env`; compose refuses to start without it.
+- **Frontend API base URL** defaults to same-origin (`""`). Override only when running `vite dev` directly via `VITE_API_BASE_URL`.
+
+## 🔍 Observability and tracing
+
+Every HTTP request gets an `X-Request-ID` (generated if absent, accepted if present). It propagates through:
+- BFF logs (`[rid=…]` formatter via a logging Filter).
+- RabbitMQ message headers + `correlation_id`.
+- Convertor logs after each message consume.
+
+To trace a single request across services:
+```bash
+curl -H "X-Request-ID: trace-demo" http://localhost/api/videos/?page=1
+docker logs bff_service 2>&1 | grep trace-demo
+docker logs ffmpeg_service 2>&1 | grep trace-demo
+```
+
+Alertmanager rules in `monitoring/alert.rules.yml` cover ServiceDown, 5xx-rate, p95 latency, ConvertorDown, ProcessRestartLoop.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository.
-2. Create a new branch for your feature or bug fix.
-3. Set up the pre-commit hooks to ensure code quality: `pre-commit install`.
-4. Make your changes.
-5. Submit a pull request.
-
-Please use the provided templates for submitting [bug reports](.github/ISSUE_TEMPLATE/bug_report.md)
-and [feature requests](.github/ISSUE_TEMPLATE/feature_request.md).
+1. Fork the repo.
+2. `pre-commit install` to enable hooks.
+3. Make changes; commit (hooks reformat with black/ruff/prettier).
+4. Open a PR using the templates in `.github/`.
 
 ## 📄 License
 
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
+Apache License 2.0 — see [LICENSE](LICENSE).

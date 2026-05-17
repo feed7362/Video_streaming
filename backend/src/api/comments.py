@@ -5,7 +5,12 @@ from fastapi import APIRouter, Depends, Path
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies.services import get_comment_service
-from src.schemas.comments import CommentCreateRequest, CommentPage, CommentRead
+from src.schemas.comments import (
+    CommentCreateRequest,
+    CommentPage,
+    CommentRead,
+    OwnerCommentPage,
+)
 from src.schemas.endpoint import ErrorResponse, PaginationQuery
 from src.schemas.reaction import ReactionRequest, ReactionResponse
 from src.services import get_current_user_id
@@ -20,6 +25,27 @@ router_comments = APIRouter(
         500: {"description": "Internal server error"},
     },
 )
+
+
+@router_comments.get(
+    "/owner/list",
+    response_model=OwnerCommentPage,
+    summary="List comments on videos I own (creator moderation view)",
+    description=(
+        "Returns comments posted on any video owned by the current user, "
+        "ordered newest-first. Optional `video_id` query narrows to one video."
+    ),
+)
+async def list_owner_comments(
+    query: Annotated[PaginationQuery, Depends()],
+    video_id: UUID | None = None,
+    user_id: UUID = Depends(get_current_user_id),
+    service: CommentService = Depends(get_comment_service),
+) -> OwnerCommentPage:
+    items, total = await service.get_by_owner(
+        owner_id=user_id, page=query.page, size=query.size, video_id=video_id
+    )
+    return OwnerCommentPage(items=items, page=query.page, size=query.size, total=total)
 
 
 @router_comments.get(

@@ -1,0 +1,42 @@
+{{- if .Values.migrations.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "video-streaming.fullname" . }}-migrations-{{ .Release.Revision }}
+  labels:
+    {{- include "video-streaming.labels" (dict "ctx" . "component" "migrations") | nindent 4 }}
+  annotations:
+    # Run before any Deployment is rolled, before each upgrade. Delete on success
+    # so retries don't conflict with prior Job objects.
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        {{- include "video-streaming.selectorLabels" (dict "ctx" . "component" "migrations") | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "video-streaming.serviceAccountName" . }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "video-streaming.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: alembic
+          image: {{ include "video-streaming.image" (dict "ctx" . "svc" .Values.backend) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- include "video-streaming.containerSecurityContext" . | nindent 12 }}
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef: { name: {{ include "video-streaming.configMapName" . }} }
+            - secretRef:    { name: {{ include "video-streaming.secretName" . }} }
+          resources:
+            {{- toYaml .Values.migrations.resources | nindent 12 }}
+{{- end }}

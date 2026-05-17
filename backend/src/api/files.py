@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal, Optional
 from uuid import UUID
 
 from elasticsearch import AsyncElasticsearch
@@ -6,7 +6,11 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
+    File,
+    Form,
+    HTTPException,
     Path,
+    UploadFile,
 )
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -21,7 +25,7 @@ from src.schemas.endpoint import (
     FileStreamResponse,
 )
 from src.schemas.files import SignedUrlResponse, SignUrlQuery
-from src.schemas.video import VideoDownloadQuery, VideoUploadParams
+from src.schemas.video import VideoCategory, VideoDownloadQuery
 from src.services.auth import get_current_user_id
 from src.services.file_signing import FileSigningService
 from src.services.files import FileService
@@ -60,21 +64,39 @@ router_files = APIRouter(
     },
 )
 async def upload_files(
-    payload: Annotated[VideoUploadParams, Depends()],
+    # Inline params, not a Pydantic model: in FastAPI + Pydantic v2,
+    # `Form(...)` fields inside a Depends()-injected model are silently
+    # bound to the query string.
+    video: Annotated[UploadFile, File(description="A video file to upload")],
+    name: Annotated[str, Form(description="Name of the video.")],
+    category: Annotated[VideoCategory, Form(description="Video category.")],
+    thumbnail: Annotated[
+        Optional[UploadFile], File(description="Preview image for the video.")
+    ] = None,
+    description: Annotated[str, Form(description="Optional description.")] = "",
+    privacy: Annotated[
+        Literal["public", "private"],
+        Form(description="`public` or `private`"),
+    ] = "public",
     user_id: UUID = Depends(get_current_user_id),
     service: FileService = Depends(get_file_service),
 ) -> FileResponse:
     """
-    Upload multiple files to S3 asynchronously and trigger encoding tasks in RabbitMQ.
-    Returns metadata about uploaded files.
+    Upload a video to S3 and queue an encoding job. Strict validation:
+      - `category` must match VideoCategory literal.
+      - `name` non-empty after strip.
+      - `video` must be a video/* content type (checked in service layer).
     """
+    name = name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name cannot be empty")
     return await service.upload_video(
-        video=payload.video,
-        thumbnail=payload.thumbnail,
-        name=payload.name,
-        description=payload.description,
-        privacy=payload.privacy,
-        category=payload.category,
+        video=video,
+        thumbnail=thumbnail,
+        name=name,
+        description=description.strip(),
+        privacy=privacy,
+        category=category,
         user_id=user_id,
     )
 

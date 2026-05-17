@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "video-streaming.fullname" . }}-convertor
+  labels:
+    {{- include "video-streaming.labels" (dict "ctx" . "component" "convertor") | nindent 4 }}
+spec:
+  type: ClusterIP
+  # convertor consumes from RabbitMQ; this Service exists only for Prometheus
+  # to scrape /api/metrics in-cluster.
+  selector:
+    {{- include "video-streaming.selectorLabels" (dict "ctx" . "component" "convertor") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.convertor.service.port }}
+      targetPort: http
+      protocol: TCP

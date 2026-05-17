@@ -209,3 +209,4 @@ __marimo__/
 # Vault unseal secrets (NEVER commit)
 vault/unseal-keys.env
 Docker/.env
+.buildx-cache/

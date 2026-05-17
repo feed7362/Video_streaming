@@ -149,18 +149,24 @@ class VideoPage(BaseModel):
 
 
 class VideoUploadParams(BaseModel):
+    # FastAPI + Pydantic v2 quirk: `field = Form(...)` as a *default* makes FastAPI
+    # treat the field as a query parameter when the model is injected via Depends().
+    # The reliable pattern is `Annotated[T, Form(...)]` per field.
     video: Annotated[UploadFile, File(description="A video file to upload")]
     thumbnail: Annotated[
         Optional[UploadFile], File(description="Preview image for the video")
     ] = None
-    name: str = Form(..., description="Name of the uploaded files.")
-    description: str = Form(
-        default="", description="Optional description of the uploaded files."
-    )
-    category: VideoCategory = Form(..., description="Category of the uploaded files.")
-    privacy: Literal["public", "private"] = Form(
-        default="public", description="Privacy level: `public` or `private`"
-    )
+    name: Annotated[str, Form(description="Name of the uploaded files.")]
+    description: Annotated[
+        str, Form(description="Optional description of the uploaded files.")
+    ] = ""
+    category: Annotated[
+        VideoCategory, Form(description="Category of the uploaded files.")
+    ]
+    privacy: Annotated[
+        Literal["public", "private"],
+        Form(description="Privacy level: `public` or `private`"),
+    ] = "public"
 
     @field_validator("name")
     @classmethod

@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, BarChart, Bar,
@@ -11,8 +14,12 @@ import {
     getOverview, getContent, getAudience,
     type OverviewData, type ContentData, type AudienceData,
 } from "@/lib/api/analyticsApi";
+import {
+    getOwnerComments, deleteComment, type OwnerComment,
+} from "@/lib/api/commentApi";
+import { timeAgo } from "@/utils/timeAgo";
 
-type Tab = "overview" | "content" | "audience";
+type Tab = "overview" | "content" | "audience" | "comments";
 
 function StatCard({ label, value, loading }: { label: string; value: number | string; loading: boolean }) {
     return (
@@ -266,12 +273,120 @@ function AudienceTab() {
     );
 }
 
+// ── Comments Tab (moderation on your own videos) ──────────────────────────────
+
+function CommentsTab() {
+    const [items, setItems] = useState<OwnerComment[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
+    const SIZE = 25;
+
+    const load = useCallback((p: number) => {
+        setLoading(true);
+        getOwnerComments(p, SIZE)
+            .then((r) => { setItems(r.items); setTotal(r.total); })
+            .finally(() => setLoading(false));
+    }, []);
+
+    useEffect(() => { load(page); }, [page, load]);
+
+    const onDelete = async (c: OwnerComment) => {
+        if (!confirm(`Delete this comment by ${c.user_name}?`)) return;
+        try {
+            await deleteComment(c.id);
+            setItems((prev) => prev.filter((x) => x.id !== c.id));
+            setTotal((t) => Math.max(0, t - 1));
+            toast.success("Comment deleted");
+        } catch { /* interceptor already toasted */ }
+    };
+
+    const pages = Math.max(1, Math.ceil(total / SIZE));
+
+    return (
+        <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+                Moderate comments on your videos. Deletions are immediate and final.
+            </p>
+
+            {loading ? (
+                <div className="space-y-2">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <Skeleton key={i} className="h-16 w-full" />
+                    ))}
+                </div>
+            ) : items.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-12 text-center">
+                    No comments yet.
+                </p>
+            ) : (
+                <div className="divide-y divide-border rounded-md border">
+                    {items.map((c) => (
+                        <div key={c.id} className="flex items-start gap-3 p-3">
+                            <div className="flex-1 min-w-0">
+                                <div className="flex flex-wrap items-baseline gap-2">
+                                    <span className="font-semibold text-sm">{c.user_name}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {timeAgo(c.created_at)}
+                                    </span>
+                                    <Link
+                                        to={`/watch?v=${c.video_id}`}
+                                        className="text-xs text-blue-500 hover:underline truncate"
+                                        title={c.video_title}
+                                    >
+                                        on “{c.video_title}”
+                                    </Link>
+                                </div>
+                                <p className="text-sm mt-1 whitespace-pre-wrap break-words">
+                                    {c.content}
+                                </p>
+                                <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
+                                    <span>👍 {c.likes_count}</span>
+                                    <span>👎 {c.dislikes_count}</span>
+                                </div>
+                            </div>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => onDelete(c)}
+                                className="text-red-500 hover:text-red-600 shrink-0"
+                                title="Delete comment"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {pages > 1 && (
+                <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">
+                        {total} comment{total === 1 ? "" : "s"} · page {page} of {pages}
+                    </span>
+                    <div className="flex gap-2">
+                        <Button size="sm" variant="outline"
+                            disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                            Previous
+                        </Button>
+                        <Button size="sm" variant="outline"
+                            disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string }[] = [
     { id: "overview", label: "Overview" },
     { id: "content",  label: "Content" },
     { id: "audience", label: "Audience" },
+    { id: "comments", label: "Comments" },
 ];
 
 export default function Studio() {
@@ -304,6 +419,7 @@ export default function Studio() {
             {activeTab === "overview" && <OverviewTab />}
             {activeTab === "content"  && <ContentTab />}
             {activeTab === "audience" && <AudienceTab />}
+            {activeTab === "comments" && <CommentsTab />}
         </div>
     );
 }

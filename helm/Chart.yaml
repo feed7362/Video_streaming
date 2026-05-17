@@ -1,9 +1,16 @@
 apiVersion: v2
 name: video-streaming
-description: Helm chart for your full microservice stack
-version: 0.1.0
+description: Helm chart for the Video Streaming microservice stack (bff + frontend + convertor + deps).
+version: 0.2.0
 type: application
-appVersion: "1.0.0"
+# appVersion drives the default image tag for bff/frontend/convertor.
+# Bump together with image rebuilds.
+appVersion: "0.2.0"
+
+kubeVersion: ">=1.27.0-0"
+home: https://github.com/feed7362/video_streaming
+maintainers:
+  - name: feed7362
 
 dependencies:
   - name: postgresql

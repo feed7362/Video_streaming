@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Eye, ThumbsUp, MessageSquare, MoreVertical, Search } from "lucide-react";
+import { Eye, ThumbsUp, MessageSquare, MoreVertical, Search, Trash2, Lock, Globe } from "lucide-react";
+import { toast } from "sonner";
 import { timeAgo } from "@/utils/timeAgo";
+import { Button } from "@/components/ui/button";
 import videoApi from "@api/videoApi";
 import type { VideoPreview } from "@api/types";
 
@@ -19,6 +21,8 @@ export default function YourVideos() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<StatusFilter>("all");
     const [search, setSearch] = useState("");
+    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const [bulkBusy, setBulkBusy] = useState(false);
 
     useEffect(() => {
         videoApi.getVideos({ page: 1, size: 50 })
@@ -26,6 +30,62 @@ export default function YourVideos() {
             .catch(console.error)
             .finally(() => setLoading(false));
     }, []);
+
+    const toggleOne = (id: string) =>
+        setSelected((s) => {
+            const next = new Set(s);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+
+    const clearSelection = () => setSelected(new Set());
+
+    const runBulk = async (
+        label: string,
+        action: (id: string) => Promise<unknown>,
+        applyLocal: (succeededIds: Set<string>) => void,
+    ) => {
+        if (selected.size === 0) return;
+        if (!confirm(`${label} ${selected.size} video(s)?`)) return;
+        setBulkBusy(true);
+        const ids = Array.from(selected);
+        const results = await Promise.allSettled(ids.map(action));
+        const succeeded = new Set(
+            results.flatMap((r, i) => (r.status === "fulfilled" ? [ids[i]] : [])),
+        );
+        const failed = ids.length - succeeded.size;
+        toast[failed ? "error" : "success"](
+            `${label}: ${succeeded.size} succeeded${failed ? `, ${failed} failed` : ""}`,
+        );
+        applyLocal(succeeded);
+        setBulkBusy(false);
+        clearSelection();
+    };
+
+    const onBulkDelete = () =>
+        runBulk(
+            "Delete",
+            (id) => videoApi.deleteVideo(id),
+            (ok) => setVideos((vs) => vs.filter((v) => !ok.has(v.id))),
+        );
+    const onBulkMakePrivate = () =>
+        runBulk(
+            "Make private",
+            (id) => videoApi.updateVideoPrivacy(id, false),
+            (ok) =>
+                setVideos((vs) =>
+                    vs.map((v) => (ok.has(v.id) ? { ...v, privacy: "Private" } : v)),
+                ),
+        );
+    const onBulkMakePublic = () =>
+        runBulk(
+            "Make public",
+            (id) => videoApi.updateVideoPrivacy(id, true),
+            (ok) =>
+                setVideos((vs) =>
+                    vs.map((v) => (ok.has(v.id) ? { ...v, privacy: "Public" } : v)),
+                ),
+        );
 
     const filtered = videos.filter((v) => {
         const matchSearch = v.title?.toLowerCase().includes(search.toLowerCase()) ?? true;
@@ -44,6 +104,12 @@ export default function YourVideos() {
         { key: "private", label: "Private" },
         { key: "processing", label: "Processing" },
     ];
+
+    const allFilteredIds = useMemo(() => filtered.map((v) => v.id), [filtered]);
+    const allSelected =
+        allFilteredIds.length > 0 && allFilteredIds.every((id) => selected.has(id));
+    const toggleAll = () =>
+        setSelected(allSelected ? new Set() : new Set(allFilteredIds));
 
     return (
         <div className="px-4 py-6">
@@ -77,6 +143,24 @@ export default function YourVideos() {
                 />
             </div>
 
+            {/* Bulk action bar — shown when anything is selected */}
+            {selected.size > 0 && (
+                <div className="sticky top-0 z-10 mb-3 flex items-center gap-2 rounded-md border bg-background/90 backdrop-blur px-3 py-2 text-sm">
+                    <span className="font-medium">{selected.size} selected</span>
+                    <span className="flex-1" />
+                    <Button size="sm" variant="outline" disabled={bulkBusy} onClick={onBulkMakePublic}>
+                        <Globe className="h-3.5 w-3.5 mr-1" /> Make public
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={bulkBusy} onClick={onBulkMakePrivate}>
+                        <Lock className="h-3.5 w-3.5 mr-1" /> Make private
+                    </Button>
+                    <Button size="sm" variant="destructive" disabled={bulkBusy} onClick={onBulkDelete}>
+                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={clearSelection}>Cancel</Button>
+                </div>
+            )}
+
             {/* Table */}
             {loading ? (
                 <div className="space-y-3">
@@ -99,11 +183,35 @@ export default function YourVideos() {
                 </div>
             ) : (
                 <div className="divide-y divide-border">
+                    {/* Select-all header */}
+                    <div className="flex items-center gap-3 py-2 text-xs text-muted-foreground">
+                        <input
+                            type="checkbox"
+                            checked={allSelected}
+                            onChange={toggleAll}
+                            className="h-4 w-4 cursor-pointer"
+                            aria-label="Select all"
+                        />
+                        <span>{allSelected ? "Deselect all" : "Select all"}</span>
+                    </div>
                     {filtered.map((v) => {
                         const statusKey = (v as any).status ?? "Ready";
                         const status = STATUS_LABEL[statusKey] ?? { label: statusKey, color: "text-muted-foreground" };
+                        const isSelected = selected.has(v.id);
                         return (
-                            <div key={v.id} className="flex gap-4 py-3 group">
+                            <div
+                                key={v.id}
+                                className={`flex gap-4 py-3 group ${isSelected ? "bg-muted/30" : ""}`}
+                            >
+                                {/* Checkbox */}
+                                <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => toggleOne(v.id)}
+                                    className="self-center h-4 w-4 cursor-pointer shrink-0"
+                                    aria-label={`Select ${v.title}`}
+                                />
+
                                 {/* Thumbnail */}
                                 <Link to={`/watch?v=${v.id}`} className="shrink-0">
                                     <div className="relative rounded-xl overflow-hidden bg-muted" style={{ width: 160, height: 90 }}>

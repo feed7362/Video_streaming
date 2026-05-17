@@ -1,0 +1,21 @@
+{{- $components := list
+  (dict "name" "backend"   "cfg" .Values.backend)
+  (dict "name" "frontend"  "cfg" .Values.frontend)
+  (dict "name" "convertor" "cfg" .Values.convertor)
+-}}
+{{- range $components }}
+{{- if .cfg.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "video-streaming.fullname" $ }}-{{ .name }}
+  labels:
+    {{- include "video-streaming.labels" (dict "ctx" $ "component" .name) | nindent 4 }}
+spec:
+  minAvailable: {{ .cfg.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "video-streaming.selectorLabels" (dict "ctx" $ "component" .name) | nindent 6 }}
+{{- end }}
+{{- end }}

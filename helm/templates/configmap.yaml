@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "video-streaming.configMapName" . }}
+  labels:
+    {{- include "video-streaming.labels" (dict "ctx" .) | nindent 4 }}
+data:
+  {{- range $k, $v := .Values.config }}
+  {{ $k }}: {{ tpl $v $ | quote }}
+  {{- end }}

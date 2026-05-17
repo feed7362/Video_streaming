@@ -252,7 +252,8 @@ export interface SearchHintsResponse {
 
 export interface ApiErrorFieldIssue {
   field?: string;
-  loc?: (string | number)[];
+  // FastAPI emits loc as an array; this project's custom handler stringifies it.
+  loc?: (string | number)[] | string;
   message?: string;
   msg?: string;
   type?: string;

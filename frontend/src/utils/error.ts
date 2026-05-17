@@ -10,11 +10,14 @@ export interface ParsedApiError {
 
 function formatIssue(issue: ApiErrorFieldIssue): string {
   const msg = issue.message ?? issue.msg ?? "Invalid value";
-  const path =
-    issue.field ??
-    (Array.isArray(issue.loc)
-      ? issue.loc.filter((p) => p !== "body").join(".")
-      : "");
+  let path: string = issue.field ?? "";
+  if (!path && issue.loc !== undefined) {
+    if (Array.isArray(issue.loc)) {
+      path = issue.loc.filter((p) => p !== "body").join(".");
+    } else if (typeof issue.loc === "string") {
+      path = issue.loc.replace(/^body\.?/, "");
+    }
+  }
   return path ? `${path}: ${msg}` : msg;
 }
 

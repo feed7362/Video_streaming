@@ -1,0 +1,262 @@
+# =============================================================================
+# Defaults are sane for a single-cluster dev install on Docker Desktop/kind.
+# Production: override with `-f values.prod.yaml` and replace the inline secret
+# values with `secret.existingSecret` pointing at an ExternalSecret/SealedSecret.
+# =============================================================================
+
+# Use `--namespace` from the helm CLI; never override here. Kept only as a
+# fallback for environments that install without -n.
+# namespaceOverride: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+global:
+  imagePullSecrets: []
+  # If you publish to private GHCR:
+  # imagePullSecrets:
+  #   - name: ghcr-cred
+
+# -----------------------------------------------------------------------------
+# Image registry + tag — single source of truth. Per-service `image.repository`
+# and `image.tag` override when set.
+# -----------------------------------------------------------------------------
+image:
+  registry: ghcr.io/feed7362
+  pullPolicy: IfNotPresent
+  # Defaults to .Chart.AppVersion. Set explicitly here only to break the link.
+  tag: ""
+
+backend:
+  replicaCount: 1
+  image:
+    repository: video_streaming-bff
+  service:
+    port: 8000
+  resources:
+    limits: { cpu: "1500m", memory: "1Gi" }
+    requests: { cpu: "200m", memory: "256Mi" }
+  probes:
+    liveness:  { path: /api/health/live,  initialDelaySeconds: 10, periodSeconds: 15 }
+    readiness: { path: /api/health/ready, initialDelaySeconds: 5,  periodSeconds: 10 }
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 75
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: video_streaming-frontend
+  service:
+    port: 8001
+  resources:
+    limits: { cpu: "300m", memory: "128Mi" }
+    requests: { cpu: "50m",  memory: "32Mi" }
+  probes:
+    liveness:  { path: /, initialDelaySeconds: 5, periodSeconds: 30 }
+    readiness: { path: /, initialDelaySeconds: 2, periodSeconds: 10 }
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+
+convertor:
+  replicaCount: 1
+  image:
+    repository: video_streaming-ffmpeg
+  service:
+    port: 9102
+  resources:
+    limits:
+      cpu: "4"
+      memory: "4Gi"
+      nvidia.com/gpu: 1   # remove this line to run CPU-only
+    requests:
+      cpu: "1"
+      memory: "1Gi"
+  # Restrict scheduling to GPU nodes when GPU is requested. Override or remove
+  # nodeSelector if your cluster doesn't label GPU nodes.
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: "Exists"
+      effect: "NoSchedule"
+  probes:
+    liveness:  { path: /api/health/live, initialDelaySeconds: 20, periodSeconds: 30 }
+    readiness: { path: /api/health/live, initialDelaySeconds: 10, periodSeconds: 15 }
+  autoscaling:
+    enabled: false   # use KEDA + RabbitMQ scaler for queue-depth autoscale
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 0   # convertor is stateless and can drain freely
+
+# -----------------------------------------------------------------------------
+# ServiceAccount — created by default; one SA shared across our pods. Set
+# create=false and provide `name` to use an existing SA (e.g. with IRSA on EKS).
+# -----------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automount: true
+
+# -----------------------------------------------------------------------------
+# Shared non-secret configuration. Surfaced as a ConfigMap mounted via envFrom.
+# Values are tpl-rendered: `{{ .Release.Name }}` resolves to the release.
+# -----------------------------------------------------------------------------
+config:
+  POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB:   "video_db"
+  POSTGRES_USER: "video_user"
+
+  MINIO_ENDPOINT_URL: "http://{{ .Release.Name }}-minio:9000"
+  MINIO_REGION_NAME:  "us-east-1"
+  BUCKET_NAMES:       "videos,video-thumbnails,chunks"
+
+  RABBITMQ_HOST: "{{ .Release.Name }}-rabbitmq"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_USER: "user"
+
+  ELASTIC_HOST: "http://{{ .Release.Name }}-elasticsearch:9200"
+
+  REDIS_HOST: "{{ .Release.Name }}-redis-master"
+  REDIS_PORT: "6379"
+
+  VAULT_ADDR: "http://{{ .Release.Name }}-vault:8200"
+
+  CLUSTER_NAME: "video-cluster"
+
+# -----------------------------------------------------------------------------
+# Secrets — choose one mode:
+#   (A) `existingSecret: my-app-secret`  ← recommended for prod
+#   (B) leave `existingSecret` empty and set inline `data:` below; chart will
+#       template a Secret. Plaintext in values is fine for dev/CI only.
+# -----------------------------------------------------------------------------
+secret:
+  existingSecret: ""
+  data:
+    POSTGRES_PASSWORD: "video_pass"
+    MINIO_ROOT_USER: "admin"
+    MINIO_ROOT_PASSWORD: "minio-admin-please-rotate"
+    RABBITMQ_PASSWORD: "password"
+    ELASTIC_PASSWORD: "elastic-please-rotate"
+    VAULT_TOKEN: ""
+    JWT_SECRET: ""               # MUST be set in prod (≥32 chars). Empty = chart aborts.
+    GITHUB_CLIENT_ID: ""
+    GITHUB_CLIENT_SECRET: ""
+
+# -----------------------------------------------------------------------------
+# Database schema migrations. Pre-install/pre-upgrade Job runs `alembic upgrade head`.
+# -----------------------------------------------------------------------------
+migrations:
+  enabled: true
+  backoffLimit: 3
+  resources:
+    limits: { cpu: "500m", memory: "512Mi" }
+    requests: { cpu: "100m", memory: "128Mi" }
+
+# -----------------------------------------------------------------------------
+# Ingress — single host fronts everything via path routing, mirroring the
+# nginx gateway in docker-compose.
+# -----------------------------------------------------------------------------
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "1000m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+  hosts:
+    - host: video.local
+      paths:
+        - { path: /api,  pathType: Prefix, service: backend }
+        - { path: /docs, pathType: Prefix, service: backend }
+        - { path: /,     pathType: Prefix, service: frontend }
+  tls: []
+  # - secretName: video-tls
+  #   hosts: [ video.example.com ]
+
+# =============================================================================
+# Sub-chart overrides
+# =============================================================================
+postgresql:
+  auth:
+    existingSecret: ""
+    username: video_user
+    password: video_pass
+    database: video_db
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+
+minio:
+  auth:
+    rootUser: admin
+    rootPassword: minio-admin-please-rotate
+  defaultBuckets: "videos,video-thumbnails,chunks,ruler,admin"
+  persistence:
+    enabled: true
+    size: 20Gi
+  service:
+    ports: { api: 9000, console: 9001 }
+
+rabbitmq:
+  auth:
+    username: user
+    password: password
+  persistence:
+    enabled: true
+    size: 4Gi
+  service:
+    port: 5672
+    managerPort: 15672
+
+vault:
+  server:
+    dataStorage:
+      enabled: true
+      size: 4Gi
+    dev:
+      enabled: false
+
+grafana:
+  adminUser: admin
+  adminPassword: ""    # auto-generated by sub-chart and stored in its Secret
+  persistence: { enabled: true }
+
+prometheus:
+  alertmanager:
+    enabled: true
+  server:
+    persistentVolume: { enabled: true, size: 20Gi }
+
+loki:
+  storage:
+    type: s3
+    bucketNames: { chunks: chunks, ruler: ruler, admin: admin }
+    s3:
+      s3: minio
+      endpoint: "http://{{ .Release.Name }}-minio:9000"
+      accessKeyId: admin
+      secretAccessKey: minio-admin-please-rotate
+      insecure: true
+  persistence: { enabled: false }
+
+promtail:
+  config:
+    clients:
+      - url: "http://{{ .Release.Name }}-loki:3100/loki/api/v1/push"

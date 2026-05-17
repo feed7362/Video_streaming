@@ -11,7 +11,8 @@ repos:
 
       - id: check-yaml
         args: ["--allow-multiple-documents"]
-        exclude: '(^|/|\\)(\.venv|video-streaming)($|/)'
+        # Helm templates contain Go template syntax that isn't valid YAML.
+        exclude: '(^|/|\\)(\.venv|helm)($|/)'
 
       - id: check-added-large-files
         exclude: '(^|/|\\)\.venv($|/)'

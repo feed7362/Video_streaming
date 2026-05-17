@@ -1,10 +1,11 @@
 {{- if .Values.ingress.enabled -}}
+{{- $fullname := include "video-streaming.fullname" . -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "video-streaming.fullname" . }}
+  name: {{ $fullname }}
   labels:
-    {{- include "video-streaming.labels" . | nindent 4 }}
+    {{- include "video-streaming.labels" (dict "ctx" .) | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -13,9 +14,9 @@ spec:
   {{- with .Values.ingress.className }}
   ingressClassName: {{ . }}
   {{- end }}
-  {{- if .Values.ingress.tls }}
+  {{- with .Values.ingress.tls }}
   tls:
-    {{- range .Values.ingress.tls }}
+    {{- range . }}
     - hosts:
         {{- range .hosts }}
         - {{ . | quote }}
@@ -30,14 +31,13 @@ spec:
         paths:
           {{- range .paths }}
           - path: {{ .path }}
-            {{- with .pathType }}
-            pathType: {{ . }}
-            {{- end }}
+            pathType: {{ .pathType | default "Prefix" }}
             backend:
               service:
-                name: {{ include "video-streaming.fullname" $ }}
+                {{- $svc := .service | default "frontend" }}
+                name: {{ printf "%s-%s" $fullname $svc }}
                 port:
-                  number: {{ $.Values.service.port }}
+                  number: {{ index $.Values $svc "service" "port" }}
           {{- end }}
     {{- end }}
 {{- end }}

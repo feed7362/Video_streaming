@@ -1,0 +1,44 @@
+# Root-level dockerignore — applied to every build context that resolves through this dir.
+# Each service may have its own narrower .dockerignore which is also honored.
+
+# Source control & editors
+.git/
+.gitignore
+.gitattributes
+.idea/
+.vscode/
+*.swp
+
+# Local envs that never belong in any image
+.env
+.env.*
+!.env.example
+Docker/.env
+
+# Local Python / venv
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.venv/
+**/venv/
+
+# Node
+**/node_modules/
+**/dist/
+**/.vite/
+
+# Backend dist artifacts that get rebuilt anyway
+backend/**/*.egg-info/
+
+# Vault unseal keys (never ship into any image)
+vault/unseal-keys.env
+vault/unseal-keys.env.example
+
+# Logs and local runtime
+**/*.log
+**/logs/
+Docker/postgres/data/
+
+.buildx-cache/

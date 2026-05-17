@@ -51,11 +51,23 @@ apiClient.interceptors.response.use(
       console.log("fields:     ", parsed.fieldIssues);
     if (rid) console.log("request-id: ", rid);
     console.log("response:   ", error.response?.data);
+    const reqData = error.config?.data;
+    let dataPreview: unknown = reqData;
+    if (reqData instanceof FormData) {
+      // Chrome prints FormData as `{}`. Materialize entries so missing fields
+      // are obvious when the server says "Field required".
+      const entries: Record<string, unknown> = {};
+      for (const [k, v] of reqData.entries()) {
+        entries[k] =
+          v instanceof File ? `[File ${v.name} (${v.size}B, ${v.type})]` : v;
+      }
+      dataPreview = entries;
+    }
     console.log("request:    ", {
       url,
       method,
       params: error.config?.params,
-      data: error.config?.data,
+      data: dataPreview,
     });
     console.groupEnd();
 

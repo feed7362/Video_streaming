@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -13,14 +13,52 @@ from src.errors.comments import (
     ParentCommentVideoMismatchError,
 )
 from src.errors.videos import VideoNotFoundError
-from src.models import Comment, CommentReaction, Video
-from src.schemas.comments import to_comment_read
+from src.models import Channel, Comment, CommentReaction, Video
+from src.schemas.comments import to_comment_read, to_owner_comment_read
 from src.services.reactions import toggle_reaction
 
 
 class CommentService:
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    async def get_by_owner(
+        self,
+        owner_id: UUID,
+        page: int,
+        size: int,
+        video_id: UUID | None = None,
+    ):
+        """Comments on videos owned by `owner_id` — creator moderation view.
+
+        Not a global admin; only comments on the caller's channels.
+        Returns (items, total).
+        """
+        filters = [Channel.user_id == owner_id]
+        if video_id is not None:
+            filters.append(Comment.video_id == video_id)
+
+        count_stmt = (
+            select(func.count(Comment.id))
+            .join(Video, Video.id == Comment.video_id)
+            .join(Channel, Channel.id == Video.channel_id)
+            .where(*filters)
+        )
+        total = await self.session.scalar(count_stmt) or 0
+
+        stmt = (
+            select(Comment)
+            .join(Video, Video.id == Comment.video_id)
+            .join(Channel, Channel.id == Video.channel_id)
+            .where(*filters)
+            .options(selectinload(Comment.user), selectinload(Comment.video))
+            .order_by(Comment.created_at.desc())
+            .offset((page - 1) * size)
+            .limit(size)
+        )
+        result = await self.session.execute(stmt)
+        items = [to_owner_comment_read(c) for c in result.scalars().all()]
+        return items, total
 
     async def get_by_video(self, video_id: UUID, page: int, size: int):
         filters = [Comment.video_id == video_id, Comment.parent_id.is_(None)]
